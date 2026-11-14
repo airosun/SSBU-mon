@@ -1,0 +1,6396 @@
+[
+ {
+  "num": 1,
+  "id": "mario",
+  "name": "Mario",
+  "series": "Super Mario",
+  "types": [
+   "Normal",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 90,
+   "def": 80,
+   "spa": 85,
+   "spd": 80,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Super Mushroom",
+    "desc": "Once per battle, restores 25% HP when it falls below half."
+   }
+  ],
+  "hidden": {
+   "name": "Super Star",
+   "desc": "Immune to status conditions for its first 3 turns on the field."
+  },
+  "signature": [
+   {
+    "move": "Fire Punch",
+    "smash": "Fireball/Fwd Smash"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Super Jump Punch"
+   },
+   {
+    "move": "Water Pulse",
+    "smash": "F.L.U.D.D."
+   },
+   {
+    "move": "Magic Coat",
+    "smash": "Cape"
+   }
+  ],
+  "learnset": [
+   "Fire Punch",
+   "Sky Uppercut",
+   "Water Pulse",
+   "Magic Coat",
+   "Flamethrower",
+   "Fire Blast",
+   "Overheat",
+   "Hydro Pump",
+   "Body Slam",
+   "Double-Edge",
+   "Drain Punch",
+   "Mach Punch",
+   "Brick Break",
+   "Bulk Up",
+   "Will-O-Wisp",
+   "Protect",
+   "Substitute"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 2,
+  "id": "donkey-kong",
+  "name": "Donkey Kong",
+  "series": "Donkey Kong",
+  "types": [
+   "Fighting",
+   "Normal"
+  ],
+  "stats": {
+   "hp": 110,
+   "atk": 125,
+   "def": 95,
+   "spa": 50,
+   "spd": 75,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Giant Punch",
+    "desc": "Punching moves deal 1.2x damage (Iron Fist)."
+   }
+  ],
+  "hidden": {
+   "name": "Banana Hoard",
+   "desc": "Held Berries are eaten twice."
+  },
+  "signature": [
+   {
+    "move": "Focus Punch",
+    "smash": "Giant Punch"
+   },
+   {
+    "move": "Headbutt",
+    "smash": "Headbutt"
+   },
+   {
+    "move": "Earthquake",
+    "smash": "Hand Slap"
+   },
+   {
+    "move": "Rapid Spin",
+    "smash": "Spinning Kong"
+   }
+  ],
+  "learnset": [
+   "Focus Punch",
+   "Headbutt",
+   "Earthquake",
+   "Rapid Spin",
+   "Hammer Arm",
+   "Close Combat",
+   "Drain Punch",
+   "Mach Punch",
+   "Body Slam",
+   "Double-Edge",
+   "Bulk Up",
+   "Wood Hammer",
+   "Seed Bomb",
+   "Stone Edge",
+   "Body Press",
+   "Slack Off",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 3,
+  "id": "link",
+  "name": "Link",
+  "series": "The Legend of Zelda",
+  "types": [
+   "Steel",
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 100,
+   "def": 95,
+   "spa": 80,
+   "spd": 85,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Triforce of Courage",
+    "desc": "Attack rises 1 stage the first time HP drops below 1/3."
+   }
+  ],
+  "hidden": {
+   "name": "Hylian Shield",
+   "desc": "Immune to ball and bomb moves (Bulletproof)."
+  },
+  "signature": [
+   {
+    "move": "Sacred Sword",
+    "smash": "Master Sword"
+   },
+   {
+    "move": "Brutal Swing",
+    "smash": "Spin Attack"
+   },
+   {
+    "move": "Smart Strike",
+    "smash": "Bow & Arrow"
+   },
+   {
+    "move": "King's Shield",
+    "smash": "Hylian Shield"
+   }
+  ],
+  "learnset": [
+   "Sacred Sword",
+   "Brutal Swing",
+   "Smart Strike",
+   "King's Shield",
+   "Iron Head",
+   "Close Combat",
+   "Swords Dance",
+   "Aerial Ace",
+   "Leaf Blade",
+   "Magnet Bomb",
+   "Rock Slide",
+   "Flame Charge",
+   "Ice Spinner",
+   "Protect"
+  ],
+  "notes": "Breath of the Wild Link"
+ },
+ {
+  "num": 4,
+  "id": "samus",
+  "name": "Samus",
+  "series": "Metroid",
+  "types": [
+   "Steel",
+   "Electric"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 80,
+   "def": 105,
+   "spa": 105,
+   "spd": 90,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Varia Suit",
+    "desc": "Immune to burns; takes half damage from Fire moves."
+   }
+  ],
+  "hidden": {
+   "name": "Chozo Upgrade",
+   "desc": "Sp. Atk rises 1 stage each time it KOs a foe."
+  },
+  "signature": [
+   {
+    "move": "Flash Cannon",
+    "smash": "Charge Shot"
+   },
+   {
+    "move": "Ice Beam",
+    "smash": "Ice Beam"
+   },
+   {
+    "move": "Thunderbolt",
+    "smash": "Screw Attack"
+   },
+   {
+    "move": "Rock Blast",
+    "smash": "Missiles"
+   }
+  ],
+  "learnset": [
+   "Flash Cannon",
+   "Ice Beam",
+   "Thunderbolt",
+   "Rock Blast",
+   "Zap Cannon",
+   "Charge Beam",
+   "Thunder",
+   "Volt Switch",
+   "Blizzard",
+   "Flamethrower",
+   "Steel Beam",
+   "Iron Defense",
+   "Rapid Spin",
+   "Magnet Bomb",
+   "Protect",
+   "Substitute"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 5,
+  "id": "dark-samus",
+  "name": "Dark Samus",
+  "series": "Metroid",
+  "types": [
+   "Dark",
+   "Poison"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 75,
+   "def": 95,
+   "spa": 115,
+   "spd": 90,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Phazon Corruption",
+    "desc": "Contact may badly poison the attacker (30%)."
+   }
+  ],
+  "hidden": {
+   "name": "Phazon Overload",
+   "desc": "Its attacks may poison the target (Poison Touch)."
+  },
+  "signature": [
+   {
+    "move": "Dark Pulse",
+    "smash": "Charge Shot"
+   },
+   {
+    "move": "Sludge Wave",
+    "smash": "Phazon blast"
+   },
+   {
+    "move": "Ice Beam",
+    "smash": "Ice Beam"
+   },
+   {
+    "move": "Phantom Force",
+    "smash": "Dodge/phasing"
+   }
+  ],
+  "learnset": [
+   "Dark Pulse",
+   "Sludge Wave",
+   "Ice Beam",
+   "Phantom Force",
+   "Sludge Bomb",
+   "Toxic",
+   "Toxic Spikes",
+   "Shadow Ball",
+   "Thunderbolt",
+   "Nasty Plot",
+   "Hex",
+   "Flash Cannon",
+   "Night Daze",
+   "Pain Split",
+   "Protect"
+  ],
+  "notes": "Echo of Samus"
+ },
+ {
+  "num": 6,
+  "id": "yoshi",
+  "name": "Yoshi",
+  "series": "Yoshi",
+  "types": [
+   "Grass",
+   "Dragon"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 95,
+   "def": 85,
+   "spa": 70,
+   "spd": 75,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Flutter Jump",
+    "desc": "Unaffected by Spikes, Toxic Spikes and Sticky Web."
+   }
+  ],
+  "hidden": {
+   "name": "Gobble",
+   "desc": "Eats held Berries at half HP and restores an extra 1/8 HP."
+  },
+  "signature": [
+   {
+    "move": "Egg Bomb",
+    "smash": "Egg Throw"
+   },
+   {
+    "move": "Body Slam",
+    "smash": "Yoshi Bomb"
+   },
+   {
+    "move": "Rollout",
+    "smash": "Egg Roll"
+   },
+   {
+    "move": "Power Whip",
+    "smash": "Tongue/Egg Lay"
+   }
+  ],
+  "learnset": [
+   "Egg Bomb",
+   "Body Slam",
+   "Rollout",
+   "Power Whip",
+   "Dragon Claw",
+   "Outrage",
+   "Dragon Dance",
+   "Seed Bomb",
+   "Leaf Blade",
+   "Earthquake",
+   "Stomping Tantrum",
+   "Bounce",
+   "Soft-Boiled",
+   "Headbutt",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 7,
+  "id": "kirby",
+  "name": "Kirby",
+  "series": "Kirby",
+  "types": [
+   "Normal",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 85,
+   "def": 70,
+   "spa": 85,
+   "spd": 75,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Copy Ability",
+    "desc": "On switch-in, copies the foe's Ability (Trace)."
+   }
+  ],
+  "hidden": {
+   "name": "Warp Star",
+   "desc": "Immune to Ground moves (Levitate)."
+  },
+  "signature": [
+   {
+    "move": "Copycat",
+    "smash": "Inhale/Copy"
+   },
+   {
+    "move": "Hammer Arm",
+    "smash": "Hammer Flip"
+   },
+   {
+    "move": "Heavy Slam",
+    "smash": "Stone"
+   },
+   {
+    "move": "Sacred Sword",
+    "smash": "Final Cutter"
+   }
+  ],
+  "learnset": [
+   "Copycat",
+   "Hammer Arm",
+   "Heavy Slam",
+   "Sacred Sword",
+   "Flamethrower",
+   "Ice Beam",
+   "Thunderbolt",
+   "Aura Sphere",
+   "Air Slash",
+   "Play Rough",
+   "Body Slam",
+   "Swords Dance",
+   "Rest",
+   "Recover",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 8,
+  "id": "fox",
+  "name": "Fox",
+  "series": "Star Fox",
+  "types": [
+   "Normal",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 95,
+   "def": 65,
+   "spa": 85,
+   "spd": 65,
+   "spe": 125
+  },
+  "abilities": [
+   {
+    "name": "Reflector",
+    "desc": "Bounces back status moves aimed at it (Magic Bounce)."
+   }
+  ],
+  "hidden": {
+   "name": "Arwing Pilot",
+   "desc": "Flying moves get +1 priority at full HP (Gale Wings)."
+  },
+  "signature": [
+   {
+    "move": "Charge Beam",
+    "smash": "Blaster"
+   },
+   {
+    "move": "Quick Attack",
+    "smash": "Fox Illusion"
+   },
+   {
+    "move": "Flame Charge",
+    "smash": "Fire Fox"
+   },
+   {
+    "move": "Mirror Coat",
+    "smash": "Reflector"
+   }
+  ],
+  "learnset": [
+   "Charge Beam",
+   "Quick Attack",
+   "Flame Charge",
+   "Mirror Coat",
+   "Flash Cannon",
+   "Iron Head",
+   "Bullet Punch",
+   "Aerial Ace",
+   "U-turn",
+   "Fake Out",
+   "Agility",
+   "Double-Edge",
+   "Reflect",
+   "Light Screen",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 9,
+  "id": "pikachu",
+  "name": "Pikachu",
+  "series": "Pokémon",
+  "types": [
+   "Electric"
+  ],
+  "stats": {
+   "hp": 35,
+   "atk": 55,
+   "def": 40,
+   "spa": 50,
+   "spd": 50,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Static",
+    "desc": "Contact may paralyze the attacker (30%)."
+   }
+  ],
+  "hidden": {
+   "name": "Lightning Rod",
+   "desc": "Draws in Electric moves: immune to them and Sp. Atk rises 1 stage."
+  },
+  "signature": [
+   {
+    "move": "Thunderbolt",
+    "smash": "Thunder Jolt"
+   },
+   {
+    "move": "Skull Bash",
+    "smash": "Skull Bash"
+   },
+   {
+    "move": "Quick Attack",
+    "smash": "Quick Attack"
+   },
+   {
+    "move": "Thunder",
+    "smash": "Thunder"
+   }
+  ],
+  "learnset": [
+   "Thunderbolt",
+   "Skull Bash",
+   "Quick Attack",
+   "Thunder",
+   "Volt Tackle",
+   "Iron Tail",
+   "Thunder Punch",
+   "Volt Switch",
+   "Nuzzle",
+   "Thunder Wave",
+   "Surf",
+   "Agility",
+   "Fake Out",
+   "Extreme Speed",
+   "Play Rough",
+   "Nasty Plot",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities"
+ },
+ {
+  "num": 10,
+  "id": "luigi",
+  "name": "Luigi",
+  "series": "Super Mario",
+  "types": [
+   "Normal",
+   "Ghost"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 90,
+   "def": 75,
+   "spa": 90,
+   "spd": 80,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Poltergust",
+    "desc": "Immune to Ghost moves; being hit by one raises Sp. Atk."
+   }
+  ],
+  "hidden": {
+   "name": "Scaredy Cat",
+   "desc": "Speed rises when hit by Bug, Ghost or Dark moves (Rattled)."
+  },
+  "signature": [
+   {
+    "move": "Shadow Ball",
+    "smash": "Green Fireball"
+   },
+   {
+    "move": "Head Smash",
+    "smash": "Green Missile"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Super Jump Punch"
+   },
+   {
+    "move": "Rapid Spin",
+    "smash": "Luigi Cyclone"
+   }
+  ],
+  "learnset": [
+   "Shadow Ball",
+   "Head Smash",
+   "Sky Uppercut",
+   "Rapid Spin",
+   "Shadow Punch",
+   "Shadow Claw",
+   "Shadow Sneak",
+   "Hex",
+   "Will-O-Wisp",
+   "Poltergeist",
+   "Fire Punch",
+   "Thunder Punch",
+   "Drain Punch",
+   "Mach Punch",
+   "Pain Split",
+   "Substitute",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 11,
+  "id": "ness",
+  "name": "Ness",
+  "series": "EarthBound",
+  "types": [
+   "Psychic"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 80,
+   "def": 75,
+   "spa": 110,
+   "spd": 90,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Franklin Badge",
+    "desc": "Immune to Electric moves."
+   }
+  ],
+  "hidden": {
+   "name": "Mom's Cooking",
+   "desc": "Once per battle, restores 1/3 HP when below half."
+  },
+  "signature": [
+   {
+    "move": "Psychic",
+    "smash": "PK Flash"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "PK Fire"
+   },
+   {
+    "move": "Thunderbolt",
+    "smash": "PK Thunder"
+   },
+   {
+    "move": "Recover",
+    "smash": "PSI Magnet"
+   }
+  ],
+  "learnset": [
+   "Psychic",
+   "Flamethrower",
+   "Thunderbolt",
+   "Recover",
+   "Psyshock",
+   "Psybeam",
+   "Extrasensory",
+   "Fire Blast",
+   "Thunder",
+   "Meteor Beam",
+   "Calm Mind",
+   "Light Screen",
+   "Reflect",
+   "Hypnosis",
+   "Teleport",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 12,
+  "id": "captain-falcon",
+  "name": "Captain Falcon",
+  "series": "F-Zero",
+  "types": [
+   "Fighting",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 120,
+   "def": 75,
+   "spa": 60,
+   "spd": 70,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "Knee of Justice",
+    "desc": "Kicking moves have a raised critical-hit ratio."
+   }
+  ],
+  "hidden": {
+   "name": "Blue Falcon",
+   "desc": "Speed rises 1 stage on switch-in."
+  },
+  "signature": [
+   {
+    "move": "Focus Punch",
+    "smash": "Falcon Punch"
+   },
+   {
+    "move": "Blaze Kick",
+    "smash": "Falcon Kick"
+   },
+   {
+    "move": "High Jump Kick",
+    "smash": "Knee of Justice"
+   },
+   {
+    "move": "Flame Charge",
+    "smash": "Raptor Boost"
+   }
+  ],
+  "learnset": [
+   "Focus Punch",
+   "Blaze Kick",
+   "High Jump Kick",
+   "Flame Charge",
+   "Fire Punch",
+   "Thunder Punch",
+   "Close Combat",
+   "Mach Punch",
+   "Drain Punch",
+   "Flare Blitz",
+   "Brick Break",
+   "Quick Attack",
+   "Double-Edge",
+   "Bulk Up",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 13,
+  "id": "jigglypuff",
+  "name": "Jigglypuff",
+  "series": "Pokémon",
+  "types": [
+   "Normal",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 115,
+   "atk": 45,
+   "def": 20,
+   "spa": 45,
+   "spd": 25,
+   "spe": 20
+  },
+  "abilities": [
+   {
+    "name": "Cute Charm",
+    "desc": "Contact may infatuate the attacker (30%)."
+   }
+  ],
+  "hidden": {
+   "name": "Friend Guard",
+   "desc": "Takes 25% less damage while at full HP (singles version of Friend Guard)."
+  },
+  "signature": [
+   {
+    "move": "Rollout",
+    "smash": "Rollout"
+   },
+   {
+    "move": "Pound",
+    "smash": "Pound"
+   },
+   {
+    "move": "Sing",
+    "smash": "Sing"
+   },
+   {
+    "move": "Rest",
+    "smash": "Rest"
+   }
+  ],
+  "learnset": [
+   "Rollout",
+   "Pound",
+   "Sing",
+   "Rest",
+   "Body Slam",
+   "Double-Edge",
+   "Hyper Voice",
+   "Disarming Voice",
+   "Moonblast",
+   "Dazzling Gleam",
+   "Play Rough",
+   "Fire Blast",
+   "Ice Beam",
+   "Thunderbolt",
+   "Wish",
+   "Charm",
+   "Encore",
+   "Thunder Wave",
+   "Pain Split",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities"
+ },
+ {
+  "num": 14,
+  "id": "peach",
+  "name": "Peach",
+  "series": "Super Mario",
+  "types": [
+   "Fairy",
+   "Grass"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 80,
+   "def": 85,
+   "spa": 95,
+   "spd": 105,
+   "spe": 65
+  },
+  "abilities": [
+   {
+    "name": "Parasol Float",
+    "desc": "Immune to Ground moves (Levitate)."
+   }
+  ],
+  "hidden": {
+   "name": "Super Princess Vibe",
+   "desc": "Sp. Atk sharply rises when a stat is lowered (Competitive)."
+  },
+  "signature": [
+   {
+    "move": "Seed Bomb",
+    "smash": "Vegetable"
+   },
+   {
+    "move": "Play Rough",
+    "smash": "Peach Bomber"
+   },
+   {
+    "move": "Counter",
+    "smash": "Toad"
+   },
+   {
+    "move": "Wish",
+    "smash": "Peach Blossom"
+   }
+  ],
+  "learnset": [
+   "Seed Bomb",
+   "Play Rough",
+   "Counter",
+   "Wish",
+   "Moonblast",
+   "Dazzling Gleam",
+   "Draining Kiss",
+   "Giga Drain",
+   "Energy Ball",
+   "Psychic",
+   "Leech Seed",
+   "Sleep Powder",
+   "Aromatherapy",
+   "Synthesis",
+   "Calm Mind",
+   "Charm",
+   "Light Screen",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 15,
+  "id": "daisy",
+  "name": "Daisy",
+  "series": "Super Mario",
+  "types": [
+   "Grass",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 90,
+   "def": 85,
+   "spa": 85,
+   "spd": 100,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Sarasaland Pride",
+    "desc": "Foes can't lower its stats (Clear Body)."
+   }
+  ],
+  "hidden": {
+   "name": "Tomboy Princess",
+   "desc": "Attack sharply rises when a stat is lowered (Defiant)."
+  },
+  "signature": [
+   {
+    "move": "Seed Bomb",
+    "smash": "Vegetable"
+   },
+   {
+    "move": "Play Rough",
+    "smash": "Daisy Bomber"
+   },
+   {
+    "move": "Counter",
+    "smash": "Toad"
+   },
+   {
+    "move": "Petal Blizzard",
+    "smash": "Daisy Blossom"
+   }
+  ],
+  "learnset": [
+   "Seed Bomb",
+   "Play Rough",
+   "Counter",
+   "Petal Blizzard",
+   "Leaf Blade",
+   "Power Whip",
+   "Spirit Break",
+   "Drain Punch",
+   "Mach Punch",
+   "Fake Out",
+   "Swords Dance",
+   "Leech Seed",
+   "Synthesis",
+   "Aromatherapy",
+   "Protect"
+  ],
+  "notes": "Echo of Peach"
+ },
+ {
+  "num": 16,
+  "id": "bowser",
+  "name": "Bowser",
+  "series": "Super Mario",
+  "types": [
+   "Fire",
+   "Dragon"
+  ],
+  "stats": {
+   "hp": 120,
+   "atk": 125,
+   "def": 110,
+   "spa": 85,
+   "spd": 80,
+   "spe": 55
+  },
+  "abilities": [
+   {
+    "name": "Spiked Shell",
+    "desc": "Contact damages the attacker by 1/8 (Rough Skin)."
+   }
+  ],
+  "hidden": {
+   "name": "Giga Bowser",
+   "desc": "Once below half HP, Attack and Defense rise 1 stage."
+  },
+  "signature": [
+   {
+    "move": "Flamethrower",
+    "smash": "Fire Breath"
+   },
+   {
+    "move": "Heavy Slam",
+    "smash": "Bowser Bomb"
+   },
+   {
+    "move": "Dragon Claw",
+    "smash": "Claw swipes"
+   },
+   {
+    "move": "Rapid Spin",
+    "smash": "Whirling Fortress"
+   }
+  ],
+  "learnset": [
+   "Flamethrower",
+   "Heavy Slam",
+   "Dragon Claw",
+   "Rapid Spin",
+   "Fire Blast",
+   "Flare Blitz",
+   "Fire Fang",
+   "Fire Punch",
+   "Outrage",
+   "Draco Meteor",
+   "Dragon Dance",
+   "Dragon Tail",
+   "Earthquake",
+   "Crunch",
+   "Body Slam",
+   "Shell Smash",
+   "Iron Defense",
+   "Will-O-Wisp",
+   "Roar",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 17,
+  "id": "ice-climbers",
+  "name": "Ice Climbers",
+  "series": "Ice Climber",
+  "types": [
+   "Ice",
+   "Rock"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 95,
+   "def": 85,
+   "spa": 80,
+   "spd": 80,
+   "spe": 65
+  },
+  "abilities": [
+   {
+    "name": "Popo & Nana",
+    "desc": "Attacks hit twice; second hit at 25% power (Parental Bond)."
+   }
+  ],
+  "hidden": {
+   "name": "Eggplant Harvest",
+   "desc": "Restores 1/16 HP each turn in snow (Ice Body)."
+  },
+  "signature": [
+   {
+    "move": "Ice Shard",
+    "smash": "Ice Shot"
+   },
+   {
+    "move": "Ice Hammer",
+    "smash": "Hammers"
+   },
+   {
+    "move": "Blizzard",
+    "smash": "Blizzard"
+   },
+   {
+    "move": "Ice Spinner",
+    "smash": "Squall Hammer"
+   }
+  ],
+  "learnset": [
+   "Ice Shard",
+   "Ice Hammer",
+   "Blizzard",
+   "Ice Spinner",
+   "Icicle Crash",
+   "Ice Punch",
+   "Freeze-Dry",
+   "Icy Wind",
+   "Hammer Arm",
+   "Rock Slide",
+   "Stone Edge",
+   "Rock Tomb",
+   "Stealth Rock",
+   "Snowscape",
+   "Swords Dance",
+   "Protect"
+  ],
+  "notes": "Kept as one duo (both climbers fight together)"
+ },
+ {
+  "num": 18,
+  "id": "sheik",
+  "name": "Sheik",
+  "series": "The Legend of Zelda",
+  "types": [
+   "Psychic",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 100,
+   "def": 65,
+   "spa": 80,
+   "spd": 70,
+   "spe": 125
+  },
+  "abilities": [
+   {
+    "name": "Sheikah Stealth",
+    "desc": "Its first move after switching in gets +1 priority."
+   }
+  ],
+  "hidden": {
+   "name": "Harp of the Sheikah",
+   "desc": "Heals status conditions when it switches out (Natural Cure)."
+  },
+  "signature": [
+   {
+    "move": "Psycho Cut",
+    "smash": "Sheikah blade"
+   },
+   {
+    "move": "Knock Off",
+    "smash": "Burst Grenade"
+   },
+   {
+    "move": "Pin Missile",
+    "smash": "Needle Storm"
+   },
+   {
+    "move": "U-turn",
+    "smash": "Vanish"
+   }
+  ],
+  "learnset": [
+   "Psycho Cut",
+   "Knock Off",
+   "Pin Missile",
+   "U-turn",
+   "Night Slash",
+   "Sucker Punch",
+   "Shadow Sneak",
+   "High Jump Kick",
+   "Triple Kick",
+   "Bounce",
+   "Spikes",
+   "Taunt",
+   "Swords Dance",
+   "Teleport",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 19,
+  "id": "zelda",
+  "name": "Zelda",
+  "series": "The Legend of Zelda",
+  "types": [
+   "Psychic",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 60,
+   "def": 80,
+   "spa": 120,
+   "spd": 115,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Triforce of Wisdom",
+    "desc": "Takes 25% less damage from super-effective moves (Filter)."
+   }
+  ],
+  "hidden": {
+   "name": "Phantom Guardian",
+   "desc": "Sets Reflect for 3 turns on switch-in."
+  },
+  "signature": [
+   {
+    "move": "Psychic",
+    "smash": "Phantom Slash"
+   },
+   {
+    "move": "Moonblast",
+    "smash": "Light Arrow"
+   },
+   {
+    "move": "Mystical Fire",
+    "smash": "Din's Fire"
+   },
+   {
+    "move": "Reflect",
+    "smash": "Nayru's Love"
+   }
+  ],
+  "learnset": [
+   "Psychic",
+   "Moonblast",
+   "Mystical Fire",
+   "Reflect",
+   "Psyshock",
+   "Future Sight",
+   "Dazzling Gleam",
+   "Shadow Ball",
+   "Fire Blast",
+   "Calm Mind",
+   "Light Screen",
+   "Moonlight",
+   "Magic Coat",
+   "Trick Room",
+   "Teleport",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 20,
+  "id": "dr-mario",
+  "name": "Dr. Mario",
+  "series": "Super Mario",
+  "types": [
+   "Normal",
+   "Poison"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 95,
+   "def": 80,
+   "spa": 90,
+   "spd": 80,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Bedside Manner",
+    "desc": "30% chance to cure its own status each turn (Shed Skin)."
+   }
+  ],
+  "hidden": {
+   "name": "Prescription",
+   "desc": "Healing moves restore 50% more HP."
+  },
+  "signature": [
+   {
+    "move": "Tri Attack",
+    "smash": "Megavitamins"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Super Jump Punch"
+   },
+   {
+    "move": "Zen Headbutt",
+    "smash": "Up Smash"
+   },
+   {
+    "move": "Recover",
+    "smash": "Super Sheet"
+   }
+  ],
+  "learnset": [
+   "Tri Attack",
+   "Sky Uppercut",
+   "Zen Headbutt",
+   "Recover",
+   "Sludge Bomb",
+   "Poison Jab",
+   "Toxic",
+   "Body Slam",
+   "Fire Punch",
+   "Drain Punch",
+   "Mach Punch",
+   "Hypnosis",
+   "Aromatherapy",
+   "Wish",
+   "Pain Split",
+   "Rapid Spin",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 21,
+  "id": "pichu",
+  "name": "Pichu",
+  "series": "Pokémon",
+  "types": [
+   "Electric"
+  ],
+  "stats": {
+   "hp": 20,
+   "atk": 40,
+   "def": 15,
+   "spa": 35,
+   "spd": 35,
+   "spe": 60
+  },
+  "abilities": [
+   {
+    "name": "Static",
+    "desc": "Contact may paralyze the attacker (30%)."
+   }
+  ],
+  "hidden": {
+   "name": "Lightning Rod",
+   "desc": "Draws in Electric moves: immune to them and Sp. Atk rises 1 stage."
+  },
+  "signature": [
+   {
+    "move": "Thunderbolt",
+    "smash": "Thunder Jolt"
+   },
+   {
+    "move": "Skull Bash",
+    "smash": "Skull Bash"
+   },
+   {
+    "move": "Quick Attack",
+    "smash": "Agility"
+   },
+   {
+    "move": "Thunder",
+    "smash": "Thunder"
+   }
+  ],
+  "learnset": [
+   "Thunderbolt",
+   "Skull Bash",
+   "Quick Attack",
+   "Thunder",
+   "Volt Tackle",
+   "Thunder Punch",
+   "Nuzzle",
+   "Volt Switch",
+   "Thunder Wave",
+   "Iron Tail",
+   "Fake Out",
+   "Agility",
+   "Charm",
+   "Nasty Plot",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities"
+ },
+ {
+  "num": 22,
+  "id": "falco",
+  "name": "Falco",
+  "series": "Star Fox",
+  "types": [
+   "Normal",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 100,
+   "def": 65,
+   "spa": 80,
+   "spd": 65,
+   "spe": 115
+  },
+  "abilities": [
+   {
+    "name": "Ace Pilot",
+    "desc": "Flying moves deal 1.2x damage."
+   }
+  ],
+  "hidden": {
+   "name": "Hotshot",
+   "desc": "Takes no recoil damage (Rock Head)."
+  },
+  "signature": [
+   {
+    "move": "Brave Bird",
+    "smash": "Fire Bird"
+   },
+   {
+    "move": "Aerial Ace",
+    "smash": "Falco Phantasm"
+   },
+   {
+    "move": "Charge Beam",
+    "smash": "Blaster"
+   },
+   {
+    "move": "Mirror Coat",
+    "smash": "Reflector"
+   }
+  ],
+  "learnset": [
+   "Brave Bird",
+   "Aerial Ace",
+   "Charge Beam",
+   "Mirror Coat",
+   "Drill Peck",
+   "Dual Wingbeat",
+   "Double-Edge",
+   "U-turn",
+   "Quick Attack",
+   "Roost",
+   "Tailwind",
+   "Defog",
+   "Reflect",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 23,
+  "id": "marth",
+  "name": "Marth",
+  "series": "Fire Emblem",
+  "types": [
+   "Fairy",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 105,
+   "def": 80,
+   "spa": 70,
+   "spd": 80,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "Tipper",
+    "desc": "Raised critical-hit ratio (Super Luck)."
+   }
+  ],
+  "hidden": {
+   "name": "Falchion",
+   "desc": "Deals 1.5x damage to Dragon types."
+  },
+  "signature": [
+   {
+    "move": "Sacred Sword",
+    "smash": "Shield Breaker"
+   },
+   {
+    "move": "Smart Strike",
+    "smash": "Dancing Blade"
+   },
+   {
+    "move": "Spirit Break",
+    "smash": "Dolphin Slash"
+   },
+   {
+    "move": "Counter",
+    "smash": "Counter"
+   }
+  ],
+  "learnset": [
+   "Sacred Sword",
+   "Smart Strike",
+   "Spirit Break",
+   "Counter",
+   "Swords Dance",
+   "Iron Head",
+   "Play Rough",
+   "Aqua Jet",
+   "Aerial Ace",
+   "Brick Break",
+   "Quick Attack",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 24,
+  "id": "lucina",
+  "name": "Lucina",
+  "series": "Fire Emblem",
+  "types": [
+   "Fairy",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 100,
+   "def": 80,
+   "spa": 75,
+   "spd": 85,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "Masked Marth",
+    "desc": "Enters battle disguised as the last party member (Illusion)."
+   }
+  ],
+  "hidden": {
+   "name": "Defy Fate",
+   "desc": "Once per battle, survives a KO hit with 1 HP."
+  },
+  "signature": [
+   {
+    "move": "Sacred Sword",
+    "smash": "Shield Breaker"
+   },
+   {
+    "move": "Spirit Break",
+    "smash": "Dolphin Slash"
+   },
+   {
+    "move": "Future Sight",
+    "smash": "Time travel"
+   },
+   {
+    "move": "Counter",
+    "smash": "Counter"
+   }
+  ],
+  "learnset": [
+   "Sacred Sword",
+   "Spirit Break",
+   "Future Sight",
+   "Counter",
+   "Swords Dance",
+   "Iron Head",
+   "Smart Strike",
+   "Play Rough",
+   "Aqua Jet",
+   "Psycho Cut",
+   "Aerial Ace",
+   "Quick Attack",
+   "Protect"
+  ],
+  "notes": "Echo of Marth"
+ },
+ {
+  "num": 25,
+  "id": "young-link",
+  "name": "Young Link",
+  "series": "The Legend of Zelda",
+  "types": [
+   "Grass",
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 95,
+   "def": 80,
+   "spa": 80,
+   "spd": 75,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "Navi",
+    "desc": "Reveals the foe's held item on switch-in (Frisk)."
+   }
+  ],
+  "hidden": {
+   "name": "Fierce Deity",
+   "desc": "Once below 1/3 HP, Attack and Speed rise 1 stage."
+  },
+  "signature": [
+   {
+    "move": "Leaf Blade",
+    "smash": "Kokiri Sword"
+   },
+   {
+    "move": "Brutal Swing",
+    "smash": "Spin Attack"
+   },
+   {
+    "move": "Flame Charge",
+    "smash": "Fire Arrow"
+   },
+   {
+    "move": "Spirit Shackle",
+    "smash": "Majora's Mask"
+   }
+  ],
+  "learnset": [
+   "Leaf Blade",
+   "Brutal Swing",
+   "Flame Charge",
+   "Spirit Shackle",
+   "Sacred Sword",
+   "Close Combat",
+   "Swords Dance",
+   "Seed Bomb",
+   "Bullet Seed",
+   "Aerial Ace",
+   "Magnet Bomb",
+   "Shadow Sneak",
+   "Sing",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 26,
+  "id": "ganondorf",
+  "name": "Ganondorf",
+  "series": "The Legend of Zelda",
+  "types": [
+   "Dark",
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 115,
+   "atk": 130,
+   "def": 100,
+   "spa": 90,
+   "spd": 80,
+   "spe": 45
+  },
+  "abilities": [
+   {
+    "name": "Triforce of Power",
+    "desc": "Contact moves deal 1.3x damage (Tough Claws)."
+   }
+  ],
+  "hidden": {
+   "name": "Calamity",
+   "desc": "Attack doubles while below half HP."
+  },
+  "signature": [
+   {
+    "move": "Focus Punch",
+    "smash": "Warlock Punch"
+   },
+   {
+    "move": "Throat Chop",
+    "smash": "Flame Choke"
+   },
+   {
+    "move": "Blaze Kick",
+    "smash": "Wizard's Foot"
+   },
+   {
+    "move": "Bulk Up",
+    "smash": "Taunt"
+   }
+  ],
+  "learnset": [
+   "Focus Punch",
+   "Throat Chop",
+   "Blaze Kick",
+   "Bulk Up",
+   "Close Combat",
+   "Drain Punch",
+   "Knock Off",
+   "Sucker Punch",
+   "Night Slash",
+   "Dark Pulse",
+   "Fire Punch",
+   "Thunder Punch",
+   "Sacred Sword",
+   "Earthquake",
+   "Swords Dance",
+   "Nasty Plot",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 27,
+  "id": "mewtwo",
+  "name": "Mewtwo",
+  "series": "Pokémon",
+  "types": [
+   "Psychic"
+  ],
+  "stats": {
+   "hp": 106,
+   "atk": 110,
+   "def": 90,
+   "spa": 154,
+   "spd": 90,
+   "spe": 130
+  },
+  "abilities": [
+   {
+    "name": "Pressure",
+    "desc": "Foes use 2 PP per move against it."
+   }
+  ],
+  "hidden": {
+   "name": "Unnerve",
+   "desc": "Foes can't eat Berries."
+  },
+  "signature": [
+   {
+    "move": "Psystrike",
+    "smash": "Psystrike"
+   },
+   {
+    "move": "Shadow Ball",
+    "smash": "Shadow Ball"
+   },
+   {
+    "move": "Disable",
+    "smash": "Disable"
+   },
+   {
+    "move": "Teleport",
+    "smash": "Teleport"
+   }
+  ],
+  "learnset": [
+   "Psystrike",
+   "Shadow Ball",
+   "Disable",
+   "Teleport",
+   "Psychic",
+   "Psyshock",
+   "Aura Sphere",
+   "Focus Blast",
+   "Ice Beam",
+   "Thunderbolt",
+   "Fire Blast",
+   "Calm Mind",
+   "Nasty Plot",
+   "Recover",
+   "Future Sight",
+   "Will-O-Wisp",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities"
+ },
+ {
+  "num": 28,
+  "id": "roy",
+  "name": "Roy",
+  "series": "Fire Emblem",
+  "types": [
+   "Fire",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 110,
+   "def": 80,
+   "spa": 70,
+   "spd": 70,
+   "spe": 95
+  },
+  "abilities": [
+   {
+    "name": "Young Lion",
+    "desc": "Attack rises 1 stage after a KO (Moxie)."
+   }
+  ],
+  "hidden": {
+   "name": "Sword of Seals",
+   "desc": "Fire moves ignore screens and defensive abilities."
+  },
+  "signature": [
+   {
+    "move": "Flare Blitz",
+    "smash": "Flare Blade"
+   },
+   {
+    "move": "Iron Head",
+    "smash": "Double-Edge Dance"
+   },
+   {
+    "move": "Flame Charge",
+    "smash": "Blazer"
+   },
+   {
+    "move": "Counter",
+    "smash": "Counter"
+   }
+  ],
+  "learnset": [
+   "Flare Blitz",
+   "Iron Head",
+   "Flame Charge",
+   "Counter",
+   "Sacred Sword",
+   "Smart Strike",
+   "Close Combat",
+   "Fire Fang",
+   "Swords Dance",
+   "Quick Attack",
+   "Will-O-Wisp",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 29,
+  "id": "chrom",
+  "name": "Chrom",
+  "series": "Fire Emblem",
+  "types": [
+   "Steel",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 110,
+   "def": 85,
+   "spa": 65,
+   "spd": 75,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Exalted Blood",
+    "desc": "Can't be hit by critical hits (Battle Armor)."
+   }
+  ],
+  "hidden": {
+   "name": "Awakening",
+   "desc": "Speed rises 1 stage once below half HP."
+  },
+  "signature": [
+   {
+    "move": "Iron Head",
+    "smash": "Falchion"
+   },
+   {
+    "move": "Flare Blitz",
+    "smash": "Soaring Slash"
+   },
+   {
+    "move": "Sacred Sword",
+    "smash": "Double-Edge Dance"
+   },
+   {
+    "move": "Counter",
+    "smash": "Counter"
+   }
+  ],
+  "learnset": [
+   "Iron Head",
+   "Flare Blitz",
+   "Sacred Sword",
+   "Counter",
+   "Smart Strike",
+   "Swords Dance",
+   "Close Combat",
+   "Aerial Ace",
+   "Fire Punch",
+   "Bulk Up",
+   "Quick Attack",
+   "Protect"
+  ],
+  "notes": "Echo of Roy"
+ },
+ {
+  "num": 30,
+  "id": "mr-game-and-watch",
+  "name": "Mr. Game & Watch",
+  "series": "Game & Watch",
+  "types": [
+   "Normal"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 90,
+   "def": 70,
+   "spa": 90,
+   "spd": 70,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Judge",
+    "desc": "Each turn one random stat rises and another falls (Moody)."
+   }
+  ],
+  "hidden": {
+   "name": "Flat Form",
+   "desc": "Survives a KO hit from full HP with 1 HP (Sturdy)."
+  },
+  "signature": [
+   {
+    "move": "Metronome",
+    "smash": "Judge"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "Chef"
+   },
+   {
+    "move": "Bounce",
+    "smash": "Fire"
+   },
+   {
+    "move": "Mirror Coat",
+    "smash": "Oil Panic"
+   }
+  ],
+  "learnset": [
+   "Metronome",
+   "Flamethrower",
+   "Bounce",
+   "Mirror Coat",
+   "Body Slam",
+   "Double-Edge",
+   "Hammer Arm",
+   "Fling",
+   "Quick Attack",
+   "Night Shade",
+   "Explosion",
+   "Encore",
+   "Substitute",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 31,
+  "id": "meta-knight",
+  "name": "Meta Knight",
+  "series": "Kirby",
+  "types": [
+   "Steel",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 105,
+   "def": 75,
+   "spa": 70,
+   "spd": 70,
+   "spe": 120
+  },
+  "abilities": [
+   {
+    "name": "Galaxia",
+    "desc": "Slicing moves deal 1.5x damage (Sharpness)."
+   }
+  ],
+  "hidden": {
+   "name": "Mask of Mystery",
+   "desc": "The first hit it takes deals no damage (Disguise)."
+  },
+  "signature": [
+   {
+    "move": "Smart Strike",
+    "smash": "Galaxia"
+   },
+   {
+    "move": "Drill Run",
+    "smash": "Drill Rush"
+   },
+   {
+    "move": "Brave Bird",
+    "smash": "Shuttle Loop"
+   },
+   {
+    "move": "Phantom Force",
+    "smash": "Dimensional Cape"
+   }
+  ],
+  "learnset": [
+   "Smart Strike",
+   "Drill Run",
+   "Brave Bird",
+   "Phantom Force",
+   "Swords Dance",
+   "Aerial Ace",
+   "Dual Wingbeat",
+   "Night Slash",
+   "Iron Head",
+   "Sacred Sword",
+   "X-Scissor",
+   "Shadow Sneak",
+   "Quick Attack",
+   "U-turn",
+   "Roost",
+   "Tailwind",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 32,
+  "id": "pit",
+  "name": "Pit",
+  "series": "Kid Icarus",
+  "types": [
+   "Flying",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 95,
+   "def": 80,
+   "spa": 85,
+   "spd": 80,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Blessing of Palutena",
+    "desc": "Flying moves deal 1.2x damage."
+   }
+  ],
+  "hidden": {
+   "name": "Three Sacred Treasures",
+   "desc": "Once below 1/3 HP, Attack, Defense and Sp. Def rise 1 stage."
+  },
+  "signature": [
+   {
+    "move": "Fly",
+    "smash": "Power of Flight"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Upperdash Arm"
+   },
+   {
+    "move": "Play Rough",
+    "smash": "Palutena Bow"
+   },
+   {
+    "move": "Mirror Coat",
+    "smash": "Guardian Orbitars"
+   }
+  ],
+  "learnset": [
+   "Fly",
+   "Sky Uppercut",
+   "Play Rough",
+   "Mirror Coat",
+   "Brave Bird",
+   "Dual Wingbeat",
+   "Aerial Ace",
+   "Air Slash",
+   "Spirit Break",
+   "Dazzling Gleam",
+   "Sacred Sword",
+   "Swords Dance",
+   "U-turn",
+   "Roost",
+   "Tailwind",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 33,
+  "id": "dark-pit",
+  "name": "Dark Pit",
+  "series": "Kid Icarus",
+  "types": [
+   "Dark",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 100,
+   "def": 80,
+   "spa": 80,
+   "spd": 75,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Mirror of Truth",
+    "desc": "Copies the foe's stat boosts on switch-in."
+   }
+  ],
+  "hidden": {
+   "name": "Pittoo Attitude",
+   "desc": "Immune to Intimidate and Taunt (Oblivious)."
+  },
+  "signature": [
+   {
+    "move": "Brave Bird",
+    "smash": "Power of Flight"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Electroshock Arm"
+   },
+   {
+    "move": "Night Slash",
+    "smash": "Silver Bow"
+   },
+   {
+    "move": "Mirror Coat",
+    "smash": "Guardian Orbitars"
+   }
+  ],
+  "learnset": [
+   "Brave Bird",
+   "Sky Uppercut",
+   "Night Slash",
+   "Mirror Coat",
+   "Dual Wingbeat",
+   "Aerial Ace",
+   "Fly",
+   "Air Slash",
+   "Knock Off",
+   "Sucker Punch",
+   "Dark Pulse",
+   "Swords Dance",
+   "U-turn",
+   "Roost",
+   "Protect"
+  ],
+  "notes": "Echo of Pit"
+ },
+ {
+  "num": 34,
+  "id": "zero-suit-samus",
+  "name": "Zero Suit Samus",
+  "series": "Metroid",
+  "types": [
+   "Electric",
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 100,
+   "def": 65,
+   "spa": 85,
+   "spd": 65,
+   "spe": 125
+  },
+  "abilities": [
+   {
+    "name": "Paralyzer",
+    "desc": "Contact may paralyze the attacker (Static)."
+   }
+  ],
+  "hidden": {
+   "name": "Suitless",
+   "desc": "Speed doubles after losing its held item (Unburden)."
+  },
+  "signature": [
+   {
+    "move": "Nuzzle",
+    "smash": "Paralyzer"
+   },
+   {
+    "move": "Wild Charge",
+    "smash": "Plasma Whip"
+   },
+   {
+    "move": "High Jump Kick",
+    "smash": "Boost Kick"
+   },
+   {
+    "move": "Bounce",
+    "smash": "Flip Jump"
+   }
+  ],
+  "learnset": [
+   "Nuzzle",
+   "Wild Charge",
+   "High Jump Kick",
+   "Bounce",
+   "Thunder Punch",
+   "Zing Zap",
+   "Triple Kick",
+   "Close Combat",
+   "Thunderbolt",
+   "Volt Switch",
+   "Thunder Wave",
+   "U-turn",
+   "Agility",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 35,
+  "id": "wario",
+  "name": "Wario",
+  "series": "WarioWare",
+  "types": [
+   "Poison",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 105,
+   "atk": 100,
+   "def": 95,
+   "spa": 75,
+   "spd": 85,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Treasure Greed",
+    "desc": "Steals the attacker's item when hit by contact (Pickpocket)."
+   }
+  ],
+  "hidden": {
+   "name": "Garlic Gobbler",
+   "desc": "Eats held Berries at half HP and restores an extra 1/8 HP."
+  },
+  "signature": [
+   {
+    "move": "Crunch",
+    "smash": "Chomp"
+   },
+   {
+    "move": "Gunk Shot",
+    "smash": "Wario Waft"
+   },
+   {
+    "move": "Headlong Rush",
+    "smash": "Wario Bike"
+   },
+   {
+    "move": "Thief",
+    "smash": "Greed"
+   }
+  ],
+  "learnset": [
+   "Crunch",
+   "Gunk Shot",
+   "Headlong Rush",
+   "Thief",
+   "Poison Jab",
+   "Poison Fang",
+   "Sludge Bomb",
+   "Toxic",
+   "Knock Off",
+   "Sucker Punch",
+   "Body Slam",
+   "Double-Edge",
+   "Earthquake",
+   "Fake Out",
+   "Slack Off",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 36,
+  "id": "snake",
+  "name": "Snake",
+  "series": "Metal Gear",
+  "types": [
+   "Fighting",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 105,
+   "def": 95,
+   "spa": 95,
+   "spd": 85,
+   "spe": 65
+  },
+  "abilities": [
+   {
+    "name": "Sneaking Mission",
+    "desc": "Moves bypass Substitute and screens (Infiltrator)."
+   }
+  ],
+  "hidden": {
+   "name": "Cardboard Box",
+   "desc": "Substitute costs only 1/8 HP."
+  },
+  "signature": [
+   {
+    "move": "Circle Throw",
+    "smash": "CQC"
+   },
+   {
+    "move": "Magnet Bomb",
+    "smash": "Hand Grenade"
+   },
+   {
+    "move": "Sucker Punch",
+    "smash": "Nikita/C4 ambush"
+   },
+   {
+    "move": "Substitute",
+    "smash": "Cardboard Box"
+   }
+  ],
+  "learnset": [
+   "Circle Throw",
+   "Magnet Bomb",
+   "Sucker Punch",
+   "Substitute",
+   "Close Combat",
+   "Drain Punch",
+   "Mach Punch",
+   "Bullet Punch",
+   "Iron Head",
+   "Rock Blast",
+   "Spikes",
+   "Bulk Up",
+   "Taunt",
+   "U-turn",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 37,
+  "id": "ike",
+  "name": "Ike",
+  "series": "Fire Emblem",
+  "types": [
+   "Fighting",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 105,
+   "atk": 120,
+   "def": 95,
+   "spa": 60,
+   "spd": 75,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Fight for My Friends",
+    "desc": "Attack is 1.5x while below 1/3 HP."
+   }
+  ],
+  "hidden": {
+   "name": "Great Aether",
+   "desc": "Heals 1/4 of the damage dealt by its attacks."
+  },
+  "signature": [
+   {
+    "move": "Sacred Sword",
+    "smash": "Ragnell"
+   },
+   {
+    "move": "Flare Blitz",
+    "smash": "Eruption"
+   },
+   {
+    "move": "Quick Attack",
+    "smash": "Quick Draw"
+   },
+   {
+    "move": "Counter",
+    "smash": "Counter"
+   }
+  ],
+  "learnset": [
+   "Sacred Sword",
+   "Flare Blitz",
+   "Quick Attack",
+   "Counter",
+   "Close Combat",
+   "Fire Punch",
+   "Brick Break",
+   "Iron Head",
+   "Earthquake",
+   "Double-Edge",
+   "Swords Dance",
+   "Bulk Up",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 38,
+  "id": "squirtle",
+  "name": "Squirtle",
+  "series": "Pokémon",
+  "types": [
+   "Water"
+  ],
+  "stats": {
+   "hp": 44,
+   "atk": 48,
+   "def": 65,
+   "spa": 50,
+   "spd": 64,
+   "spe": 43
+  },
+  "abilities": [
+   {
+    "name": "Torrent",
+    "desc": "Water moves deal 1.5x damage at 1/3 HP or less."
+   }
+  ],
+  "hidden": {
+   "name": "Rain Dish",
+   "desc": "Restores 1/16 HP each turn in rain."
+  },
+  "signature": [
+   {
+    "move": "Water Gun",
+    "smash": "Water Gun"
+   },
+   {
+    "move": "Withdraw",
+    "smash": "Shell Shift"
+   },
+   {
+    "move": "Waterfall",
+    "smash": "Waterfall"
+   },
+   {
+    "move": "Hydro Pump",
+    "smash": "Triple Finish"
+   }
+  ],
+  "learnset": [
+   "Water Gun",
+   "Withdraw",
+   "Waterfall",
+   "Hydro Pump",
+   "Water Pulse",
+   "Scald",
+   "Surf",
+   "Ice Beam",
+   "Aqua Jet",
+   "Aqua Tail",
+   "Bite",
+   "Rapid Spin",
+   "Shell Smash",
+   "Rain Dance",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split"
+ },
+ {
+  "num": 39,
+  "id": "ivysaur",
+  "name": "Ivysaur",
+  "series": "Pokémon",
+  "types": [
+   "Grass",
+   "Poison"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 62,
+   "def": 63,
+   "spa": 80,
+   "spd": 80,
+   "spe": 60
+  },
+  "abilities": [
+   {
+    "name": "Overgrow",
+    "desc": "Grass moves deal 1.5x damage at 1/3 HP or less."
+   }
+  ],
+  "hidden": {
+   "name": "Chlorophyll",
+   "desc": "Speed doubles in harsh sunlight."
+  },
+  "signature": [
+   {
+    "move": "Bullet Seed",
+    "smash": "Bullet Seed"
+   },
+   {
+    "move": "Razor Leaf",
+    "smash": "Razor Leaf"
+   },
+   {
+    "move": "Vine Whip",
+    "smash": "Vine Whip"
+   },
+   {
+    "move": "Solar Beam",
+    "smash": "Up Smash/Triple Finish"
+   }
+  ],
+  "learnset": [
+   "Bullet Seed",
+   "Razor Leaf",
+   "Vine Whip",
+   "Solar Beam",
+   "Giga Drain",
+   "Energy Ball",
+   "Sludge Bomb",
+   "Power Whip",
+   "Seed Bomb",
+   "Earthquake",
+   "Leech Seed",
+   "Sleep Powder",
+   "Synthesis",
+   "Toxic",
+   "Sunny Day",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split"
+ },
+ {
+  "num": 40,
+  "id": "charizard",
+  "name": "Charizard",
+  "series": "Pokémon",
+  "types": [
+   "Fire",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 78,
+   "atk": 84,
+   "def": 78,
+   "spa": 109,
+   "spd": 85,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "Blaze",
+    "desc": "Fire moves deal 1.5x damage at 1/3 HP or less."
+   }
+  ],
+  "hidden": {
+   "name": "Solar Power",
+   "desc": "Sp. Atk 1.5x in sun, but loses 1/8 HP each turn."
+  },
+  "signature": [
+   {
+    "move": "Flamethrower",
+    "smash": "Flamethrower"
+   },
+   {
+    "move": "Flare Blitz",
+    "smash": "Flare Blitz"
+   },
+   {
+    "move": "Fly",
+    "smash": "Fly"
+   },
+   {
+    "move": "Rock Smash",
+    "smash": "Rock Smash"
+   }
+  ],
+  "learnset": [
+   "Flamethrower",
+   "Flare Blitz",
+   "Fly",
+   "Rock Smash",
+   "Fire Blast",
+   "Overheat",
+   "Air Slash",
+   "Hurricane",
+   "Dragon Pulse",
+   "Dragon Claw",
+   "Earthquake",
+   "Focus Blast",
+   "Solar Beam",
+   "Dragon Dance",
+   "Roost",
+   "Will-O-Wisp",
+   "Sunny Day",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split"
+ },
+ {
+  "num": 41,
+  "id": "diddy-kong",
+  "name": "Diddy Kong",
+  "series": "Donkey Kong",
+  "types": [
+   "Grass",
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 95,
+   "def": 75,
+   "spa": 70,
+   "spd": 70,
+   "spe": 115
+  },
+  "abilities": [
+   {
+    "name": "Monkey Business",
+    "desc": "Status moves get +1 priority (Prankster)."
+   }
+  ],
+  "hidden": {
+   "name": "Rocketbarrel Boost",
+   "desc": "Speed rises 1 stage after it KOs a foe."
+  },
+  "signature": [
+   {
+    "move": "Bullet Seed",
+    "smash": "Peanut Popgun"
+   },
+   {
+    "move": "Acrobatics",
+    "smash": "Monkey Flip"
+   },
+   {
+    "move": "Fake Out",
+    "smash": "Banana Peel"
+   },
+   {
+    "move": "U-turn",
+    "smash": "Rocketbarrel Boost"
+   }
+  ],
+  "learnset": [
+   "Bullet Seed",
+   "Acrobatics",
+   "Fake Out",
+   "U-turn",
+   "Seed Bomb",
+   "Wood Hammer",
+   "Drain Punch",
+   "Mach Punch",
+   "Knock Off",
+   "Bounce",
+   "Flame Charge",
+   "Spikes",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 42,
+  "id": "lucas",
+  "name": "Lucas",
+  "series": "EarthBound",
+  "types": [
+   "Psychic"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 75,
+   "def": 75,
+   "spa": 115,
+   "spd": 95,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "PSI Magnet",
+    "desc": "Immune to Psychic moves; absorbing one heals 1/4 HP."
+   }
+  ],
+  "hidden": {
+   "name": "Boney's Nose",
+   "desc": "Reveals the foe's held item on switch-in (Frisk)."
+  },
+  "signature": [
+   {
+    "move": "Ice Beam",
+    "smash": "PK Freeze"
+   },
+   {
+    "move": "Psychic",
+    "smash": "PK Love"
+   },
+   {
+    "move": "Thunderbolt",
+    "smash": "PK Thunder"
+   },
+   {
+    "move": "Calm Mind",
+    "smash": "PSI Magnet"
+   }
+  ],
+  "learnset": [
+   "Ice Beam",
+   "Psychic",
+   "Thunderbolt",
+   "Calm Mind",
+   "Psyshock",
+   "Psybeam",
+   "Freeze-Dry",
+   "Fire Blast",
+   "Thunder",
+   "Meteor Beam",
+   "Dazzling Gleam",
+   "Light Screen",
+   "Reflect",
+   "Teleport",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 43,
+  "id": "sonic",
+  "name": "Sonic",
+  "series": "Sonic the Hedgehog",
+  "types": [
+   "Electric",
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 95,
+   "def": 70,
+   "spa": 70,
+   "spd": 70,
+   "spe": 155
+  },
+  "abilities": [
+   {
+    "name": "Gotta Go Fast",
+    "desc": "Speed rises 1 stage at the end of each turn (Speed Boost)."
+   }
+  ],
+  "hidden": {
+   "name": "Rings",
+   "desc": "Once per battle, survives a KO hit with 1 HP."
+  },
+  "signature": [
+   {
+    "move": "Extreme Speed",
+    "smash": "Dash attack"
+   },
+   {
+    "move": "Aerial Ace",
+    "smash": "Homing Attack"
+   },
+   {
+    "move": "Rapid Spin",
+    "smash": "Spin Dash"
+   },
+   {
+    "move": "High Jump Kick",
+    "smash": "Spring Jump kicks"
+   }
+  ],
+  "learnset": [
+   "Extreme Speed",
+   "Aerial Ace",
+   "Rapid Spin",
+   "High Jump Kick",
+   "Wild Charge",
+   "Thunder Punch",
+   "Volt Switch",
+   "Close Combat",
+   "Triple Kick",
+   "Rollout",
+   "Double-Edge",
+   "Bounce",
+   "U-turn",
+   "Quick Attack",
+   "Agility",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 44,
+  "id": "king-dedede",
+  "name": "King Dedede",
+  "series": "Kirby",
+  "types": [
+   "Normal",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 125,
+   "atk": 115,
+   "def": 105,
+   "spa": 70,
+   "spd": 85,
+   "spe": 50
+  },
+  "abilities": [
+   {
+    "name": "Self-Proclaimed King",
+    "desc": "Lowers the foe's Attack on switch-in (Intimidate)."
+   }
+  ],
+  "hidden": {
+   "name": "Bottomless Belly",
+   "desc": "Takes half damage from Fire and Ice moves (Thick Fat)."
+  },
+  "signature": [
+   {
+    "move": "Hammer Arm",
+    "smash": "Jet Hammer"
+   },
+   {
+    "move": "Body Slam",
+    "smash": "Super Dedede Jump"
+   },
+   {
+    "move": "Gyro Ball",
+    "smash": "Gordo Throw"
+   },
+   {
+    "move": "Slack Off",
+    "smash": "Inhale"
+   }
+  ],
+  "learnset": [
+   "Hammer Arm",
+   "Body Slam",
+   "Gyro Ball",
+   "Slack Off",
+   "Gigaton Hammer",
+   "Heavy Slam",
+   "Body Press",
+   "Play Rough",
+   "Spirit Break",
+   "Ice Hammer",
+   "Double-Edge",
+   "Earthquake",
+   "Spikes",
+   "Belly Drum",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 45,
+  "id": "olimar",
+  "name": "Olimar",
+  "series": "Pikmin",
+  "types": [
+   "Grass",
+   "Bug"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 90,
+   "def": 80,
+   "spa": 95,
+   "spd": 85,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Pikmin Squad",
+    "desc": "Multi-hit moves always hit the max number of times (Skill Link)."
+   }
+  ],
+  "hidden": {
+   "name": "Treasure Hunter",
+   "desc": "May pick up an item after each turn (Pickup)."
+  },
+  "signature": [
+   {
+    "move": "Bullet Seed",
+    "smash": "Pikmin Throw"
+   },
+   {
+    "move": "Fire Fang",
+    "smash": "Red Pikmin"
+   },
+   {
+    "move": "Thunder Fang",
+    "smash": "Yellow Pikmin"
+   },
+   {
+    "move": "Ingrain",
+    "smash": "Pikmin Pluck"
+   }
+  ],
+  "learnset": [
+   "Bullet Seed",
+   "Fire Fang",
+   "Thunder Fang",
+   "Ingrain",
+   "Pin Missile",
+   "Seed Bomb",
+   "Leech Life",
+   "Poison Fang",
+   "Ice Fang",
+   "Body Slam",
+   "U-turn",
+   "Swords Dance",
+   "Synthesis",
+   "Sticky Web",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 46,
+  "id": "alph",
+  "name": "Alph",
+  "series": "Pikmin",
+  "types": [
+   "Water",
+   "Bug"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 95,
+   "def": 80,
+   "spa": 90,
+   "spd": 85,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Pikmin Squad",
+    "desc": "Multi-hit moves always hit the max number of times (Skill Link)."
+   }
+  ],
+  "hidden": {
+   "name": "Juice Maker",
+   "desc": "Berry effects are doubled (Ripen)."
+  },
+  "signature": [
+   {
+    "move": "Bullet Seed",
+    "smash": "Pikmin Throw"
+   },
+   {
+    "move": "Rock Blast",
+    "smash": "Rock Pikmin"
+   },
+   {
+    "move": "Liquidation",
+    "smash": "Blue Pikmin"
+   },
+   {
+    "move": "Acrobatics",
+    "smash": "Winged Pikmin"
+   }
+  ],
+  "learnset": [
+   "Bullet Seed",
+   "Rock Blast",
+   "Liquidation",
+   "Acrobatics",
+   "Pin Missile",
+   "Leech Life",
+   "Aqua Jet",
+   "Waterfall",
+   "Fire Fang",
+   "Thunder Fang",
+   "Ice Fang",
+   "Poison Fang",
+   "Rock Slide",
+   "U-turn",
+   "Sticky Web",
+   "Rain Dance",
+   "Protect"
+  ],
+  "notes": "Split from Olimar"
+ },
+ {
+  "num": 47,
+  "id": "lucario",
+  "name": "Lucario",
+  "series": "Pokémon",
+  "types": [
+   "Fighting",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 110,
+   "def": 70,
+   "spa": 115,
+   "spd": 70,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Inner Focus",
+    "desc": "Can't flinch and ignores Intimidate."
+   }
+  ],
+  "hidden": {
+   "name": "Justified",
+   "desc": "Attack rises 1 stage when hit by a Dark move."
+  },
+  "signature": [
+   {
+    "move": "Aura Sphere",
+    "smash": "Aura Sphere"
+   },
+   {
+    "move": "Force Palm",
+    "smash": "Force Palm"
+   },
+   {
+    "move": "Extreme Speed",
+    "smash": "Extreme Speed"
+   },
+   {
+    "move": "Detect",
+    "smash": "Double Team"
+   }
+  ],
+  "learnset": [
+   "Aura Sphere",
+   "Force Palm",
+   "Extreme Speed",
+   "Detect",
+   "Close Combat",
+   "Meteor Mash",
+   "Bullet Punch",
+   "Drain Punch",
+   "Ice Punch",
+   "Crunch",
+   "Earthquake",
+   "Vacuum Wave",
+   "Focus Blast",
+   "Flash Cannon",
+   "Dark Pulse",
+   "Dragon Pulse",
+   "Swords Dance",
+   "Nasty Plot",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities"
+ },
+ {
+  "num": 48,
+  "id": "r-o-b",
+  "name": "R.O.B.",
+  "series": "Robot",
+  "types": [
+   "Steel"
+  ],
+  "stats": {
+   "hp": 100,
+   "atk": 95,
+   "def": 115,
+   "spa": 95,
+   "spd": 85,
+   "spe": 55
+  },
+  "abilities": [
+   {
+    "name": "Operating Buddy",
+    "desc": "Foes can't lower its stats (Clear Body)."
+   }
+  ],
+  "hidden": {
+   "name": "Robo Burner",
+   "desc": "Immune to Ground moves (Levitate)."
+  },
+  "signature": [
+   {
+    "move": "Flash Cannon",
+    "smash": "Robo Beam"
+   },
+   {
+    "move": "Gyro Ball",
+    "smash": "Gyromite"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "Robo Burner"
+   },
+   {
+    "move": "Rapid Spin",
+    "smash": "Arm Rotor"
+   }
+  ],
+  "learnset": [
+   "Flash Cannon",
+   "Gyro Ball",
+   "Flamethrower",
+   "Rapid Spin",
+   "Iron Head",
+   "Body Press",
+   "Steel Beam",
+   "Zap Cannon",
+   "Charge Beam",
+   "Thunderbolt",
+   "Volt Switch",
+   "Iron Defense",
+   "Shift Gear",
+   "Light Screen",
+   "Reflect",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 49,
+  "id": "toon-link",
+  "name": "Toon Link",
+  "series": "The Legend of Zelda",
+  "types": [
+   "Water",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 95,
+   "def": 80,
+   "spa": 80,
+   "spd": 75,
+   "spe": 105
+  },
+  "abilities": [
+   {
+    "name": "Wind Waker",
+    "desc": "Sets Tailwind for 2 turns on switch-in."
+   }
+  ],
+  "hidden": {
+   "name": "Deku Leaf",
+   "desc": "Immune to Ground moves (Levitate)."
+  },
+  "signature": [
+   {
+    "move": "Sacred Sword",
+    "smash": "Master Sword"
+   },
+   {
+    "move": "Aerial Ace",
+    "smash": "Boomerang"
+   },
+   {
+    "move": "Liquidation",
+    "smash": "Great Sea"
+   },
+   {
+    "move": "Tailwind",
+    "smash": "Wind Waker"
+   }
+  ],
+  "learnset": [
+   "Sacred Sword",
+   "Aerial Ace",
+   "Liquidation",
+   "Tailwind",
+   "Smart Strike",
+   "Iron Head",
+   "Brutal Swing",
+   "Aqua Jet",
+   "Waterfall",
+   "Flame Charge",
+   "Magnet Bomb",
+   "Swords Dance",
+   "Defog",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 50,
+  "id": "wolf",
+  "name": "Wolf",
+  "series": "Star Fox",
+  "types": [
+   "Dark",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 110,
+   "def": 80,
+   "spa": 75,
+   "spd": 75,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "Star Wolf Leader",
+    "desc": "Lowers the foe's Attack on switch-in (Intimidate)."
+   }
+  ],
+  "hidden": {
+   "name": "Lone Wolf",
+   "desc": "Attack rises 1 stage after a KO (Moxie)."
+  },
+  "signature": [
+   {
+    "move": "Night Slash",
+    "smash": "Claws"
+   },
+   {
+    "move": "Sucker Punch",
+    "smash": "Wolf Flash"
+   },
+   {
+    "move": "Brave Bird",
+    "smash": "Fire Wolf"
+   },
+   {
+    "move": "Mirror Coat",
+    "smash": "Reflector"
+   }
+  ],
+  "learnset": [
+   "Night Slash",
+   "Sucker Punch",
+   "Brave Bird",
+   "Mirror Coat",
+   "Crunch",
+   "Knock Off",
+   "Iron Head",
+   "Shadow Claw",
+   "Flash Cannon",
+   "Dark Pulse",
+   "Quick Attack",
+   "U-turn",
+   "Swords Dance",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 51,
+  "id": "villager",
+  "name": "Villager",
+  "series": "Animal Crossing",
+  "types": [
+   "Normal",
+   "Grass"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 90,
+   "def": 85,
+   "spa": 80,
+   "spd": 80,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Pocket",
+    "desc": "Takes no damage from the first ball or bomb move each time it switches in."
+   }
+  ],
+  "hidden": {
+   "name": "Orchard",
+   "desc": "May restore a used Berry at the end of each turn (Harvest)."
+  },
+  "signature": [
+   {
+    "move": "Wood Hammer",
+    "smash": "Timber"
+   },
+   {
+    "move": "Gyro Ball",
+    "smash": "Lloid Rocket"
+   },
+   {
+    "move": "Seed Bomb",
+    "smash": "Slingshot"
+   },
+   {
+    "move": "Magic Coat",
+    "smash": "Pocket"
+   }
+  ],
+  "learnset": [
+   "Wood Hammer",
+   "Gyro Ball",
+   "Seed Bomb",
+   "Magic Coat",
+   "Body Slam",
+   "Double-Edge",
+   "Bullet Seed",
+   "Energy Ball",
+   "Dig",
+   "Fling",
+   "Leech Seed",
+   "Synthesis",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 52,
+  "id": "mega-man",
+  "name": "Mega Man",
+  "series": "Mega Man",
+  "types": [
+   "Steel",
+   "Electric"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 90,
+   "def": 95,
+   "spa": 95,
+   "spd": 90,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Variable Weapons System",
+    "desc": "Changes to the type of the move it uses (Protean)."
+   }
+  ],
+  "hidden": {
+   "name": "Blue Bomber",
+   "desc": "Foes can't lower its stats (Full Metal Body)."
+  },
+  "signature": [
+   {
+    "move": "Flash Cannon",
+    "smash": "Mega Buster"
+   },
+   {
+    "move": "Leaf Storm",
+    "smash": "Leaf Shield"
+   },
+   {
+    "move": "Thunderbolt",
+    "smash": "Spark Shock"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "Flame Blast"
+   }
+  ],
+  "learnset": [
+   "Flash Cannon",
+   "Leaf Storm",
+   "Thunderbolt",
+   "Flamethrower",
+   "Charge Beam",
+   "Zap Cannon",
+   "Volt Switch",
+   "Ice Beam",
+   "Air Slash",
+   "Water Pulse",
+   "Steel Beam",
+   "Magnet Bomb",
+   "Rapid Spin",
+   "Bounce",
+   "Iron Defense",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 53,
+  "id": "wii-fit-trainer",
+  "name": "Wii Fit Trainer",
+  "series": "Wii Fit",
+  "types": [
+   "Normal",
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 85,
+   "def": 80,
+   "spa": 90,
+   "spd": 90,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Deep Breathing",
+    "desc": "Using a status move restores 1/8 HP."
+   }
+  ],
+  "hidden": {
+   "name": "Balance Board",
+   "desc": "Can't be confused or flinched."
+  },
+  "signature": [
+   {
+    "move": "Aura Sphere",
+    "smash": "Sun Salutation"
+   },
+   {
+    "move": "Zen Headbutt",
+    "smash": "Header"
+   },
+   {
+    "move": "Rapid Spin",
+    "smash": "Super Hoop"
+   },
+   {
+    "move": "Calm Mind",
+    "smash": "Deep Breathing"
+   }
+  ],
+  "learnset": [
+   "Aura Sphere",
+   "Zen Headbutt",
+   "Rapid Spin",
+   "Calm Mind",
+   "Drain Punch",
+   "High Jump Kick",
+   "Body Slam",
+   "Facade",
+   "Vacuum Wave",
+   "Focus Blast",
+   "Bulk Up",
+   "Agility",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 54,
+  "id": "rosalina-and-luma",
+  "name": "Rosalina & Luma",
+  "series": "Super Mario",
+  "types": [
+   "Fairy",
+   "Psychic"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 80,
+   "def": 80,
+   "spa": 105,
+   "spd": 105,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Luma",
+    "desc": "Luma absorbs 1/4 of the damage from the first 2 hits it takes each battle."
+   }
+  ],
+  "hidden": {
+   "name": "Comet Observatory",
+   "desc": "Sets Gravity for 5 turns on switch-in."
+  },
+  "signature": [
+   {
+    "move": "Moonblast",
+    "smash": "Luma Shot"
+   },
+   {
+    "move": "Psychic",
+    "smash": "Gravitational Pull"
+   },
+   {
+    "move": "Meteor Beam",
+    "smash": "Star Bits"
+   },
+   {
+    "move": "Gravity",
+    "smash": "Power of the Cosmos"
+   }
+  ],
+  "learnset": [
+   "Moonblast",
+   "Psychic",
+   "Meteor Beam",
+   "Gravity",
+   "Dazzling Gleam",
+   "Draining Kiss",
+   "Psyshock",
+   "Power Gem",
+   "Swift",
+   "Ice Beam",
+   "Future Sight",
+   "Calm Mind",
+   "Moonlight",
+   "Trick Room",
+   "Light Screen",
+   "Reflect",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 55,
+  "id": "little-mac",
+  "name": "Little Mac",
+  "series": "Punch-Out!!",
+  "types": [
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 135,
+   "def": 70,
+   "spa": 40,
+   "spd": 60,
+   "spe": 115
+  },
+  "abilities": [
+   {
+    "name": "KO Meter",
+    "desc": "After taking 3 hits, its next punching move is a guaranteed critical hit."
+   }
+  ],
+  "hidden": {
+   "name": "Doc Louis",
+   "desc": "Once per battle, restores 1/3 HP when below half."
+  },
+  "signature": [
+   {
+    "move": "Mach Punch",
+    "smash": "Jab"
+   },
+   {
+    "move": "Focus Punch",
+    "smash": "KO Uppercut"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Rising Uppercut"
+   },
+   {
+    "move": "Bulk Up",
+    "smash": "Training"
+   }
+  ],
+  "learnset": [
+   "Mach Punch",
+   "Focus Punch",
+   "Sky Uppercut",
+   "Bulk Up",
+   "Close Combat",
+   "Drain Punch",
+   "Bullet Punch",
+   "Thunder Punch",
+   "Ice Punch",
+   "Fire Punch",
+   "Power-Up Punch",
+   "Brick Break",
+   "Fake Out",
+   "Counter",
+   "Agility",
+   "Detect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 56,
+  "id": "greninja",
+  "name": "Greninja",
+  "series": "Pokémon",
+  "types": [
+   "Water",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 72,
+   "atk": 95,
+   "def": 67,
+   "spa": 103,
+   "spd": 71,
+   "spe": 122
+  },
+  "abilities": [
+   {
+    "name": "Torrent",
+    "desc": "Water moves deal 1.5x damage at 1/3 HP or less."
+   }
+  ],
+  "hidden": {
+   "name": "Protean",
+   "desc": "Changes to the type of the move it's about to use (once per switch-in)."
+  },
+  "signature": [
+   {
+    "move": "Water Shuriken",
+    "smash": "Water Shuriken"
+   },
+   {
+    "move": "Shadow Sneak",
+    "smash": "Shadow Sneak"
+   },
+   {
+    "move": "Hydro Pump",
+    "smash": "Hydro Pump"
+   },
+   {
+    "move": "Substitute",
+    "smash": "Substitute"
+   }
+  ],
+  "learnset": [
+   "Water Shuriken",
+   "Shadow Sneak",
+   "Hydro Pump",
+   "Substitute",
+   "Dark Pulse",
+   "Ice Beam",
+   "Surf",
+   "Extrasensory",
+   "Gunk Shot",
+   "Night Slash",
+   "U-turn",
+   "Spikes",
+   "Toxic Spikes",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities"
+ },
+ {
+  "num": 57,
+  "id": "palutena",
+  "name": "Palutena",
+  "series": "Kid Icarus",
+  "types": [
+   "Fairy",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 80,
+   "def": 85,
+   "spa": 110,
+   "spd": 100,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Goddess of Light",
+    "desc": "Fairy moves deal 1.3x damage."
+   }
+  ],
+  "hidden": {
+   "name": "Mirror Shield",
+   "desc": "Bounces back status moves aimed at it (Magic Bounce)."
+  },
+  "signature": [
+   {
+    "move": "Dazzling Gleam",
+    "smash": "Heavenly Light"
+   },
+   {
+    "move": "Air Slash",
+    "smash": "Autoreticle"
+   },
+   {
+    "move": "Mystical Fire",
+    "smash": "Explosive Flame"
+   },
+   {
+    "move": "Reflect",
+    "smash": "Counter/Reflect"
+   }
+  ],
+  "learnset": [
+   "Dazzling Gleam",
+   "Air Slash",
+   "Mystical Fire",
+   "Reflect",
+   "Moonblast",
+   "Draining Kiss",
+   "Hurricane",
+   "Psyshock",
+   "Calm Mind",
+   "Roost",
+   "Light Screen",
+   "Tailwind",
+   "Defog",
+   "Teleport",
+   "Magic Coat",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 58,
+  "id": "pac-man",
+  "name": "Pac-Man",
+  "series": "Pac-Man",
+  "types": [
+   "Normal",
+   "Ghost"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 95,
+   "def": 85,
+   "spa": 80,
+   "spd": 85,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Power Pellet",
+    "desc": "Normal moves can hit Ghost types and deal 2x to them."
+   }
+  ],
+  "hidden": {
+   "name": "Bonus Fruit",
+   "desc": "Eating a Berry also raises a random stat 1 stage."
+  },
+  "signature": [
+   {
+    "move": "Hyper Fang",
+    "smash": "Power Pellet chomp"
+   },
+   {
+    "move": "Bounce",
+    "smash": "Pac-Jump"
+   },
+   {
+    "move": "Water Pulse",
+    "smash": "Fire Hydrant"
+   },
+   {
+    "move": "Fling",
+    "smash": "Bonus Fruit"
+   }
+  ],
+  "learnset": [
+   "Hyper Fang",
+   "Bounce",
+   "Water Pulse",
+   "Fling",
+   "Body Slam",
+   "Double-Edge",
+   "Crunch",
+   "Shadow Claw",
+   "Shadow Sneak",
+   "Poltergeist",
+   "Rollout",
+   "Quick Attack",
+   "Fake Out",
+   "Hydro Pump",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 59,
+  "id": "robin",
+  "name": "Robin",
+  "series": "Fire Emblem",
+  "types": [
+   "Psychic",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 85,
+   "def": 75,
+   "spa": 110,
+   "spd": 90,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Tactician",
+    "desc": "Moves deal 1.3x damage when it moves last (Analytic)."
+   }
+  ],
+  "hidden": {
+   "name": "Grima's Vessel",
+   "desc": "Dark moves deal 1.5x damage while below 1/3 HP."
+  },
+  "signature": [
+   {
+    "move": "Thunderbolt",
+    "smash": "Thoron"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "Arcfire"
+   },
+   {
+    "move": "Air Slash",
+    "smash": "Elwind"
+   },
+   {
+    "move": "Giga Drain",
+    "smash": "Nosferatu"
+   }
+  ],
+  "learnset": [
+   "Thunderbolt",
+   "Flamethrower",
+   "Air Slash",
+   "Giga Drain",
+   "Psychic",
+   "Psyshock",
+   "Dark Pulse",
+   "Night Daze",
+   "Thunder",
+   "Fire Blast",
+   "Hurricane",
+   "Future Sight",
+   "Calm Mind",
+   "Nasty Plot",
+   "Protect"
+  ],
+  "notes": "Male/female are costumes"
+ },
+ {
+  "num": 60,
+  "id": "shulk",
+  "name": "Shulk",
+  "series": "Xenoblade Chronicles",
+  "types": [
+   "Psychic",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 105,
+   "def": 80,
+   "spa": 85,
+   "spd": 80,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Monado Arts",
+    "desc": "Each turn, cycles a +1 boost through Speed, Defense, Attack and Sp. Atk."
+   }
+  ],
+  "hidden": {
+   "name": "Visions",
+   "desc": "Senses dangerous moves on switch-in (Anticipation)."
+  },
+  "signature": [
+   {
+    "move": "Psycho Cut",
+    "smash": "Monado"
+   },
+   {
+    "move": "Air Slash",
+    "smash": "Air Slash"
+   },
+   {
+    "move": "Future Sight",
+    "smash": "Vision"
+   },
+   {
+    "move": "Shift Gear",
+    "smash": "Monado Arts"
+   }
+  ],
+  "learnset": [
+   "Psycho Cut",
+   "Air Slash",
+   "Future Sight",
+   "Shift Gear",
+   "Iron Head",
+   "Smart Strike",
+   "Night Slash",
+   "Zen Headbutt",
+   "Close Combat",
+   "Psychic",
+   "Swords Dance",
+   "Agility",
+   "Iron Defense",
+   "Counter",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 61,
+  "id": "bowser-jr",
+  "name": "Bowser Jr.",
+  "series": "Super Mario",
+  "types": [
+   "Fire",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 100,
+   "def": 100,
+   "spa": 85,
+   "spd": 85,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Junior Clown Car",
+    "desc": "Immune to Ground moves (Levitate)."
+   }
+  ],
+  "hidden": {
+   "name": "Magic Paintbrush",
+   "desc": "Contact may lower the attacker's Speed."
+  },
+  "signature": [
+   {
+    "move": "Flash Cannon",
+    "smash": "Clown Cannon"
+   },
+   {
+    "move": "Magnet Bomb",
+    "smash": "Mechakoopa"
+   },
+   {
+    "move": "Flame Charge",
+    "smash": "Clown Kart Dash"
+   },
+   {
+    "move": "Hammer Arm",
+    "smash": "Hammer"
+   }
+  ],
+  "learnset": [
+   "Flash Cannon",
+   "Magnet Bomb",
+   "Flame Charge",
+   "Hammer Arm",
+   "Flamethrower",
+   "Fire Blast",
+   "Iron Head",
+   "Heavy Slam",
+   "Gyro Ball",
+   "Body Press",
+   "Explosion",
+   "Rapid Spin",
+   "Iron Defense",
+   "Will-O-Wisp",
+   "Protect"
+  ],
+  "notes": "Split from Koopalings"
+ },
+ {
+  "num": 62,
+  "id": "larry-koopa",
+  "name": "Larry Koopa",
+  "series": "Super Mario",
+  "types": [
+   "Dark",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 95,
+   "def": 90,
+   "spa": 95,
+   "spd": 85,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Sneaky Shell",
+    "desc": "Switches out when HP falls below half (Emergency Exit)."
+   }
+  ],
+  "hidden": {
+   "name": "Wand Trickster",
+   "desc": "Status moves get +1 priority (Prankster)."
+  },
+  "signature": [
+   {
+    "move": "Flamethrower",
+    "smash": "Wand blast"
+   },
+   {
+    "move": "Sucker Punch",
+    "smash": "Cheap shot"
+   },
+   {
+    "move": "Flash Cannon",
+    "smash": "Clown Cannon"
+   },
+   {
+    "move": "U-turn",
+    "smash": "Shell retreat"
+   }
+  ],
+  "learnset": [
+   "Flamethrower",
+   "Sucker Punch",
+   "Flash Cannon",
+   "U-turn",
+   "Fire Blast",
+   "Dark Pulse",
+   "Knock Off",
+   "Flame Charge",
+   "Nasty Plot",
+   "Will-O-Wisp",
+   "Thunder Wave",
+   "Taunt",
+   "Parting Shot",
+   "Protect"
+  ],
+  "notes": "Koopaling"
+ },
+ {
+  "num": 63,
+  "id": "roy-koopa",
+  "name": "Roy Koopa",
+  "series": "Super Mario",
+  "types": [
+   "Fighting",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 105,
+   "atk": 115,
+   "def": 95,
+   "spa": 60,
+   "spd": 80,
+   "spe": 65
+  },
+  "abilities": [
+   {
+    "name": "Tough Guy",
+    "desc": "Attack is 1.5x while statused (Guts)."
+   }
+  ],
+  "hidden": {
+   "name": "Bully",
+   "desc": "Lowers the foe's Attack on switch-in (Intimidate)."
+  },
+  "signature": [
+   {
+    "move": "Earthquake",
+    "smash": "Ground pound"
+   },
+   {
+    "move": "Heavy Slam",
+    "smash": "Clown Car slam"
+   },
+   {
+    "move": "Crunch",
+    "smash": "Bully"
+   },
+   {
+    "move": "Flash Cannon",
+    "smash": "Clown Cannon"
+   }
+  ],
+  "learnset": [
+   "Earthquake",
+   "Heavy Slam",
+   "Crunch",
+   "Flash Cannon",
+   "Close Combat",
+   "Drain Punch",
+   "Hammer Arm",
+   "Mach Punch",
+   "Knock Off",
+   "Iron Head",
+   "Body Press",
+   "Body Slam",
+   "Stone Edge",
+   "Bulk Up",
+   "Protect"
+  ],
+  "notes": "Koopaling"
+ },
+ {
+  "num": 64,
+  "id": "wendy-o-koopa",
+  "name": "Wendy O. Koopa",
+  "series": "Super Mario",
+  "types": [
+   "Fairy",
+   "Water"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 80,
+   "def": 85,
+   "spa": 105,
+   "spd": 95,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Ring Toss",
+    "desc": "Pulse moves deal 1.5x damage (Mega Launcher)."
+   }
+  ],
+  "hidden": {
+   "name": "Spoiled Princess",
+   "desc": "Sp. Atk sharply rises when a stat is lowered (Competitive)."
+  },
+  "signature": [
+   {
+    "move": "Water Pulse",
+    "smash": "Candy rings"
+   },
+   {
+    "move": "Dazzling Gleam",
+    "smash": "Wand blast"
+   },
+   {
+    "move": "Flash Cannon",
+    "smash": "Clown Cannon"
+   },
+   {
+    "move": "Encore",
+    "smash": "Tantrum"
+   }
+  ],
+  "learnset": [
+   "Water Pulse",
+   "Dazzling Gleam",
+   "Flash Cannon",
+   "Encore",
+   "Scald",
+   "Surf",
+   "Hydro Pump",
+   "Moonblast",
+   "Draining Kiss",
+   "Aura Sphere",
+   "Dark Pulse",
+   "Dragon Pulse",
+   "Calm Mind",
+   "Charm",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": "Koopaling"
+ },
+ {
+  "num": 65,
+  "id": "iggy-koopa",
+  "name": "Iggy Koopa",
+  "series": "Super Mario",
+  "types": [
+   "Steel",
+   "Psychic"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 95,
+   "def": 95,
+   "spa": 100,
+   "spd": 85,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Chomp Wrangler",
+    "desc": "Biting moves deal 1.5x damage (Strong Jaw)."
+   }
+  ],
+  "hidden": {
+   "name": "Mad Genius",
+   "desc": "Raises Atk or Sp. Atk on switch-in based on the foe's weaker defense (Download)."
+  },
+  "signature": [
+   {
+    "move": "Psychic Fangs",
+    "smash": "Chain Chomp"
+   },
+   {
+    "move": "Crunch",
+    "smash": "Chain Chomp"
+   },
+   {
+    "move": "Flash Cannon",
+    "smash": "Clown Cannon"
+   },
+   {
+    "move": "Iron Head",
+    "smash": "Clown Car"
+   }
+  ],
+  "learnset": [
+   "Psychic Fangs",
+   "Crunch",
+   "Flash Cannon",
+   "Iron Head",
+   "Psychic",
+   "Zen Headbutt",
+   "Fire Fang",
+   "Thunder Fang",
+   "Ice Fang",
+   "Gyro Ball",
+   "Thunder Wave",
+   "Agility",
+   "Trick Room",
+   "Protect"
+  ],
+  "notes": "Koopaling"
+ },
+ {
+  "num": 66,
+  "id": "morton-koopa-jr",
+  "name": "Morton Koopa Jr.",
+  "series": "Super Mario",
+  "types": [
+   "Ground",
+   "Rock"
+  ],
+  "stats": {
+   "hp": 115,
+   "atk": 115,
+   "def": 105,
+   "spa": 70,
+   "spd": 80,
+   "spe": 50
+  },
+  "abilities": [
+   {
+    "name": "Big Brute",
+    "desc": "Moves with added effects lose them but deal 1.3x (Sheer Force)."
+   }
+  ],
+  "hidden": {
+   "name": "Heavyweight",
+   "desc": "Heavy Slam, Body Press and Gigaton Hammer deal 1.5x damage (Heavy Metal)."
+  },
+  "signature": [
+   {
+    "move": "Earthquake",
+    "smash": "Ground pound"
+   },
+   {
+    "move": "Heavy Slam",
+    "smash": "Hammer"
+   },
+   {
+    "move": "Stone Edge",
+    "smash": "Boulder toss"
+   },
+   {
+    "move": "Hyper Voice",
+    "smash": "Loudmouth"
+   }
+  ],
+  "learnset": [
+   "Earthquake",
+   "Heavy Slam",
+   "Stone Edge",
+   "Hyper Voice",
+   "Rock Slide",
+   "Head Smash",
+   "High Horsepower",
+   "Stomping Tantrum",
+   "Hammer Arm",
+   "Body Press",
+   "Boomburst",
+   "Stealth Rock",
+   "Iron Defense",
+   "Rock Polish",
+   "Protect"
+  ],
+  "notes": "Koopaling"
+ },
+ {
+  "num": 67,
+  "id": "lemmy-koopa",
+  "name": "Lemmy Koopa",
+  "series": "Super Mario",
+  "types": [
+   "Normal",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 85,
+   "def": 85,
+   "spa": 95,
+   "spd": 85,
+   "spe": 95
+  },
+  "abilities": [
+   {
+    "name": "Balancing Act",
+    "desc": "Can't be confused or Intimidated (Own Tempo)."
+   }
+  ],
+  "hidden": {
+   "name": "Big Top",
+   "desc": "Bounce never misses and deals 1.5x damage."
+  },
+  "signature": [
+   {
+    "move": "Bounce",
+    "smash": "Circus ball"
+   },
+   {
+    "move": "Play Rough",
+    "smash": "Clown antics"
+   },
+   {
+    "move": "Flash Cannon",
+    "smash": "Clown Cannon"
+   },
+   {
+    "move": "Trick",
+    "smash": "Juggling"
+   }
+  ],
+  "learnset": [
+   "Bounce",
+   "Play Rough",
+   "Flash Cannon",
+   "Trick",
+   "Moonblast",
+   "Dazzling Gleam",
+   "Draining Kiss",
+   "Hyper Voice",
+   "Body Slam",
+   "Rollout",
+   "Gyro Ball",
+   "Fake Out",
+   "Encore",
+   "Charm",
+   "Protect"
+  ],
+  "notes": "Koopaling"
+ },
+ {
+  "num": 68,
+  "id": "ludwig-von-koopa",
+  "name": "Ludwig von Koopa",
+  "series": "Super Mario",
+  "types": [
+   "Psychic",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 80,
+   "def": 80,
+   "spa": 115,
+   "spd": 90,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Eldest Koopaling",
+    "desc": "Moves ignore the foe's Ability (Mold Breaker)."
+   }
+  ],
+  "hidden": {
+   "name": "Symphony",
+   "desc": "Sound moves deal 1.3x damage (Punk Rock)."
+  },
+  "signature": [
+   {
+    "move": "Boomburst",
+    "smash": "Composer"
+   },
+   {
+    "move": "Psychic",
+    "smash": "Wand magic"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "Fire blasts"
+   },
+   {
+    "move": "Flash Cannon",
+    "smash": "Clown Cannon"
+   }
+  ],
+  "learnset": [
+   "Boomburst",
+   "Psychic",
+   "Flamethrower",
+   "Flash Cannon",
+   "Psyshock",
+   "Hyper Voice",
+   "Fire Blast",
+   "Overheat",
+   "Mystical Fire",
+   "Shadow Ball",
+   "Future Sight",
+   "Calm Mind",
+   "Nasty Plot",
+   "Trick Room",
+   "Protect"
+  ],
+  "notes": "Koopaling"
+ },
+ {
+  "num": 69,
+  "id": "duck-hunt",
+  "name": "Duck Hunt",
+  "series": "Duck Hunt",
+  "types": [
+   "Normal",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 85,
+   "def": 80,
+   "spa": 95,
+   "spd": 85,
+   "spe": 95
+  },
+  "abilities": [
+   {
+    "name": "Laughing Dog",
+    "desc": "Speed rises 1 stage when a foe's move misses."
+   }
+  ],
+  "hidden": {
+   "name": "Zapper Aim",
+   "desc": "Move accuracy is 1.3x (Compound Eyes)."
+  },
+  "signature": [
+   {
+    "move": "Hyper Voice",
+    "smash": "Dog's laugh"
+   },
+   {
+    "move": "Air Slash",
+    "smash": "Duck Jump"
+   },
+   {
+    "move": "Rock Tomb",
+    "smash": "Clay Shooting"
+   },
+   {
+    "move": "Sucker Punch",
+    "smash": "Wild Gunman"
+   }
+  ],
+  "learnset": [
+   "Hyper Voice",
+   "Air Slash",
+   "Rock Tomb",
+   "Sucker Punch",
+   "Hurricane",
+   "Brave Bird",
+   "Bite",
+   "Fake Out",
+   "Quick Attack",
+   "U-turn",
+   "Roost",
+   "Tailwind",
+   "Defog",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 70,
+  "id": "ryu",
+  "name": "Ryu",
+  "series": "Street Fighter",
+  "types": [
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 115,
+   "def": 85,
+   "spa": 85,
+   "spd": 80,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Discipline",
+    "desc": "Speed rises when it flinches; can't be Intimidated (Steadfast)."
+   }
+  ],
+  "hidden": {
+   "name": "Satsui no Hado",
+   "desc": "Fighting moves deal 1.5x damage while below 1/3 HP."
+  },
+  "signature": [
+   {
+    "move": "Aura Sphere",
+    "smash": "Hadoken"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Shoryuken"
+   },
+   {
+    "move": "Triple Kick",
+    "smash": "Tatsumaki Senpukyaku"
+   },
+   {
+    "move": "Focus Punch",
+    "smash": "Focus Attack"
+   }
+  ],
+  "learnset": [
+   "Aura Sphere",
+   "Sky Uppercut",
+   "Triple Kick",
+   "Focus Punch",
+   "Close Combat",
+   "Drain Punch",
+   "Mach Punch",
+   "Vacuum Wave",
+   "Focus Blast",
+   "High Jump Kick",
+   "Fire Punch",
+   "Dynamic Punch",
+   "Bulk Up",
+   "Counter",
+   "Detect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 71,
+  "id": "ken",
+  "name": "Ken",
+  "series": "Street Fighter",
+  "types": [
+   "Fighting",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 120,
+   "def": 80,
+   "spa": 80,
+   "spd": 75,
+   "spe": 95
+  },
+  "abilities": [
+   {
+    "name": "Blazing Fist",
+    "desc": "Punching moves have a 20% chance to burn."
+   }
+  ],
+  "hidden": {
+   "name": "Showboat",
+   "desc": "Attack rises 1 stage after a KO (Moxie)."
+  },
+  "signature": [
+   {
+    "move": "Aura Sphere",
+    "smash": "Hadoken"
+   },
+   {
+    "move": "Fire Punch",
+    "smash": "Flaming Shoryuken"
+   },
+   {
+    "move": "Blaze Kick",
+    "smash": "Tatsumaki Senpukyaku"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Shoryuken"
+   }
+  ],
+  "learnset": [
+   "Aura Sphere",
+   "Fire Punch",
+   "Blaze Kick",
+   "Sky Uppercut",
+   "Close Combat",
+   "Flare Blitz",
+   "Drain Punch",
+   "Mach Punch",
+   "High Jump Kick",
+   "Triple Kick",
+   "Vacuum Wave",
+   "Bulk Up",
+   "Detect"
+  ],
+  "notes": "Echo of Ryu"
+ },
+ {
+  "num": 72,
+  "id": "cloud",
+  "name": "Cloud",
+  "series": "Final Fantasy",
+  "types": [
+   "Steel",
+   "Normal"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 120,
+   "def": 80,
+   "spa": 70,
+   "spd": 70,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "Limit Break",
+    "desc": "After taking 3 hits, its next move is a guaranteed critical hit."
+   }
+  ],
+  "hidden": {
+   "name": "Mako Infusion",
+   "desc": "Critical hits deal 2.25x damage (Sniper)."
+  },
+  "signature": [
+   {
+    "move": "Smart Strike",
+    "smash": "Buster Sword"
+   },
+   {
+    "move": "X-Scissor",
+    "smash": "Cross Slash"
+   },
+   {
+    "move": "Aerial Ace",
+    "smash": "Blade Beam"
+   },
+   {
+    "move": "Swords Dance",
+    "smash": "Limit Charge"
+   }
+  ],
+  "learnset": [
+   "Smart Strike",
+   "X-Scissor",
+   "Aerial Ace",
+   "Swords Dance",
+   "Iron Head",
+   "Sacred Sword",
+   "Close Combat",
+   "Stone Edge",
+   "Double-Edge",
+   "Quick Attack",
+   "Bulk Up",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 73,
+  "id": "corrin",
+  "name": "Corrin",
+  "series": "Fire Emblem",
+  "types": [
+   "Dragon",
+   "Water"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 105,
+   "def": 85,
+   "spa": 90,
+   "spd": 85,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Dragonstone",
+    "desc": "Once below half HP, Attack and Defense rise 1 stage."
+   }
+  ],
+  "hidden": {
+   "name": "Lost in Thoughts",
+   "desc": "Immune to Water moves; absorbing one heals 1/4 HP (Water Absorb)."
+  },
+  "signature": [
+   {
+    "move": "Dragon Claw",
+    "smash": "Dragon Fang Shot"
+   },
+   {
+    "move": "Dragon Rush",
+    "smash": "Dragon Lunge"
+   },
+   {
+    "move": "Waterfall",
+    "smash": "Counter Surge geyser"
+   },
+   {
+    "move": "Counter",
+    "smash": "Counter Surge"
+   }
+  ],
+  "learnset": [
+   "Dragon Claw",
+   "Dragon Rush",
+   "Waterfall",
+   "Counter",
+   "Dragon Dance",
+   "Outrage",
+   "Dragon Pulse",
+   "Draco Meteor",
+   "Dragon Tail",
+   "Surf",
+   "Hydro Pump",
+   "Liquidation",
+   "Aqua Jet",
+   "Iron Head",
+   "Rain Dance",
+   "Protect"
+  ],
+  "notes": "Male/female are costumes"
+ },
+ {
+  "num": 74,
+  "id": "bayonetta",
+  "name": "Bayonetta",
+  "series": "Bayonetta",
+  "types": [
+   "Dark",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 105,
+   "def": 75,
+   "spa": 100,
+   "spd": 75,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "Witch Time",
+    "desc": "After a successful Detect/Protect, the foe's Speed is sharply lowered."
+   }
+  ],
+  "hidden": {
+   "name": "Wicked Weave",
+   "desc": "Contact moves deal 1.3x damage (Tough Claws)."
+  },
+  "signature": [
+   {
+    "move": "Bullet Punch",
+    "smash": "Bullet Climax"
+   },
+   {
+    "move": "Sucker Punch",
+    "smash": "Heel Slide"
+   },
+   {
+    "move": "Spirit Break",
+    "smash": "Infernal Climax"
+   },
+   {
+    "move": "Detect",
+    "smash": "Witch Time dodge"
+   }
+  ],
+  "learnset": [
+   "Bullet Punch",
+   "Sucker Punch",
+   "Spirit Break",
+   "Detect",
+   "Knock Off",
+   "Dark Pulse",
+   "Moonblast",
+   "Play Rough",
+   "Triple Kick",
+   "High Jump Kick",
+   "Swords Dance",
+   "Nasty Plot",
+   "Taunt",
+   "Trick Room"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 75,
+  "id": "inkling",
+  "name": "Inkling",
+  "series": "Splatoon",
+  "types": [
+   "Poison"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 95,
+   "def": 75,
+   "spa": 90,
+   "spd": 75,
+   "spe": 105
+  },
+  "abilities": [
+   {
+    "name": "Squid Form",
+    "desc": "Speed doubles in rain (Swift Swim)."
+   }
+  ],
+  "hidden": {
+   "name": "Ink Armor",
+   "desc": "Takes half damage while at full HP (Multiscale)."
+  },
+  "signature": [
+   {
+    "move": "Octazooka",
+    "smash": "Splattershot"
+   },
+   {
+    "move": "Sludge Bomb",
+    "smash": "Splat Bomb"
+   },
+   {
+    "move": "Aqua Tail",
+    "smash": "Splat Roller"
+   },
+   {
+    "move": "Dive",
+    "smash": "Super Jump/Squid form"
+   }
+  ],
+  "learnset": [
+   "Octazooka",
+   "Sludge Bomb",
+   "Aqua Tail",
+   "Dive",
+   "Sludge Wave",
+   "Poison Jab",
+   "Gunk Shot",
+   "Water Pulse",
+   "Toxic",
+   "Toxic Spikes",
+   "U-turn",
+   "Quick Attack",
+   "Rain Dance",
+   "Protect"
+  ],
+  "notes": "Boy/girl are costumes"
+ },
+ {
+  "num": 76,
+  "id": "ridley",
+  "name": "Ridley",
+  "series": "Metroid",
+  "types": [
+   "Dragon",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 100,
+   "atk": 120,
+   "def": 90,
+   "spa": 100,
+   "spd": 80,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Undying Pirate",
+    "desc": "Restores 1/3 HP when switching out (Regenerator)."
+   }
+  ],
+  "hidden": {
+   "name": "Meta Ridley",
+   "desc": "Takes no recoil damage (Rock Head)."
+  },
+  "signature": [
+   {
+    "move": "Dragon Rush",
+    "smash": "Space Pirate Rush"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "Plasma Breath"
+   },
+   {
+    "move": "Brave Bird",
+    "smash": "Wing Blitz"
+   },
+   {
+    "move": "Poison Tail",
+    "smash": "Skewer"
+   }
+  ],
+  "learnset": [
+   "Dragon Rush",
+   "Flamethrower",
+   "Brave Bird",
+   "Poison Tail",
+   "Crunch",
+   "Knock Off",
+   "Night Slash",
+   "Sucker Punch",
+   "Dragon Claw",
+   "Outrage",
+   "Dragon Tail",
+   "Dual Wingbeat",
+   "Fire Blast",
+   "Dark Pulse",
+   "Dragon Dance",
+   "Roost",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 77,
+  "id": "simon",
+  "name": "Simon",
+  "series": "Castlevania",
+  "types": [
+   "Fighting",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 105,
+   "atk": 110,
+   "def": 95,
+   "spa": 75,
+   "spd": 85,
+   "spe": 60
+  },
+  "abilities": [
+   {
+    "name": "Vampire Killer",
+    "desc": "Deals 1.5x damage to Dark and Ghost types."
+   }
+  ],
+  "hidden": {
+   "name": "Belmont Bloodline",
+   "desc": "Foes can't lower its stats (Clear Body)."
+  },
+  "signature": [
+   {
+    "move": "Power Whip",
+    "smash": "Vampire Killer"
+   },
+   {
+    "move": "Sacred Fire",
+    "smash": "Holy Water"
+   },
+   {
+    "move": "Spirit Break",
+    "smash": "Cross"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Uppercut"
+   }
+  ],
+  "learnset": [
+   "Power Whip",
+   "Sacred Fire",
+   "Spirit Break",
+   "Sky Uppercut",
+   "Play Rough",
+   "Close Combat",
+   "Drain Punch",
+   "Brick Break",
+   "Brutal Swing",
+   "Aerial Ace",
+   "Will-O-Wisp",
+   "Bulk Up",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 78,
+  "id": "richter",
+  "name": "Richter",
+  "series": "Castlevania",
+  "types": [
+   "Fighting",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 100,
+   "atk": 110,
+   "def": 90,
+   "spa": 80,
+   "spd": 85,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Vampire Killer",
+    "desc": "Deals 1.5x damage to Dark and Ghost types."
+   }
+  ],
+  "hidden": {
+   "name": "Hydro Storm",
+   "desc": "Summons rain on switch-in (Drizzle)."
+  },
+  "signature": [
+   {
+    "move": "Power Whip",
+    "smash": "Vampire Killer"
+   },
+   {
+    "move": "Sacred Fire",
+    "smash": "Holy Water"
+   },
+   {
+    "move": "Hydro Pump",
+    "smash": "Hydro Storm"
+   },
+   {
+    "move": "Sky Uppercut",
+    "smash": "Uppercut"
+   }
+  ],
+  "learnset": [
+   "Power Whip",
+   "Sacred Fire",
+   "Hydro Pump",
+   "Sky Uppercut",
+   "Play Rough",
+   "Close Combat",
+   "Drain Punch",
+   "Aqua Tail",
+   "Brick Break",
+   "Aerial Ace",
+   "Will-O-Wisp",
+   "Bulk Up",
+   "Protect"
+  ],
+  "notes": "Echo of Simon"
+ },
+ {
+  "num": 79,
+  "id": "king-k-rool",
+  "name": "King K. Rool",
+  "series": "Donkey Kong",
+  "types": [
+   "Water",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 130,
+   "atk": 120,
+   "def": 110,
+   "spa": 85,
+   "spd": 90,
+   "spe": 40
+  },
+  "abilities": [
+   {
+    "name": "Gut Check",
+    "desc": "Takes half damage from the first contact move each switch-in."
+   }
+  ],
+  "hidden": {
+   "name": "Krocodile Jaw",
+   "desc": "Biting moves deal 1.5x damage (Strong Jaw)."
+  },
+  "signature": [
+   {
+    "move": "Crunch",
+    "smash": "Bite"
+   },
+   {
+    "move": "Liquidation",
+    "smash": "Crownerang splash"
+   },
+   {
+    "move": "Counter",
+    "smash": "Gut Check"
+   },
+   {
+    "move": "Belly Drum",
+    "smash": "Belly armor"
+   }
+  ],
+  "learnset": [
+   "Crunch",
+   "Liquidation",
+   "Counter",
+   "Belly Drum",
+   "Waterfall",
+   "Aqua Tail",
+   "Knock Off",
+   "Sucker Punch",
+   "Anchor Shot",
+   "Earthquake",
+   "Body Slam",
+   "Body Press",
+   "Iron Head",
+   "Gyro Ball",
+   "Slack Off",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 80,
+  "id": "isabelle",
+  "name": "Isabelle",
+  "series": "Animal Crossing",
+  "types": [
+   "Normal",
+   "Grass"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 80,
+   "def": 85,
+   "spa": 80,
+   "spd": 90,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Morning Announcement",
+    "desc": "Cures the status of your whole party on its first switch-in."
+   }
+  ],
+  "hidden": {
+   "name": "Cheerful Secretary",
+   "desc": "Contact may infatuate the attacker (Cute Charm)."
+  },
+  "signature": [
+   {
+    "move": "Play Rough",
+    "smash": "Party Ball"
+   },
+   {
+    "move": "Thief",
+    "smash": "Fishing Rod"
+   },
+   {
+    "move": "Stealth Rock",
+    "smash": "Lloid Trap"
+   },
+   {
+    "move": "Magic Coat",
+    "smash": "Pocket"
+   }
+  ],
+  "learnset": [
+   "Play Rough",
+   "Thief",
+   "Stealth Rock",
+   "Magic Coat",
+   "Seed Bomb",
+   "Giga Drain",
+   "Energy Ball",
+   "Body Slam",
+   "Fling",
+   "Fake Out",
+   "Leech Seed",
+   "Synthesis",
+   "Aromatherapy",
+   "Wish",
+   "Charm",
+   "Protect"
+  ],
+  "notes": "Echo of Villager"
+ },
+ {
+  "num": 81,
+  "id": "incineroar",
+  "name": "Incineroar",
+  "series": "Pokémon",
+  "types": [
+   "Fire",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 115,
+   "def": 90,
+   "spa": 80,
+   "spd": 90,
+   "spe": 60
+  },
+  "abilities": [
+   {
+    "name": "Blaze",
+    "desc": "Fire moves deal 1.5x damage at 1/3 HP or less."
+   }
+  ],
+  "hidden": {
+   "name": "Intimidate",
+   "desc": "Lowers the foe's Attack 1 stage on switch-in."
+  },
+  "signature": [
+   {
+    "move": "Darkest Lariat",
+    "smash": "Darkest Lariat"
+   },
+   {
+    "move": "Throat Chop",
+    "smash": "Alolan Whip"
+   },
+   {
+    "move": "Cross Chop",
+    "smash": "Cross Chop"
+   },
+   {
+    "move": "Revenge",
+    "smash": "Revenge"
+   }
+  ],
+  "learnset": [
+   "Darkest Lariat",
+   "Throat Chop",
+   "Cross Chop",
+   "Revenge",
+   "Flare Blitz",
+   "Fire Fang",
+   "Overheat",
+   "Knock Off",
+   "Fake Out",
+   "U-turn",
+   "Close Combat",
+   "Earthquake",
+   "Will-O-Wisp",
+   "Bulk Up",
+   "Parting Shot",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": "Official Pokémon stats/abilities"
+ },
+ {
+  "num": 82,
+  "id": "piranha-plant",
+  "name": "Piranha Plant",
+  "series": "Super Mario",
+  "types": [
+   "Grass",
+   "Poison"
+  ],
+  "stats": {
+   "hp": 100,
+   "atk": 105,
+   "def": 90,
+   "spa": 90,
+   "spd": 80,
+   "spe": 60
+  },
+  "abilities": [
+   {
+    "name": "Piranha Pot",
+    "desc": "Can't be forced out (Suction Cups)."
+   }
+  ],
+  "hidden": {
+   "name": "Petey Piranha",
+   "desc": "Biting moves deal 1.5x damage (Strong Jaw)."
+  },
+  "signature": [
+   {
+    "move": "Power Whip",
+    "smash": "Long-Stem Strike"
+   },
+   {
+    "move": "Crunch",
+    "smash": "Bite"
+   },
+   {
+    "move": "Seed Bomb",
+    "smash": "Ptooie"
+   },
+   {
+    "move": "Toxic",
+    "smash": "Poison Breath"
+   }
+  ],
+  "learnset": [
+   "Power Whip",
+   "Crunch",
+   "Seed Bomb",
+   "Toxic",
+   "Giga Drain",
+   "Leaf Storm",
+   "Sludge Bomb",
+   "Gunk Shot",
+   "Poison Fang",
+   "Sucker Punch",
+   "Leech Seed",
+   "Sleep Powder",
+   "Toxic Spikes",
+   "Synthesis",
+   "Swords Dance",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 83,
+  "id": "joker",
+  "name": "Joker",
+  "series": "Persona 5",
+  "types": [
+   "Dark",
+   "Ghost"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 105,
+   "def": 70,
+   "spa": 105,
+   "spd": 75,
+   "spe": 120
+  },
+  "abilities": [
+   {
+    "name": "Rebellion",
+    "desc": "Once below half HP, Arsène awakens: Attack and Sp. Atk rise 1 stage."
+   }
+  ],
+  "hidden": {
+   "name": "Phantom Thief",
+   "desc": "Steals the target's item when it hits (Magician)."
+  },
+  "signature": [
+   {
+    "move": "Knock Off",
+    "smash": "Phantom Thief"
+   },
+   {
+    "move": "Dark Pulse",
+    "smash": "Eiha"
+   },
+   {
+    "move": "Shadow Ball",
+    "smash": "Arsène"
+   },
+   {
+    "move": "Counter",
+    "smash": "Rebel's Guard"
+   }
+  ],
+  "learnset": [
+   "Knock Off",
+   "Dark Pulse",
+   "Shadow Ball",
+   "Counter",
+   "Night Slash",
+   "Sucker Punch",
+   "Shadow Claw",
+   "Shadow Sneak",
+   "Hex",
+   "Psychic",
+   "Ice Beam",
+   "Fire Blast",
+   "Thunderbolt",
+   "U-turn",
+   "Will-O-Wisp",
+   "Nasty Plot",
+   "Swords Dance",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 84,
+  "id": "hero-luminary",
+  "name": "Hero (Luminary)",
+  "series": "Dragon Quest XI",
+  "types": [
+   "Electric",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 100,
+   "def": 85,
+   "spa": 100,
+   "spd": 85,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Pep Up",
+    "desc": "Once below half HP, Attack and Sp. Atk rise 1 stage."
+   }
+  ],
+  "hidden": {
+   "name": "Mark of the Luminary",
+   "desc": "Electric moves deal 1.3x damage."
+  },
+  "signature": [
+   {
+    "move": "Thunderbolt",
+    "smash": "Zap"
+   },
+   {
+    "move": "Sacred Sword",
+    "smash": "Gigaslash"
+   },
+   {
+    "move": "Dazzling Gleam",
+    "smash": "Light of the Luminary"
+   },
+   {
+    "move": "Recover",
+    "smash": "Heal"
+   }
+  ],
+  "learnset": [
+   "Thunderbolt",
+   "Sacred Sword",
+   "Dazzling Gleam",
+   "Recover",
+   "Thunder",
+   "Flamethrower",
+   "Air Slash",
+   "Play Rough",
+   "Smart Strike",
+   "Hypnosis",
+   "Agility",
+   "Swords Dance",
+   "Iron Defense",
+   "Protect"
+  ],
+  "notes": "Split Hero"
+ },
+ {
+  "num": 85,
+  "id": "hero-erdrick",
+  "name": "Hero (Erdrick)",
+  "series": "Dragon Quest III",
+  "types": [
+   "Electric",
+   "Fire"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 100,
+   "def": 85,
+   "spa": 105,
+   "spd": 85,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Legend of Erdrick",
+    "desc": "Moves ignore the foe's Ability (Mold Breaker)."
+   }
+  ],
+  "hidden": {
+   "name": "Ball of Light",
+   "desc": "Removes the foe's stat boosts on switch-in."
+  },
+  "signature": [
+   {
+    "move": "Thunder",
+    "smash": "Kazap"
+   },
+   {
+    "move": "Fire Blast",
+    "smash": "Kafrizz"
+   },
+   {
+    "move": "Sacred Sword",
+    "smash": "Gigaslash"
+   },
+   {
+    "move": "Explosion",
+    "smash": "Kamikazee"
+   }
+  ],
+  "learnset": [
+   "Thunder",
+   "Fire Blast",
+   "Sacred Sword",
+   "Explosion",
+   "Thunderbolt",
+   "Flamethrower",
+   "Overheat",
+   "Flare Blitz",
+   "Air Slash",
+   "Hypnosis",
+   "Agility",
+   "Swords Dance",
+   "Recover",
+   "Protect"
+  ],
+  "notes": "Split Hero"
+ },
+ {
+  "num": 86,
+  "id": "hero-solo",
+  "name": "Hero (Solo)",
+  "series": "Dragon Quest IV",
+  "types": [
+   "Electric",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 95,
+   "def": 90,
+   "spa": 100,
+   "spd": 90,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Zenithian Armor",
+    "desc": "Takes 25% less damage from super-effective moves (Solid Rock)."
+   }
+  ],
+  "hidden": {
+   "name": "Chosen One",
+   "desc": "Raised critical-hit ratio (Super Luck)."
+  },
+  "signature": [
+   {
+    "move": "Thunderbolt",
+    "smash": "Zap"
+   },
+   {
+    "move": "Hurricane",
+    "smash": "Kaswoosh"
+   },
+   {
+    "move": "Sacred Sword",
+    "smash": "Gigaslash"
+   },
+   {
+    "move": "Iron Defense",
+    "smash": "Kaclang"
+   }
+  ],
+  "learnset": [
+   "Thunderbolt",
+   "Hurricane",
+   "Sacred Sword",
+   "Iron Defense",
+   "Thunder",
+   "Flamethrower",
+   "Air Slash",
+   "Brave Bird",
+   "Hypnosis",
+   "Agility",
+   "Swords Dance",
+   "Recover",
+   "Tailwind",
+   "Protect"
+  ],
+  "notes": "Split Hero"
+ },
+ {
+  "num": 87,
+  "id": "hero-eight",
+  "name": "Hero (Eight)",
+  "series": "Dragon Quest VIII",
+  "types": [
+   "Electric",
+   "Dragon"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 105,
+   "def": 85,
+   "spa": 95,
+   "spd": 85,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Curseproof",
+    "desc": "Can't be afflicted with status conditions (immune to curses in DQVIII)."
+   }
+  ],
+  "hidden": {
+   "name": "Munchie",
+   "desc": "Once per battle, restores 1/3 HP when below half (cheese)."
+  },
+  "signature": [
+   {
+    "move": "Thunderbolt",
+    "smash": "Zap"
+   },
+   {
+    "move": "Dragon Pulse",
+    "smash": "Dragovian blood"
+   },
+   {
+    "move": "Metronome",
+    "smash": "Hocus Pocus"
+   },
+   {
+    "move": "Swords Dance",
+    "smash": "Psyche Up"
+   }
+  ],
+  "learnset": [
+   "Thunderbolt",
+   "Dragon Pulse",
+   "Metronome",
+   "Swords Dance",
+   "Thunder",
+   "Draco Meteor",
+   "Dragon Claw",
+   "Flamethrower",
+   "Air Slash",
+   "Hypnosis",
+   "Agility",
+   "Dragon Dance",
+   "Recover",
+   "Iron Defense",
+   "Protect"
+  ],
+  "notes": "Split Hero"
+ },
+ {
+  "num": 88,
+  "id": "banjo-and-kazooie",
+  "name": "Banjo & Kazooie",
+  "series": "Banjo-Kazooie",
+  "types": [
+   "Ground",
+   "Flying"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 100,
+   "def": 90,
+   "spa": 85,
+   "spd": 85,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Gold Feathers",
+    "desc": "Takes no recoil damage (Rock Head)."
+   }
+  ],
+  "hidden": {
+   "name": "Mumbo's Magic",
+   "desc": "Changes to the type of the last move that hit it (Color Change)."
+  },
+  "signature": [
+   {
+    "move": "Egg Bomb",
+    "smash": "Breegull Blaster"
+   },
+   {
+    "move": "Brave Bird",
+    "smash": "Wonderwing"
+   },
+   {
+    "move": "Drill Peck",
+    "smash": "Beak Buster"
+   },
+   {
+    "move": "Bounce",
+    "smash": "Shock Spring Jump"
+   }
+  ],
+  "learnset": [
+   "Egg Bomb",
+   "Brave Bird",
+   "Drill Peck",
+   "Bounce",
+   "Earthquake",
+   "Dig",
+   "Stomping Tantrum",
+   "Dual Wingbeat",
+   "Fly",
+   "Body Slam",
+   "Quick Attack",
+   "Roost",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 89,
+  "id": "terry",
+  "name": "Terry",
+  "series": "Fatal Fury",
+  "types": [
+   "Fighting",
+   "Ground"
+  ],
+  "stats": {
+   "hp": 100,
+   "atk": 115,
+   "def": 90,
+   "spa": 70,
+   "spd": 80,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Go!",
+    "desc": "Once below 35% HP, Attack and Speed rise 1 stage."
+   }
+  ],
+  "hidden": {
+   "name": "Hungry Wolf",
+   "desc": "Attack rises 1 stage after a KO (Moxie)."
+  },
+  "signature": [
+   {
+    "move": "Close Combat",
+    "smash": "Buster Wolf"
+   },
+   {
+    "move": "Earthquake",
+    "smash": "Power Geyser"
+   },
+   {
+    "move": "Mach Punch",
+    "smash": "Burn Knuckle"
+   },
+   {
+    "move": "High Jump Kick",
+    "smash": "Crack Shoot"
+   }
+  ],
+  "learnset": [
+   "Close Combat",
+   "Earthquake",
+   "Mach Punch",
+   "High Jump Kick",
+   "Drain Punch",
+   "Power-Up Punch",
+   "Bulldoze",
+   "Stomping Tantrum",
+   "Rock Slide",
+   "Fake Out",
+   "Bulk Up",
+   "Counter",
+   "Detect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 90,
+  "id": "byleth",
+  "name": "Byleth",
+  "series": "Fire Emblem",
+  "types": [
+   "Dragon",
+   "Rock"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 110,
+   "def": 85,
+   "spa": 85,
+   "spd": 80,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "Divine Pulse",
+    "desc": "Once per battle, survives a KO hit with 1 HP (Sothis rewinds time)."
+   }
+  ],
+  "hidden": {
+   "name": "Ashen Demon",
+   "desc": "Immune to Intimidate and Taunt (Oblivious)."
+  },
+  "signature": [
+   {
+    "move": "Psycho Cut",
+    "smash": "Sword of the Creator"
+   },
+   {
+    "move": "Dragon Hammer",
+    "smash": "Aymr"
+   },
+   {
+    "move": "Drill Run",
+    "smash": "Areadbhar"
+   },
+   {
+    "move": "Thousand Arrows",
+    "smash": "Failnaught"
+   }
+  ],
+  "learnset": [
+   "Psycho Cut",
+   "Dragon Hammer",
+   "Drill Run",
+   "Thousand Arrows",
+   "Stone Edge",
+   "Rock Slide",
+   "Rock Tomb",
+   "Dragon Claw",
+   "Outrage",
+   "Iron Head",
+   "Swords Dance",
+   "Dragon Dance",
+   "Protect"
+  ],
+  "notes": "Male/female are costumes"
+ },
+ {
+  "num": 91,
+  "id": "min-min",
+  "name": "Min Min",
+  "series": "ARMS",
+  "types": [
+   "Fighting"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 110,
+   "def": 85,
+   "spa": 95,
+   "spd": 80,
+   "spe": 85
+  },
+  "abilities": [
+   {
+    "name": "Long ARMS",
+    "desc": "Its moves never make contact (Long Reach)."
+   }
+  ],
+  "hidden": {
+   "name": "Kick Reflect",
+   "desc": "Bounces back status moves aimed at it (Magic Bounce)."
+  },
+  "signature": [
+   {
+    "move": "Dragon Pulse",
+    "smash": "Dragon arm"
+   },
+   {
+    "move": "Hammer Arm",
+    "smash": "Megawatt"
+   },
+   {
+    "move": "Ice Spinner",
+    "smash": "Ramram"
+   },
+   {
+    "move": "High Jump Kick",
+    "smash": "Kick"
+   }
+  ],
+  "learnset": [
+   "Dragon Pulse",
+   "Hammer Arm",
+   "Ice Spinner",
+   "High Jump Kick",
+   "Close Combat",
+   "Drain Punch",
+   "Mach Punch",
+   "Ice Punch",
+   "Thunder Punch",
+   "Fire Punch",
+   "Triple Kick",
+   "Bulk Up",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 92,
+  "id": "steve",
+  "name": "Steve",
+  "series": "Minecraft",
+  "types": [
+   "Normal",
+   "Ground"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 105,
+   "def": 95,
+   "spa": 80,
+   "spd": 80,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Crafting",
+    "desc": "Attack rises 1 stage every 2 turns it stays in (tool upgrades)."
+   }
+  ],
+  "hidden": {
+   "name": "Natural Regeneration",
+   "desc": "Restores 1/16 HP each turn while above half HP."
+  },
+  "signature": [
+   {
+    "move": "Stone Edge",
+    "smash": "Create Block"
+   },
+   {
+    "move": "Dig",
+    "smash": "Mine"
+   },
+   {
+    "move": "Steel Roller",
+    "smash": "Minecart"
+   },
+   {
+    "move": "Explosion",
+    "smash": "TNT"
+   }
+  ],
+  "learnset": [
+   "Stone Edge",
+   "Dig",
+   "Steel Roller",
+   "Explosion",
+   "Earthquake",
+   "Rock Slide",
+   "Iron Head",
+   "Smart Strike",
+   "Double-Edge",
+   "Body Slam",
+   "Stealth Rock",
+   "Swords Dance",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 93,
+  "id": "alex",
+  "name": "Alex",
+  "series": "Minecraft",
+  "types": [
+   "Normal",
+   "Rock"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 100,
+   "def": 90,
+   "spa": 85,
+   "spd": 85,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "Crafting",
+    "desc": "Attack rises 1 stage every 2 turns it stays in (tool upgrades)."
+   }
+  ],
+  "hidden": {
+   "name": "Thorns Enchantment",
+   "desc": "Contact damages the attacker by 1/8 (Rough Skin)."
+  },
+  "signature": [
+   {
+    "move": "Rock Slide",
+    "smash": "Create Block"
+   },
+   {
+    "move": "Wood Hammer",
+    "smash": "Axe"
+   },
+   {
+    "move": "Acrobatics",
+    "smash": "Elytra"
+   },
+   {
+    "move": "Seed Bomb",
+    "smash": "Farming"
+   }
+  ],
+  "learnset": [
+   "Rock Slide",
+   "Wood Hammer",
+   "Acrobatics",
+   "Seed Bomb",
+   "Stone Edge",
+   "Rock Tomb",
+   "Earthquake",
+   "Iron Head",
+   "Steel Roller",
+   "Double-Edge",
+   "Explosion",
+   "Stealth Rock",
+   "Swords Dance",
+   "Protect"
+  ],
+  "notes": "Split from Steve"
+ },
+ {
+  "num": 94,
+  "id": "zombie",
+  "name": "Zombie",
+  "series": "Minecraft",
+  "types": [
+   "Ghost",
+   "Poison"
+  ],
+  "stats": {
+   "hp": 105,
+   "atk": 105,
+   "def": 80,
+   "spa": 60,
+   "spd": 80,
+   "spe": 55
+  },
+  "abilities": [
+   {
+    "name": "Undead",
+    "desc": "Heals from poison instead of taking damage (Poison Heal)."
+   }
+  ],
+  "hidden": {
+   "name": "Infection",
+   "desc": "Contact spreads this Ability to the attacker (Mummy)."
+  },
+  "signature": [
+   {
+    "move": "Shadow Claw",
+    "smash": "Swipe"
+   },
+   {
+    "move": "Poison Jab",
+    "smash": "Rot"
+   },
+   {
+    "move": "Rock Tomb",
+    "smash": "Create Block"
+   },
+   {
+    "move": "Explosion",
+    "smash": "TNT"
+   }
+  ],
+  "learnset": [
+   "Shadow Claw",
+   "Poison Jab",
+   "Rock Tomb",
+   "Explosion",
+   "Shadow Sneak",
+   "Shadow Punch",
+   "Poltergeist",
+   "Gunk Shot",
+   "Poison Fang",
+   "Body Slam",
+   "Toxic",
+   "Pain Split",
+   "Protect"
+  ],
+  "notes": "Split from Steve"
+ },
+ {
+  "num": 95,
+  "id": "enderman",
+  "name": "Enderman",
+  "series": "Minecraft",
+  "types": [
+   "Psychic",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 110,
+   "def": 75,
+   "spa": 95,
+   "spd": 80,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "Ender Teleport",
+    "desc": "Immune to ball and bomb moves (Bulletproof)."
+   }
+  ],
+  "hidden": {
+   "name": "Don't Stare",
+   "desc": "Attack rises 1 stage whenever it's targeted by a damaging move."
+  },
+  "signature": [
+   {
+    "move": "Zen Headbutt",
+    "smash": "Strike"
+   },
+   {
+    "move": "Knock Off",
+    "smash": "Block theft"
+   },
+   {
+    "move": "Rock Tomb",
+    "smash": "Create Block"
+   },
+   {
+    "move": "Teleport",
+    "smash": "Ender Pearl"
+   }
+  ],
+  "learnset": [
+   "Zen Headbutt",
+   "Knock Off",
+   "Rock Tomb",
+   "Teleport",
+   "Psycho Cut",
+   "Psychic Fangs",
+   "Night Slash",
+   "Sucker Punch",
+   "Dark Pulse",
+   "Trick",
+   "Taunt",
+   "Swords Dance",
+   "Protect"
+  ],
+  "notes": "Split from Steve"
+ },
+ {
+  "num": 96,
+  "id": "sephiroth",
+  "name": "Sephiroth",
+  "series": "Final Fantasy",
+  "types": [
+   "Dark",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 120,
+   "def": 75,
+   "spa": 100,
+   "spd": 80,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "One-Winged Angel",
+    "desc": "Once below half HP, Attack and Speed rise 1 stage."
+   }
+  ],
+  "hidden": {
+   "name": "Jenova Cells",
+   "desc": "Restores 1/3 HP when switching out (Regenerator)."
+  },
+  "signature": [
+   {
+    "move": "Night Slash",
+    "smash": "Blade Dash"
+   },
+   {
+    "move": "Shadow Ball",
+    "smash": "Shadow Flare"
+   },
+   {
+    "move": "Fire Blast",
+    "smash": "Flare/Megaflare"
+   },
+   {
+    "move": "Counter",
+    "smash": "Scintilla"
+   }
+  ],
+  "learnset": [
+   "Night Slash",
+   "Shadow Ball",
+   "Fire Blast",
+   "Counter",
+   "Smart Strike",
+   "Iron Head",
+   "Sacred Sword",
+   "Sucker Punch",
+   "Knock Off",
+   "Dark Pulse",
+   "Flash Cannon",
+   "Shadow Sneak",
+   "Swords Dance",
+   "Nasty Plot",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 97,
+  "id": "pyra",
+  "name": "Pyra",
+  "series": "Xenoblade Chronicles 2",
+  "types": [
+   "Fire",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 120,
+   "def": 85,
+   "spa": 95,
+   "spd": 80,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Aegis Driver",
+    "desc": "Takes half damage from Fire moves (Heatproof)."
+   }
+  ],
+  "hidden": {
+   "name": "Burning Sword",
+   "desc": "Summons harsh sunlight on switch-in (Drought)."
+  },
+  "signature": [
+   {
+    "move": "Flare Blitz",
+    "smash": "Flare Blade"
+   },
+   {
+    "move": "Smart Strike",
+    "smash": "Aegis Sword"
+   },
+   {
+    "move": "Flame Charge",
+    "smash": "Blazing End"
+   },
+   {
+    "move": "Swords Dance",
+    "smash": "Prominence Revolt"
+   }
+  ],
+  "learnset": [
+   "Flare Blitz",
+   "Smart Strike",
+   "Flame Charge",
+   "Swords Dance",
+   "Fire Blast",
+   "Flamethrower",
+   "Overheat",
+   "Iron Head",
+   "Sacred Sword",
+   "Will-O-Wisp",
+   "Sunny Day",
+   "Protect"
+  ],
+  "notes": "Split from Mythra"
+ },
+ {
+  "num": 98,
+  "id": "mythra",
+  "name": "Mythra",
+  "series": "Xenoblade Chronicles 2",
+  "types": [
+   "Electric",
+   "Fairy"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 100,
+   "def": 70,
+   "spa": 105,
+   "spd": 75,
+   "spe": 135
+  },
+  "abilities": [
+   {
+    "name": "Foresight",
+    "desc": "Speed sharply rises after a successful Detect/Protect."
+   }
+  ],
+  "hidden": {
+   "name": "Light of the Aegis",
+   "desc": "Electric and Fairy moves deal 1.2x damage."
+  },
+  "signature": [
+   {
+    "move": "Dazzling Gleam",
+    "smash": "Ray of Punishment"
+   },
+   {
+    "move": "Thunderbolt",
+    "smash": "Lightning Buster"
+   },
+   {
+    "move": "Quick Attack",
+    "smash": "Photon Edge"
+   },
+   {
+    "move": "Detect",
+    "smash": "Foresight"
+   }
+  ],
+  "learnset": [
+   "Dazzling Gleam",
+   "Thunderbolt",
+   "Quick Attack",
+   "Detect",
+   "Thunder",
+   "Volt Switch",
+   "Moonblast",
+   "Play Rough",
+   "Psychic",
+   "Agility",
+   "Calm Mind",
+   "Nasty Plot",
+   "Light Screen",
+   "Reflect",
+   "Protect"
+  ],
+  "notes": "Split from Pyra"
+ },
+ {
+  "num": 99,
+  "id": "kazuya",
+  "name": "Kazuya",
+  "series": "Tekken",
+  "types": [
+   "Fighting",
+   "Dark"
+  ],
+  "stats": {
+   "hp": 105,
+   "atk": 125,
+   "def": 95,
+   "spa": 85,
+   "spd": 80,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "Devil Gene",
+    "desc": "Once below 1/3 HP, Attack sharply rises."
+   }
+  ],
+  "hidden": {
+   "name": "Mishima Style",
+   "desc": "A critical hit maxes its Attack (Anger Point)."
+  },
+  "signature": [
+   {
+    "move": "Close Combat",
+    "smash": "Devil Fist"
+   },
+   {
+    "move": "Thunder Punch",
+    "smash": "Electric Wind God Fist"
+   },
+   {
+    "move": "Dark Pulse",
+    "smash": "Devil Blaster"
+   },
+   {
+    "move": "Bulk Up",
+    "smash": "Rage"
+   }
+  ],
+  "learnset": [
+   "Close Combat",
+   "Thunder Punch",
+   "Dark Pulse",
+   "Bulk Up",
+   "Drain Punch",
+   "Mach Punch",
+   "High Jump Kick",
+   "Ice Punch",
+   "Knock Off",
+   "Sucker Punch",
+   "Fly",
+   "Taunt",
+   "Protect"
+  ],
+  "notes": ""
+ },
+ {
+  "num": 100,
+  "id": "sora",
+  "name": "Sora",
+  "series": "Kingdom Hearts",
+  "types": [
+   "Fairy",
+   "Steel"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 95,
+   "def": 85,
+   "spa": 95,
+   "spd": 85,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "Power of Friends",
+    "desc": "Once per battle, restores 1/3 HP when below 1/4 (Donald's Cure)."
+   }
+  ],
+  "hidden": {
+   "name": "Heart of Light",
+   "desc": "Takes half damage from Dark moves."
+  },
+  "signature": [
+   {
+    "move": "Sacred Sword",
+    "smash": "Sonic Blade"
+   },
+   {
+    "move": "Flamethrower",
+    "smash": "Firaga"
+   },
+   {
+    "move": "Thunderbolt",
+    "smash": "Thundaga"
+   },
+   {
+    "move": "Ice Beam",
+    "smash": "Blizzaga"
+   }
+  ],
+  "learnset": [
+   "Sacred Sword",
+   "Flamethrower",
+   "Thunderbolt",
+   "Ice Beam",
+   "Play Rough",
+   "Iron Head",
+   "Smart Strike",
+   "Dazzling Gleam",
+   "Flash Cannon",
+   "Aerial Ace",
+   "Swords Dance",
+   "Calm Mind",
+   "Recover",
+   "Reflect",
+   "Protect"
+  ],
+  "notes": ""
+ }
+]
