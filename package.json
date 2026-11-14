@@ -1,0 +1,16 @@
+{
+  "name": "ssbu-mon",
+  "version": "0.1.0",
+  "description": "Pokémon Showdown-style battler starring Super Smash Bros. Ultimate fighters",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node test/mechanics.js && node test/simulate.js 300",
+    "build:fighters": "python3 tools/build_fighters.py"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
