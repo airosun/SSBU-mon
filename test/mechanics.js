@@ -15,6 +15,20 @@ let passed = 0;
 async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', name); } catch (e) { console.log('FAIL', name, '\n', e.stack); process.exitCode = 1; } }
 
 (async () => {
+  await test('Eviolite boosts only not-fully-evolved fighters (incl. Jigglypuff)', () => {
+    const fj = require('../shared/fighters.json');
+    const L = id => fj.find(x => x.id === id);
+    for (const [id, boosted] of [['jigglypuff', true], ['pikachu', true], ['pichu', true], ['squirtle', true], ['ivysaur', true], ['kirby', false], ['charizard', false]]) {
+      const f = L(id); const ab = f.abilities[0].name;
+      const b = battle([mk(id, ab, [f.learnset[0]], { item: 'Eviolite' }), mk(id, ab, [f.learnset[0]])], [mk('mario', 'Super Mushroom', ['Protect'])]);
+      const [held, plain] = b.sides[0].team;
+      for (const st of ['def', 'spd']) {
+        const r = b.getStat(held, st) / b.getStat(plain, st);
+        assert(boosted ? r >= 1.45 && r <= 1.55 : r === 1, `${id} ${st} ratio ${r}`);
+      }
+    }
+  });
+
   await test('roster signatures detect tampering', () => {
     const f = sign(genFighter('mario'));
     assert(verify(f));
