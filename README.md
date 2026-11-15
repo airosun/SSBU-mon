@@ -7,7 +7,7 @@ A Pokémon VGC-style battle site where every Super Smash Bros. Ultimate fighter 
 **Formats (VGC rules, level 50):**
 - **Singles:** bring 6, pick 3.
 - **Doubles:** bring 6, pick 4. Two fighters are out per side, you choose targets, and spread moves (Earthquake, Rock Slide, Hyper Voice…) hit several fighters for 75% damage.
-- **Clauses:** one of each fighter per team, and one of each item per team (item clause). Any fighter can hold any item. Eviolite (1.5× Defense and Sp. Def) only works on fighters that can still evolve: Pichu, Pikachu, Squirtle and Ivysaur.
+- **Clauses:** one of each fighter per team, and one of each item per team (item clause). Any fighter can hold any item. Eviolite (1.5× Defense and Sp. Def) only works on fighters that can still evolve: Pichu, Pikachu, Squirtle, Ivysaur and Jigglypuff.
 
 **Final Smashes (Megas):** a fighter holding its Final Smash stone can use its Final Smash once per battle. Turn on the **Final Smash** toggle above the moves, and the fighter transforms before anyone moves that turn. It keeps its HP but gets new stats, types and ability. Only one fighter per team can use its Final Smash in a battle. You can bring several stone holders, but once one transforms the rest can't. Stones can't be knocked off, stolen, traded or flung.
 
