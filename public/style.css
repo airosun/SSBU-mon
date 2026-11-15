@@ -283,3 +283,13 @@ details.pool .move-table { max-height: 220px; }
   .arena.doubles .combatant { flex-direction: column; align-items: stretch; }
   .arena.doubles .combatant .sprwrap { align-self: center; }
 }
+/* ---- v4: hover info ---- */
+.chip.cond { cursor: help; border-bottom: 1px dotted #8b96aa; }
+[data-tipmon] { cursor: help; }
+.sw-wrap { display: block; min-width: 0; }
+.sw-wrap .sw-btn { width: 100%; height: 100%; }
+.sw-wrap .sw-btn:disabled { pointer-events: none; }
+.tipstats { display: grid; grid-template-columns: 34px auto 1fr; gap: 1px 8px; font-size: 13px; margin: 4px 0 6px; }
+.tipstats span { color: var(--muted); } .tipstats b { font-family: var(--mono); text-align: right; }
+.tipstats i { font-style: normal; font-family: var(--mono); font-size: 12px; } .tipstats i.up { color: #8ff0b6; } .tipstats i.down { color: #ffa3a3; }
+.tip .sprite.sm { width: 26px; height: 26px; }

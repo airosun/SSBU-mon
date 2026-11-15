@@ -1160,7 +1160,7 @@ class Battle {
   publicState(perspective) {
     return {
       id: this.id, format: this.format, turn: this.turn, phase: this.phase, ended: this.ended, winner: this.winner,
-      field: { weather: this.field.weather, trickroom: this.field.trickroom, gravity: this.field.gravity },
+      field: { weather: this.field.weather, weatherTurns: this.field.weatherTurns, trickroom: this.field.trickroom, gravity: this.field.gravity },
       sides: this.sides.map(s => {
         const own = s.n === perspective;
         return {
