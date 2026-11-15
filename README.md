@@ -76,11 +76,13 @@ Real Mega Pokémon use their official Mega stats. The other forms keep the base 
 
 **Stats tab:** your win/loss record by mode and opponent, your most-used fighters, your recent battles with replays, site-wide **fighter usage** (how often each fighter is brought and its win rate, by format, over the last 7/30/90 days), and recent player battles.
 
+**Trainer cards:** signed-in players get a card with a fighter avatar (any fighter or Final Smash form), a title, a short bio, a showcase Elite team, their record and their favorite fighters. Edit yours on the Stats tab. Tap a signed-in player's name in the Online list to see theirs. Their avatar also shows next to their name.
+
 **Calc tab:** a damage calculator that uses the battle engine. Set the attacker and defender (fighter, ability, nature, IVs, item, Final Smash, boosts, status, HP) and the field (weather, screens, crit, doubles spread), and it shows the damage range and how many hits it takes to KO. You can load a fighter straight from your roster.
 
 **Import / export:** in Elite Teams, **Export** gives a Showdown-style text version of a team. **Import** takes one and matches each fighter to the closest one in your roster (nature, ability, IVs). It skips moves the fighter can't learn and items it can't hold, and tells you what it changed.
 
-You can battle the CPU, find a random opponent (queues are separate for each mode and format), challenge an online player, or watch live matches. There's lobby chat and battle chat.
+You can battle the CPU, find a random opponent (queues are separate for each mode and format), challenge an online player, or watch live matches. The home page shows the **most used fighters** today and all time. Each battle has its own chat.
 
 ## Run it locally
 
@@ -129,6 +131,7 @@ Locally, run with `DATABASE_URL=postgres://… npm start`, or with no `DATABASE_
 | `server/userdata.js` | Saved rosters and Elite teams (signature checks, guest import) |
 | `server/stats.js` | Win/loss records, most-used fighters, usage stats |
 | `server/calc.js` | Damage calculator (runs the battle engine) |
+| `server/profile.js` | Trainer cards |
 | `public/anim.js` | Move animations |
 | `public/extras.js` | Stats, replays, calculator, team import/export, opponent info |
 | `server/index.js` | Express + Socket.IO server (lobby, queues, challenges, spectating) |

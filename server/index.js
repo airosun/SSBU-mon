@@ -13,6 +13,7 @@ const { setupAuth, userFromCookie } = require('./auth.js');
 const UserData = require('./userdata.js');
 const Stats = require('./stats.js');
 const { calc } = require('./calc.js');
+const { sanitizeProfile } = require('./profile.js');
 const MOVES = require('../shared/moves.js');
 const FIGHTERS = require('../shared/fighters.json');
 const DEX = require('../shared/dex.js');
@@ -49,10 +50,44 @@ app.get('/api/stats/me', api(async (req, res) => {
   const sides = await store.userSides(user.id);
   res.json({ username: user.username, record: Stats.record(sides), fighters: Stats.fighterTable(sides).slice(0, 15), recent: await store.recentBattles({ userId: user.id, limit: 20 }) });
 }));
+// start of today in US Eastern time (the same day the Fighter Pass uses)
+function startOfTodayET() {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date()).map(p => [p.type, p.value]));
+  const secs = (+parts.hour % 24) * 3600 + (+parts.minute) * 60 + (+parts.second);
+  return new Date(Date.now() - secs * 1000);
+}
+const usageCache = new Map();   // short cache so the home page doesn't query on every visit
 app.get('/api/stats/usage', api(async (req, res) => {
   const format = ['singles', 'doubles'].includes(req.query.format) ? req.query.format : null;
-  const days = [7, 30, 90].includes(+req.query.days) ? +req.query.days : 30;
-  res.json(Object.assign({ days, format }, Stats.usage(await store.usageSides({ days, format }))));
+  const period = ['today', 'all', '7', '30', '90'].includes(String(req.query.period || req.query.days)) ? String(req.query.period || req.query.days) : '30';
+  const key = period + ':' + format; const hit = usageCache.get(key);
+  if (hit && Date.now() - hit.t < 30000) return res.json(hit.v);
+  const since = period === 'today' ? startOfTodayET() : period === 'all' ? null : new Date(Date.now() - (+period) * 864e5);
+  const v = Object.assign({ period, days: /^\d+$/.test(period) ? +period : null, format }, Stats.usage(await store.usageSides({ since, format })));
+  usageCache.set(key, { t: Date.now(), v });
+  res.json(v);
+}));
+// ---------- trainer cards ----------
+async function publicProfile(user) {
+  const [prof, sides] = await Promise.all([store.getProfile(user.id), store.userSides(user.id)]);
+  const p = prof || {};
+  const rec = Stats.record(sides);
+  return { username: user.username, joined: user.created_at || null, avatar: p.avatar || null, title: p.title || '', bio: p.bio || '', favoriteTeam: p.favoriteTeam || null,
+    record: { total: rec.total, pvp: rec.pvp }, battles: sides.length, top: Stats.fighterTable(sides).slice(0, 3) };
+}
+app.get('/api/profile/:username', api(async (req, res) => {
+  const u = await store.getUserByName(String(req.params.username).slice(0, 20));
+  if (!u) return res.status(404).json({ error: 'No player with that name.' });
+  res.json(await publicProfile(await store.getUserById(u.id)));
+}));
+app.post('/api/account/profile', api(async (req, res) => {
+  const me = await userFromCookie(store, req.headers.cookie);
+  if (!me) return res.status(401).json({ error: 'Sign in first.' });
+  const data = (await store.getData(me.id)).data;
+  const prof = sanitizeProfile(req.body, UserData.sanitize(data || {}));
+  await store.setProfile(me.id, prof);
+  const u = users.get('u:' + me.id); if (u) { u.avatar = prof.avatar; broadcastLobby(); }
+  res.json(await publicProfile(await store.getUserById(me.id)));
 }));
 app.post('/api/calc', express.json({ limit: '10kb' }), (req, res) => { try { res.json(calc(req.body)); } catch (e) { console.error('calc', e.message); res.status(400).json({ error: 'Could not calculate that.' }); } });
 
@@ -66,7 +101,7 @@ const lobbyChat = [];
 const MODES = ['standard', 'elite'], FORMATS = ['singles', 'doubles'];
 const LABEL = { standard: 'Standard', elite: 'Elite Smash', singles: 'Singles', doubles: 'Doubles' };
 const clean = s => String(s || '').replace(/[<>]/g, '').trim().slice(0, 24);
-const userList = () => [...users.values()].filter(u => u.sockets.size).map(u => ({ id: u.id, name: u.name, searching: u.searching ? u.searching.key : null }));
+const userList = () => [...users.values()].filter(u => u.sockets.size).map(u => ({ id: u.id, name: u.name, account: !!u.account, avatar: u.avatar || null, searching: u.searching ? u.searching.key : null }));
 const matchList = () => [...matches.entries()].filter(([, e]) => !e.match.ended).map(([id, e]) => ({ id, p1: e.match.players[0].name, p2: e.match.players[1].name, mode: e.match.mode, format: e.match.format, phase: e.match.phase, turn: e.match.battle ? e.match.battle.turn : 0 }));
 function broadcastLobby() { io.to('lobby').emit('lobby', { users: userList(), matches: matchList() }); }
 function emitTo(clientId, ev, data) { const u = users.get(clientId); if (u) for (const sid of u.sockets) io.to(sid).emit(ev, data); }
@@ -137,6 +172,7 @@ io.on('connection', socket => {
     if (!me) { me = { id, account: acct, name: acct ? acct.username : clean(name) || 'Guest' + Math.floor(Math.random() * 9000 + 1000), sockets: new Set(), matches: new Set(), searching: null }; users.set(id, me); }
     else if (!acct && clean(name)) me.name = clean(name);
     me.sockets.add(socket.id); me.lastSeen = Date.now();
+    if (acct && me.avatar === undefined) { me.avatar = null; store.getProfile(acct.id).then(p => { me.avatar = (p && p.avatar) || null; broadcastLobby(); }).catch(() => {}); }
     socket.join('lobby');
     socket.emit('welcome', { id: me.id, name: me.name, account: acct && { id: acct.id, username: acct.username }, chat: lobbyChat.slice(-50), pass: await Pass.status(me.id).catch(() => null) });
     for (const mid of me.matches) { const e = matches.get(mid); if (e) socket.emit('match', e.match.view(e.players.indexOf(me.id))); }

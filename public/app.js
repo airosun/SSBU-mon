@@ -117,7 +117,7 @@
     });
   }
   socket.on('lobby', d => { S.lobby = d; if (S.tab === 'home') renderHome(); });
-  socket.on('chat', ({ room, msg }) => { if (room === 'lobby') { S.lobbyChat.push(msg); if (S.tab === 'home') renderHome(); } });
+  socket.on('chat', ({ room, msg }) => { if (room === 'lobby') S.lobbyChat.push(msg); });
   socket.on('match', m => {
     const isNew = !S.matches[m.id];
     const prev = S.matches[m.id];
@@ -269,7 +269,6 @@
     return team ? { team } : null;
   }
   function renderHome() {
-    const chat = $('#lobbyChat'); const chatScroll = chat ? chat.scrollTop : null;
     const others = S.lobby.users.filter(u => u.id !== S.me.id);
     const key = `${S.mode}:${S.format}`;
     $('#view').innerHTML = `
@@ -294,7 +293,7 @@
       </section>
       <section class="card">
         <h2>Online (${S.lobby.users.length})</h2>
-        <div class="list">${others.length ? others.map(u => `<div class="list-item"><span class="grow">${esc(u.name)}</span>${u.searching ? `<span class="pill">${esc(label(...u.searching.split(':')))}</span>` : ''}<button class="small" data-challenge="${esc(u.id)}">Challenge</button></div>`).join('') : '<div class="muted">Nobody else is online. Share the link with a friend, or battle the CPU.</div>'}</div>
+        <div class="list">${others.length ? others.map(u => `<div class="list-item">${u.avatar ? sprite(S.byId[u.avatar], 'xs') : ''}<span class="grow">${u.account ? `<a href="#" data-profile="${esc(u.name)}">${esc(u.name)}</a>` : esc(u.name)}</span>${u.searching ? `<span class="pill">${esc(label(...u.searching.split(':')))}</span>` : ''}<button class="small" data-challenge="${esc(u.id)}">Challenge</button></div>`).join('') : '<div class="muted">Nobody else is online. Share the link with a friend, or battle the CPU.</div>'}</div>
         <p class="muted small">Challenges use the mode and format selected above.</p>
         ${S.outgoing ? `<div class="row"><span class="pill">Waiting for ${esc(S.outgoing.name)}…</span><button class="small" id="btnCancelCh">Cancel</button></div>` : ''}
       </section>
@@ -302,13 +301,9 @@
         <h2>Live matches</h2>
         <div class="list">${S.lobby.matches.length ? S.lobby.matches.map(b => `<div class="list-item"><span class="grow">${esc(b.p1)} vs ${esc(b.p2)}<div class="muted small">${esc(label(b.mode, b.format))} · ${b.phase === 'battle' ? 'Turn ' + b.turn : esc(b.phase)}</div></span><button class="small" data-watch="${b.id}">Watch</button></div>`).join('') : '<div class="muted">No matches right now.</div>'}</div>
       </section>
-      <section class="card span2">
-        <h2>Lobby chat</h2>
-        <div class="chat-box" id="lobbyChat">${S.lobbyChat.map(m => `<div><span class="who">${esc(m.name)}:</span> ${esc(m.text)}</div>`).join('')}</div>
-        <div class="row" style="margin-top:8px"><input id="lobbyIn" class="grow" maxlength="300" placeholder="Say something…"><button id="lobbySend">Send</button></div>
-      </section>
+      <section class="card span2" id="homeUsage">${SSBU.homeUsageHtml()}</section>
     </div>`;
-    const lc = $('#lobbyChat'); lc.scrollTop = (chatScroll === null || lc.scrollHeight - chatScroll < 400) ? lc.scrollHeight : chatScroll;
+    SSBU.loadHomeUsage();
     $$('[data-goto]').forEach(a => a.onclick = e => { e.preventDefault(); S.tab = a.dataset.goto; render(); });
     $$('[data-mode]').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; store('ssbu-mode', S.mode); renderHome(); });
     $$('[data-format]').forEach(b => b.onclick = () => { S.format = b.dataset.format; store('ssbu-format', S.format); renderHome(); });
@@ -326,8 +321,6 @@
     });
     const cc = $('#btnCancelCh'); if (cc) cc.onclick = () => { socket.emit('cancelChallenge', { to: S.outgoing.id }); S.outgoing = null; renderHome(); };
     $$('[data-watch]').forEach(b => b.onclick = () => socket.emit('spectate', { id: b.dataset.watch }, r => { if (r.error) toast(r.error); else S.tab = b.dataset.watch; }));
-    const send = () => { const v = $('#lobbyIn').value.trim(); if (v) { socket.emit('chat', { room: 'lobby', text: v }); $('#lobbyIn').value = ''; } };
-    $('#lobbySend').onclick = send; $('#lobbyIn').onkeydown = e => { if (e.key === 'Enter') send(); };
   }
 
   // ---------- Fighter Pass ----------
