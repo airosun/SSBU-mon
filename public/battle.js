@@ -35,6 +35,14 @@
     if (!html) { tip.classList.add('hidden'); return; }
     tip.innerHTML = html; tip.classList.remove('hidden');
     const r = el.getBoundingClientRect();
+    const menu = el.closest('.mvp-menu');
+    if (menu) { // beside the open move list, so it never covers the options
+      const mr = menu.getBoundingClientRect();
+      const right = mr.right + 10 + tip.offsetWidth < window.innerWidth;
+      tip.style.left = (right ? mr.right + 10 : Math.max(8, mr.left - tip.offsetWidth - 10)) + 'px';
+      tip.style.top = Math.max(8, Math.min(window.innerHeight - tip.offsetHeight - 8, r.top - 10)) + window.scrollY + 'px';
+      return;
+    }
     const top = r.top - tip.offsetHeight - 8;
     tip.style.top = (top > 8 ? top : r.bottom + 8) + window.scrollY + 'px';
     tip.style.left = Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, r.left)) + 'px';
@@ -47,7 +55,7 @@
   });
   // touch screens: tap a condition tag or your own fighter to see the same info
   document.addEventListener('click', e => {
-    const el = e.target.closest('[data-tiphtml], [data-tipmon]');
+    const el = e.target.closest('[data-tiphtml], [data-tipmon], .pool [data-tipmove]');
     if (!el || e.target.closest('[data-pick]')) { if (!e.target.closest('.tip')) tip.classList.add('hidden'); return; }
     showTip(el); tipHold = Date.now() + 600;
   });
