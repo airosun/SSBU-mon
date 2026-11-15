@@ -29,7 +29,7 @@ app.set('trust proxy', 1);
 setupAuth(app, store, { secure: process.env.NODE_ENV === 'production' });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
-for (const f of ['dex.js', 'movetext.js', 'megas.js', 'genders.js']) app.get('/shared/' + f, (req, res) => res.sendFile(path.join(__dirname, '..', 'shared', f)));
+for (const f of ['dex.js', 'movetext.js', 'megas.js', 'genders.js', 'cardcolors.js']) app.get('/shared/' + f, (req, res) => res.sendFile(path.join(__dirname, '..', 'shared', f)));
 const dexPayload = JSON.stringify({ fighters: FIGHTERS, moves: MOVES, items: DEX.ITEMS, natures: DEX.NATURES, types: DEX.TYPES, chart: DEX.CHART, eviolite: DEX.EVIOLITE_USERS, renamed: DEX.RENAMED_ABILITIES, finalSmashes: MEGAS.FINAL_SMASHES, pass: { perDay: Pass.ROLLS_PER_DAY, keep: Pass.KEEP_PER_ROLL } });
 app.get('/api/dex', (req, res) => res.type('json').send(dexPayload));
 app.get('/healthz', (req, res) => res.send('ok'));
@@ -72,7 +72,7 @@ async function publicProfile(user) {
   const [prof, sides] = await Promise.all([store.getProfile(user.id), store.userSides(user.id)]);
   const p = cleanForDisplay(prof) || {};
   const rec = Stats.record(sides);
-  return { username: user.username, joined: user.created_at || null, avatar: p.avatar || null, title: p.title || '', bio: p.bio || '', favoriteTeam: p.favoriteTeam || null,
+  return { username: user.username, joined: user.created_at || null, color: p.color || 'classic', avatar: p.avatar || null, title: p.title || '', bio: p.bio || '', favoriteTeam: p.favoriteTeam || null,
     record: { total: rec.total, pvp: rec.pvp }, battles: sides.length, top: Stats.fighterTable(sides).slice(0, 3) };
 }
 app.get('/api/profile/:username', api(async (req, res) => {

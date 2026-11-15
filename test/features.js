@@ -112,6 +112,7 @@ function pvp(timed = true) {
     assert.equal(sanitizeProfile({ avatar: 'pichu~F' }, {}).avatar, 'pichu~F');
     assert.equal(sanitizeProfile({ avatar: 'grima~F' }, {}).avatar, 'grima~F');
     assert.equal(sanitizeProfile({ avatar: 'mario~F' }, {}).avatar, null, 'no female Mario sprite');
+    assert.equal(sanitizeProfile({ color: 'ocean' }, {}).color, 'ocean'); assert.equal(sanitizeProfile({ color: 'neon<script>' }, {}).color, 'classic');
   });
   await test('damage calc matches engine rules', () => {
     const base = calc({ attacker: { species: 'mario', move: 'Flamethrower' }, defender: { species: 'link' } });
