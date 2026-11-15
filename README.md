@@ -78,7 +78,7 @@ Real Mega Pokémon use their official Mega stats. The other forms keep the base 
 
 **Stats tab:** your win/loss record by mode and opponent, your most-used fighters, your recent battles with replays, site-wide **fighter usage** (how often each fighter is brought and its win rate, by format, over the last 7/30/90 days), and recent player battles.
 
-**Battler Cards:** signed-in players get a card with a fighter avatar (any fighter or Final Smash form), a title, a short bio, a showcase Elite team, their record and their favorite fighters. Edit yours from the account menu (click your name at the top) or the Stats tab. Tap a signed-in player's name in the Online list to see theirs. Their avatar also shows next to their name.
+**Battler Cards:** signed-in players get a card with a fighter avatar (any fighter or Final Smash form, including the alternate-gender sprites), a title, a short bio, a showcase Elite team, their record and their favorite fighters. Edit yours from the account menu (click your name at the top) or the Stats tab. Titles, bios and showcase team names can't contain curse words or slurs. Disguised spellings are caught too (see `server/moderation.js`). Tap a signed-in player's name in the Online list to see theirs. Their avatar also shows next to their name.
 
 **Calc tab:** a damage calculator that uses the battle engine. Set the attacker and defender (fighter, ability, nature, IVs, item, Final Smash, boosts, status, HP) and the field (weather, screens, crit, doubles spread), and it shows the damage range and how many hits it takes to KO. You can load a fighter straight from your roster.
 
@@ -134,6 +134,7 @@ Locally, run with `DATABASE_URL=postgres://… npm start`, or with no `DATABASE_
 | `server/stats.js` | Win/loss records, most-used fighters, usage stats |
 | `server/calc.js` | Damage calculator (runs the battle engine) |
 | `server/profile.js` | Battler Cards |
+| `server/moderation.js` | Curse word and slur filter |
 | `public/anim.js` | Move animations |
 | `public/extras.js` | Stats, replays, calculator, team import/export, opponent info |
 | `server/index.js` | Express + Socket.IO server (lobby, queues, challenges, spectating) |

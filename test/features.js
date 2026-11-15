@@ -97,6 +97,22 @@ function pvp(timed = true) {
     assert.equal((await st.usageSides({ since: new Date(Date.now() + 60000) })).length, 0);
     assert.equal((await st.usageSides({ since: new Date(Date.now() - 60000) })).length, 2);
   });
+  await test('Battler Cards: curse words and slurs are blocked, disguised spellings too; alternate-gender avatars allowed', () => {
+    const { isClean, mask } = require('../server/moderation.js');
+    const { sanitizeProfile, cleanForDisplay } = require('../server/profile.js');
+    const rev = w => w.split('').reverse().join('');   // keep the word list out of plain sight
+    for (const w of ['kcuf', 'tihs', 'hctib', 'reggin', 'toggaf', 'drater', 'cips', 'kcabtew']) assert(!isClean(rev(w)), 'blocked: ' + w.length);
+    for (const w of ['f u c k', 's.h.i.t', 'sh1t', 'b!tch', 'FUUUCK']) assert(!isClean(w), 'disguised: ' + w.length);
+    for (const w of ['Scunthorpe', 'assassin main', 'class act', 'spicy food', 'Hispanic', 'snigger', 'Shiitake', 'Dick Grayson', 'Peach & Daisy', 'a b c']) assert(isClean(w), 'allowed: ' + w);
+    assert.equal(sanitizeProfile({ title: 'the ' + rev('tihs') }, {}).error.includes('title'), true);
+    assert(sanitizeProfile({ bio: 'f u c k this' }, {}).error.includes('About you'));
+    const data = { roster: [{ uid: 'a', species: 'mario' }], elite: [{ name: rev('tihs') + ' team', mons: [{ uid: 'a', moves: [] }] }] };
+    assert(sanitizeProfile({ favoriteTeam: 0 }, data).error.includes('team'));
+    assert(!/[a-z]{4}/i.test(cleanForDisplay({ title: rev('tihs'), bio: '', favoriteTeam: null }).title), 'old saved text is masked');
+    assert.equal(sanitizeProfile({ avatar: 'pichu~F' }, {}).avatar, 'pichu~F');
+    assert.equal(sanitizeProfile({ avatar: 'grima~F' }, {}).avatar, 'grima~F');
+    assert.equal(sanitizeProfile({ avatar: 'mario~F' }, {}).avatar, null, 'no female Mario sprite');
+  });
   await test('damage calc matches engine rules', () => {
     const base = calc({ attacker: { species: 'mario', move: 'Flamethrower' }, defender: { species: 'link' } });
     const sun = calc({ attacker: { species: 'mario', move: 'Flamethrower' }, defender: { species: 'link' }, field: { weather: 'sun' } });

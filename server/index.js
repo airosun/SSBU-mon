@@ -13,7 +13,7 @@ const { setupAuth, userFromCookie } = require('./auth.js');
 const UserData = require('./userdata.js');
 const Stats = require('./stats.js');
 const { calc } = require('./calc.js');
-const { sanitizeProfile } = require('./profile.js');
+const { sanitizeProfile, cleanForDisplay } = require('./profile.js');
 const MOVES = require('../shared/moves.js');
 const FIGHTERS = require('../shared/fighters.json');
 const DEX = require('../shared/dex.js');
@@ -70,7 +70,7 @@ app.get('/api/stats/usage', api(async (req, res) => {
 // ---------- Battler Cards ----------
 async function publicProfile(user) {
   const [prof, sides] = await Promise.all([store.getProfile(user.id), store.userSides(user.id)]);
-  const p = prof || {};
+  const p = cleanForDisplay(prof) || {};
   const rec = Stats.record(sides);
   return { username: user.username, joined: user.created_at || null, avatar: p.avatar || null, title: p.title || '', bio: p.bio || '', favoriteTeam: p.favoriteTeam || null,
     record: { total: rec.total, pvp: rec.pvp }, battles: sides.length, top: Stats.fighterTable(sides).slice(0, 3) };
@@ -85,6 +85,7 @@ app.post('/api/account/profile', api(async (req, res) => {
   if (!me) return res.status(401).json({ error: 'Sign in first.' });
   const data = (await store.getData(me.id)).data;
   const prof = sanitizeProfile(req.body, UserData.sanitize(data || {}));
+  if (prof.error) return res.status(400).json({ error: prof.error });
   await store.setProfile(me.id, prof);
   const u = users.get('u:' + me.id); if (u) { u.avatar = prof.avatar; broadcastLobby(); }
   res.json(await publicProfile(await store.getUserById(me.id)));

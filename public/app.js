@@ -304,7 +304,7 @@
       </section>
       <section class="card">
         <h2>Online (${S.lobby.users.length})</h2>
-        <div class="list">${others.length ? others.map(u => `<div class="list-item">${u.avatar ? sprite(S.byId[u.avatar], 'xs') : ''}<span class="grow">${u.account ? `<a href="#" data-profile="${esc(u.name)}">${esc(u.name)}</a>` : esc(u.name)}</span>${u.searching ? `<span class="pill">${esc(label(...u.searching.split(':')))}</span>` : ''}<button class="small" data-challenge="${esc(u.id)}">Challenge</button></div>`).join('') : '<div class="muted">Nobody else is online. Share the link with a friend, or battle the CPU.</div>'}</div>
+        <div class="list">${others.length ? others.map(u => `<div class="list-item">${u.avatar ? SSBU.avatarSprite(u.avatar, 'xs') : ''}<span class="grow">${u.account ? `<a href="#" data-profile="${esc(u.name)}">${esc(u.name)}</a>` : esc(u.name)}</span>${u.searching ? `<span class="pill">${esc(label(...u.searching.split(':')))}</span>` : ''}<button class="small" data-challenge="${esc(u.id)}">Challenge</button></div>`).join('') : '<div class="muted">Nobody else is online. Share the link with a friend, or battle the CPU.</div>'}</div>
         <p class="muted small">Challenges use the mode and format selected above.</p>
         ${S.outgoing ? `<div class="row"><span class="pill">Waiting for ${esc(S.outgoing.name)}…</span><button class="small" id="btnCancelCh">Cancel</button></div>` : ''}
       </section>
