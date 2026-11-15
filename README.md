@@ -7,7 +7,7 @@ A Pokémon VGC-style battle site where every Super Smash Bros. Ultimate fighter 
 **Formats (VGC rules, level 50):**
 - **Singles:** bring 6, pick 3.
 - **Doubles:** bring 6, pick 4. Two fighters are out per side, you choose targets, and spread moves (Earthquake, Rock Slide, Hyper Voice…) hit several fighters for 75% damage.
-- **Clauses:** one of each fighter per team, and one of each item per team (item clause).
+- **Clauses:** one of each fighter per team, and one of each item per team (item clause). Any fighter can hold any item, including Eviolite (1.5× Defense and Sp. Def).
 
 **Standard Battle**
 1. Each player gets 20 random fighters with random natures, random IVs (0–31) and either their standard or hidden ability. Pick 6.

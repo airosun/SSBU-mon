@@ -4,7 +4,7 @@ const FIGHTERS = require('../../shared/fighters.json');
 const { effectiveness, calcStat, EVIOLITE_USERS } = require('../../shared/dex.js');
 const BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
 
-const ITEM_PREFS = ['Sitrus Berry', 'Life Orb', 'Leftovers', 'Focus Sash', 'Choice Scarf', 'Lum Berry', 'Assault Vest', 'Expert Belt', 'Choice Band', 'Choice Specs', 'Rocky Helmet', 'Heavy-Duty Boots'];
+const ITEM_PREFS = ['Sitrus Berry', 'Life Orb', 'Leftovers', 'Eviolite', 'Focus Sash', 'Choice Scarf', 'Lum Berry', 'Assault Vest', 'Expert Belt', 'Choice Band', 'Choice Specs', 'Rocky Helmet', 'Heavy-Duty Boots'];
 
 function power(base, lvl = 50) {
   const f = BY_ID[base.species];

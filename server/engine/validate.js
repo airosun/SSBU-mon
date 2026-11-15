@@ -3,7 +3,7 @@
 // one of each item.
 const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
-const { NATURES, ITEMS, EVIOLITE_USERS } = require('../../shared/dex.js');
+const { NATURES, ITEMS } = require('../../shared/dex.js');
 const BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 
@@ -16,7 +16,6 @@ function buildSet(base, build, errors) {
   for (const mv of moves) if (!MOVES[mv] || !f.learnset.includes(mv)) errors.push(`${f.name} can't learn ${mv}.`);
   const item = build.item || '';
   if (item && !ITEMS[item]) errors.push(`${f.name}: unknown item ${item}.`);
-  if (item === 'Eviolite' && !EVIOLITE_USERS.includes(f.id)) errors.push(`${f.name} can't use Eviolite.`);
   if (![...f.abilities.map(a => a.name), f.hidden.name].includes(base.ability)) errors.push(`${f.name}: invalid ability.`);
   if (!NATURES[base.nature]) errors.push(`${f.name}: invalid nature.`);
   const ivs = {};
