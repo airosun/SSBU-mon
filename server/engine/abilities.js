@@ -192,6 +192,8 @@ def('Steadfast', { steadfast: true });
 def('Insomnia', { statusImmune: ['slp'] });
 def('Monster Maw', { flagBoost: { flag: 'bite', mult: 1.5 }, typeTaken: { Fire: 0.5, Ice: 0.5 } });
 def('Heartless Angel', { typeBoost: { Dark: 1.3, Flying: 1.3 } });
+def('Dragon Blood', { typeBoost: { Dragon: 1.3, Water: 1.3 }, typeTaken: { Fire: 0.5 } });
+def('Infernal Demon', { intimidate: true, flagBoost: { flag: 'bite', mult: 1.5 } });
 def('Devil Within', { flagBoost: { flag: 'contact', mult: 1.3 }, clearBody: true });
 
 module.exports = A;

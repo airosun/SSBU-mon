@@ -23,6 +23,8 @@ A Pokémon VGC-style battle site where every Super Smash Bros. Ultimate fighter 
 | Piranha Plant | Plantite | Petey Piranha | Grass/Poison |
 | Sephiroth | Sephirite | Safer Sephiroth | Dark/Flying |
 | Kazuya | Devil Gene | Devil Kazuya | Fighting/Dark |
+| Corrin | Corrinite | Corrin (Dragon Form) | Dragon/Water |
+| Bayonetta | Bayonettite | Gomorrah | Dark/Dragon |
 
 Real Mega Pokémon use their official Mega stats. The other forms keep the base fighter's HP and add 100 to its base stat total. All forms are defined in `shared/megas.js`, and each form's image is `public/images/<form id>.png`.
 

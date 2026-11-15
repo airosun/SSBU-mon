@@ -17,6 +17,8 @@
     'Plantite':       { base: 'piranha-plant', id: 'petey-piranha', name: 'Petey Piranha', types: ['Grass', 'Poison'], stats: { hp: 100, atk: 135, def: 120, spa: 90, spd: 110, spe: 70 }, ability: { name: 'Monster Maw', desc: 'Biting moves deal 1.5x damage; takes half damage from Fire and Ice moves.' } },
     'Sephirite':      { base: 'sephiroth', id: 'safer-sephiroth', name: 'Safer Sephiroth', types: ['Dark', 'Flying'], stats: { hp: 90, atk: 140, def: 85, spa: 135, spd: 95, spe: 130 }, ability: { name: 'Heartless Angel', desc: 'Dark and Flying moves deal 1.3x damage.' } },
     'Devil Gene':     { base: 'kazuya', id: 'devil-kazuya', name: 'Devil Kazuya', types: ['Fighting', 'Dark'], stats: { hp: 105, atk: 150, def: 105, spa: 115, spd: 90, spe: 95 }, ability: { name: 'Devil Within', desc: 'Contact moves deal 1.3x damage, and its stats can\'t be lowered by foes.' } },
+    'Corrinite':      { base: 'corrin', id: 'corrin-dragon-form', name: 'Corrin (Dragon Form)', types: ['Dragon', 'Water'], stats: { hp: 95, atk: 135, def: 110, spa: 110, spd: 100, spe: 90 }, ability: { name: 'Dragon Blood', desc: 'Dragon and Water moves deal 1.3x damage, and it takes half damage from Fire moves.' } },
+    'Bayonettite':    { base: 'bayonetta', id: 'gomorrah', name: 'Gomorrah', types: ['Dark', 'Dragon'], stats: { hp: 80, atk: 145, def: 95, spa: 120, spd: 90, spe: 115 }, ability: { name: 'Infernal Demon', desc: 'Lowers the foes\' Attack on transforming or switching in (Intimidate); biting moves deal 1.5x damage.' } },
   };
   for (const [stone, f] of Object.entries(FINAL_SMASHES)) { f.stone = stone; f.image = f.id + '.png'; }
   const byBase = {};
