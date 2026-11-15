@@ -1,26 +1,28 @@
-// SSBU-mon battle engine: 6v6 singles, level 100, Gen 9-style mechanics.
+// SSBU-mon battle engine — VGC style. Level 50. Singles (1 active) or doubles (2 active).
+// A battle receives only the fighters each player brought (3 in singles, 4 in doubles), in lead order.
 const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
 const { effectiveness, calcStat, EVIOLITE_USERS } = require('../../shared/dex.js');
 const ABIL = require('./abilities.js');
 
 const FIGHTER_BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
+const LEVEL = 50;
 const BOOST_STATS = ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion'];
 const STAT_LABEL = { atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed', accuracy: 'accuracy', evasion: 'evasiveness' };
 const STATUS_LABEL = { brn: 'burned', par: 'paralyzed', psn: 'poisoned', tox: 'badly poisoned', slp: 'asleep', frz: 'frozen' };
 const NO_METRONOME = new Set(['Metronome', 'Copycat', 'Protect', 'Detect', "King's Shield", 'Counter', 'Mirror Coat', 'Focus Punch', 'Magic Coat', 'Thief', 'Trick', 'Fling']);
 const BERRIES = new Set(['Sitrus Berry', 'Lum Berry']);
-const LEVEL = 100;
+const STRUGGLE = { name: 'Struggle', type: 'Normal', cat: 'Physical', power: 50, acc: true, pp: 1, prio: 0, contact: true, target: 'randomFoe' };
 
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-function boostMult(stage) { return stage >= 0 ? (2 + stage) / 2 : 2 / (2 - stage); }
-function accMult(stage) { return stage >= 0 ? (3 + stage) / 3 : 3 / (3 - stage); }
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const boostMult = s => s >= 0 ? (2 + s) / 2 : 2 / (2 - s);
+const accMult = s => s >= 0 ? (3 + s) / 3 : 3 / (3 - s);
+const getMove = n => n === 'Struggle' ? STRUGGLE : MOVES[n];
 
 class Mon {
-  constructor(set, side, slot) {
+  constructor(set, side, teamIndex) {
     const f = FIGHTER_BY_ID[set.species];
-    this.side = side; this.slot = slot; this.species = f;
-    this.name = f.name; this.nickname = set.nickname || f.name;
+    this.side = side; this.teamIndex = teamIndex; this.species = f; this.uid = set.uid;
     this.baseAbility = set.ability; this.ability = set.ability;
     this.item = set.item || ''; this.nature = set.nature || 'Hardy';
     this.evs = Object.assign({ hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, set.evs || {});
@@ -31,6 +33,7 @@ class Mon {
     this.moves = set.moves.map(n => ({ name: n, pp: Math.floor(MOVES[n].pp * 8 / 5), maxpp: Math.floor(MOVES[n].pp * 8 / 5) }));
     this.status = ''; this.statusTurns = 0; this.toxCount = 0;
     this.fainted = false; this.once = {}; this.berryUses = 0; this.consumedItem = '';
+    this.pos = -1; this.revealed = false;
     this.resetVolatiles();
   }
   get spec() { return ABIL[this.ability] || {}; }
@@ -49,59 +52,59 @@ class Battle {
   constructor(opts) {
     this.id = opts.id || Math.random().toString(36).slice(2, 10);
     this.rng = opts.rng || Math.random;
+    this.format = opts.format === 'doubles' ? 'doubles' : 'singles';
+    this.activeCount = this.format === 'doubles' ? 2 : 1;
     this.sides = [0, 1].map(i => {
       const p = opts.players[i];
-      const side = { n: i, name: p.name, conditions: {}, choice: null, activeIdx: -1, needSwitch: false };
+      const side = { n: i, name: p.name, conditions: {}, wishes: {}, choices: null, needSwitch: [] };
       side.team = p.team.map((set, k) => new Mon(set, side, k));
+      side.active = new Array(this.activeCount).fill(null);
       return side;
     });
     this.field = { weather: '', weatherTurns: 0, trickroom: 0, gravity: 0 };
-    this.turn = 0; this.phase = 'preview'; this.log = []; this.winner = null; this.ended = false;
-    this.queue = []; this.pendingSwitches = []; this.lastMoveUsed = null; this.futures = []; this.moldBreaker = null; this.inResiduals = false;
+    this.turn = 0; this.phase = 'move'; this.log = []; this.winner = null; this.ended = false;
+    this.queue = []; this.pendingSwitches = []; this.lastMoveUsed = null; this.futures = [];
+    this.moldBreaker = null; this.inResiduals = false;
     this.onUpdate = opts.onUpdate || (() => {});
-    this.add('info', `Battle between ${this.sides[0].name} and ${this.sides[1].name} started! Choose your lead.`);
+    this.start();
   }
 
   // ---------------- utilities ----------------
   add(cls, text) { this.log.push({ cls, text }); }
   random(n) { return Math.floor(this.rng() * n); }
   chance(pct) { return this.rng() * 100 < pct; }
-  foe(side) { return this.sides[1 - side.n]; }
-  active(side) { return side.activeIdx >= 0 ? side.team[side.activeIdx] : null; }
-  foeOf(mon) { return this.active(this.foe(mon.side)); }
-  isActive(mon) { return mon && !mon.fainted && this.active(mon.side) === mon; }
-  bench(side) { return side.team.filter(m => !m.fainted && m !== this.active(side)); }
-  hasItem(mon, item) { return mon.item === item && !(this.field.magicroom); }
-  abilityActive(mon, attacker) {
-    // mold breaker style attackers suppress the target's defensive abilities during their move
-    if (attacker && attacker !== mon && this.moldBreaker === attacker) return {};
-    return mon.spec;
-  }
+  foeSide(side) { return this.sides[1 - side.n]; }
+  actives(side) { return side.active.filter(m => m && !m.fainted); }
+  allActive() { return this.sides.flatMap(s => this.actives(s)); }
+  foesOf(mon) { return this.actives(this.foeSide(mon.side)); }
+  allyOf(mon) { return this.actives(mon.side).find(m => m !== mon) || null; }
+  isActive(mon) { return !!mon && !mon.fainted && mon.pos >= 0 && mon.side.active[mon.pos] === mon; }
+  bench(side) { return side.team.filter(m => !m.fainted && m.pos < 0); }
+  hasItem(mon, item) { return mon.item === item; }
+  abilityActive(mon, attacker) { return (attacker && attacker !== mon && this.moldBreaker === attacker) ? {} : mon.spec; }
+  emit() { this.onUpdate(); }
 
-  // ---------------- choices ----------------
-  getRequest(sideN) {
-    const side = this.sides[sideN];
-    if (this.ended) return { kind: 'ended' };
-    const team = side.team.map((m, i) => this.monInfo(m, true, i));
-    if (this.phase === 'preview') return side.choice ? { kind: 'wait', team } : { kind: 'preview', team };
+  // ---------------- requests & choices ----------------
+  getRequest(n) {
+    const side = this.sides[n];
+    const team = side.team.map(m => this.monInfo(m, true));
+    if (this.ended) return { kind: 'ended', team };
     if (this.pendingSwitches.length) {
       const ps = this.pendingSwitches[0];
-      if (ps.side === sideN) return { kind: 'switch', reason: ps.reason, team };
-      return { kind: 'wait', team };
+      return ps.side === n ? { kind: 'switch', slots: [ps.pos], reason: ps.reason, team } : { kind: 'wait', team };
     }
-    if (this.phase === 'switch') return side.needSwitch && !side.choice ? { kind: 'switch', reason: 'faint', team } : { kind: 'wait', team };
-    if (side.choice) return { kind: 'wait', team };
-    const mon = this.active(side);
-    const locked = this.lockedMove(mon);
-    const moves = mon.moves.map((mv, i) => {
-      const md = MOVES[mv.name];
-      return { name: mv.name, pp: mv.pp, maxpp: mv.maxpp, type: md.type, cat: md.cat, power: md.power, acc: md.acc, disabled: !this.canUseMove(mon, i), index: i };
+    if (this.phase === 'switch') return side.needSwitch.length && !side.switchChoice ? { kind: 'switch', slots: side.needSwitch.slice(), reason: 'faint', team } : { kind: 'wait', team };
+    if (side.choices) return { kind: 'wait', team, canUndo: !this.foeSide(side).choices };
+    const actives = side.active.map((mon, pos) => {
+      if (!mon || mon.fainted) return null;
+      const locked = this.lockedMove(mon);
+      const moves = mon.moves.map((mv, i) => {
+        const md = MOVES[mv.name];
+        return { name: mv.name, index: i, pp: mv.pp, maxpp: mv.maxpp, type: md.type, cat: md.cat, power: md.power, acc: md.acc, target: md.target, disabled: !this.canUseMove(mon, i) };
+      });
+      return { pos, teamIndex: mon.teamIndex, name: mon.species.name, moves, locked, struggle: !locked && !moves.some(m => !m.disabled), canSwitch: !this.isTrapped(mon) && this.bench(side).length > 0 };
     });
-    const anyUsable = moves.some(m => !m.disabled);
-    return {
-      kind: 'move', team, active: side.activeIdx, moves, locked, struggle: !anyUsable && !locked,
-      canSwitch: !this.isTrapped(mon) && this.bench(side).length > 0,
-    };
+    return { kind: 'move', format: this.format, actives, team };
   }
   lockedMove(mon) {
     if (mon.v.charging) return mon.v.charging.move;
@@ -120,73 +123,82 @@ class Battle {
     return true;
   }
   isTrapped(mon) {
-    if (this.hasItem(mon, 'Shed Shell')) return false;
-    if (mon.types.includes('Ghost')) return !!mon.v.ingrain;
-    return !!(mon.v.trapped && this.isActive(mon.v.trapped)) || !!mon.v.ingrain;
+    if (mon.v.ingrain) return true;
+    if (mon.types.includes('Ghost')) return false;
+    return !!(mon.v.trapped && this.isActive(mon.v.trapped));
   }
 
-  choose(sideN, choice) {
-    if (this.ended) return 'Battle is over.';
-    const side = this.sides[sideN];
-    const req = this.getRequest(sideN);
-    if (req.kind === 'wait') return 'Not your turn to choose.';
-    if (req.kind === 'preview') {
-      const i = choice.lead | 0;
-      if (!side.team[i]) return 'Invalid lead.';
-      side.choice = { type: 'lead', index: i };
-      if (this.sides.every(s => s.choice)) this.startBattle(); else this.onUpdate();
-      return null;
-    }
+  choose(n, choice) {
+    if (this.ended) return 'The battle is over.';
+    const side = this.sides[n];
+    const req = this.getRequest(n);
+    choice = choice || {};
+    if (req.kind === 'wait' || req.kind === 'ended') return 'Not your turn to choose.';
     if (req.kind === 'switch') {
-      const i = choice.index | 0; const m = side.team[i];
-      if (!m || m.fainted || m === this.active(side)) return 'Invalid switch.';
+      const sw = choice.switches || [];
+      if (sw.length !== req.slots.length) return `Choose ${req.slots.length} fighter(s) to send in.`;
+      const used = new Set(); const slots = new Set();
+      for (const s of sw) {
+        const m = side.team[s.index | 0];
+        if (!req.slots.includes(s.pos) || slots.has(s.pos) || !m || m.fainted || m.pos >= 0 || used.has(s.index)) return 'Invalid switch.';
+        used.add(s.index); slots.add(s.pos);
+      }
       if (this.pendingSwitches.length) {
         this.pendingSwitches.shift();
-        this.doSwitch(side, i, true);
-        if (this.pendingSwitches.length) { this.onUpdate(); return null; }
+        this.doSwitch(side, sw[0].pos, sw[0].index | 0);
+        if (this.pendingSwitches.length) { this.emit(); return null; }
         this.continueTurn();
         return null;
       }
-      side.choice = { type: 'switch', index: i };
-      if (this.sides.every(s => !s.needSwitch || s.choice)) this.resolveFaintSwitches(); else this.onUpdate();
+      side.switchChoice = sw;
+      if (this.sides.every(s => !s.needSwitch.length || s.switchChoice)) this.resolveFaintSwitches(); else this.emit();
       return null;
     }
     // move phase
-    const mon = this.active(side);
-    if (choice.type === 'switch') {
-      const i = choice.index | 0; const m = side.team[i];
-      if (!req.canSwitch) return 'You are trapped.';
-      if (!m || m.fainted || m === mon) return 'Invalid switch.';
-      side.choice = { type: 'switch', index: i, mon };
-    } else {
-      const locked = this.lockedMove(mon);
-      if (locked) side.choice = { type: 'move', move: locked, mon, locked: true };
-      else if (req.struggle) side.choice = { type: 'move', move: 'Struggle', mon };
+    const acts = choice.actions || [];
+    const out = []; const switching = new Set();
+    for (const a of req.actives) {
+      if (!a) continue;
+      const mon = side.active[a.pos];
+      const c = acts.find(x => x.pos === a.pos) || {};
+      if (c.type === 'switch') {
+        const m = side.team[c.index | 0];
+        if (!a.canSwitch) return `${mon.species.name} can't switch out.`;
+        if (!m || m.fainted || m.pos >= 0 || switching.has(c.index)) return 'Invalid switch.';
+        switching.add(c.index);
+        out.push({ kind: 'switch', mon, pos: a.pos, index: c.index | 0 });
+      } else if (a.locked) out.push({ kind: 'move', mon, pos: a.pos, move: a.locked, locked: true, target: mon.v.lockTarget });
+      else if (a.struggle) out.push({ kind: 'move', mon, pos: a.pos, move: 'Struggle' });
       else {
-        const i = choice.index | 0;
-        if (!mon.moves[i] || !this.canUseMove(mon, i)) return 'That move can\'t be used.';
-        side.choice = { type: 'move', move: mon.moves[i].name, mon, slot: i };
+        const i = c.index | 0;
+        if (!mon.moves[i] || !this.canUseMove(mon, i)) return `${mon.species.name} can't use that move.`;
+        out.push({ kind: 'move', mon, pos: a.pos, move: mon.moves[i].name, target: c.target });
       }
     }
-    if (this.sides.every(s => s.choice)) this.runTurn(); else this.onUpdate();
+    side.choices = out;
+    if (this.sides.every(s => s.choices || !this.actives(s).length)) this.runTurn(); else this.emit();
     return null;
   }
-  forfeit(sideN) {
+  undo(n) {
+    const side = this.sides[n];
+    if (this.phase === 'move' && side.choices && !this.foeSide(side).choices) { side.choices = null; this.emit(); }
+  }
+  forfeit(n) {
     if (this.ended) return;
-    this.add('info', `${this.sides[sideN].name} forfeited.`);
-    this.win(1 - sideN);
+    this.add('info', `${this.sides[n].name} forfeited.`);
+    this.win(1 - n);
   }
 
   // ---------------- flow ----------------
-  startBattle() {
-    this.phase = 'move'; this.turn = 1;
-    for (const s of this.sides) { s.activeIdx = s.choice.index; s.choice = null; }
-    const order = this.speedOrder(this.sides.map(s => this.active(s)));
+  start() {
+    this.add('info', `${this.format === 'doubles' ? 'Double' : 'Single'} Battle: ${this.sides[0].name} vs ${this.sides[1].name}!`);
+    for (const s of this.sides) for (let p = 0; p < this.activeCount; p++) if (s.team[p]) this.placeMon(s, p, s.team[p]);
+    const order = this.speedOrder(this.allActive());
     for (const m of order) this.add('switch', `${m.side.name} sent out ${this.illusionName(m)}!`);
     for (const m of order) this.onSwitchIn(m);
-    this.add('turn', `Turn ${this.turn}`);
-    this.onUpdate();
+    this.turn = 1; this.add('turn', 'Turn 1');
   }
+  placeMon(side, pos, mon) { side.active[pos] = mon; mon.pos = pos; mon.revealed = true; }
   illusionName(mon) {
     if (mon.spec.illusion && !mon.once.illusionBroken) {
       const others = mon.side.team.filter(x => !x.fainted && x !== mon);
@@ -194,19 +206,16 @@ class Battle {
     }
     return mon.displaySpecies.name;
   }
-
   runTurn() {
     const actions = [];
     for (const s of this.sides) {
-      const c = s.choice; s.choice = null;
-      if (c.type === 'switch') actions.push({ kind: 'switch', side: s, index: c.index, mon: c.mon, prio: 7, spe: this.getSpeed(c.mon) });
-      else {
-        const md = MOVES[c.move] || STRUGGLE;
-        actions.push({ kind: 'move', side: s, mon: c.mon, move: c.move, slot: c.slot, locked: c.locked, prio: this.getPriority(c.mon, md), spe: this.getSpeed(c.mon) });
+      for (const a of (s.choices || [])) {
+        if (a.kind === 'switch') actions.push(Object.assign(a, { side: s, prio: 7, spe: this.getSpeed(a.mon) }));
+        else actions.push(Object.assign(a, { side: s, prio: this.getPriority(a.mon, getMove(a.move)), spe: this.getSpeed(a.mon) }));
       }
+      s.choices = null;
     }
-    // Focus Punch charge message
-    for (const a of actions) if (a.kind === 'move' && a.move === 'Focus Punch' && !a.mon.fainted) { this.add('effect', `${a.mon.label} is tightening its focus!`); a.mon.v.focusing = true; }
+    for (const a of actions) if (a.kind === 'move' && a.move === 'Focus Punch' && !a.mon.fainted) this.add('effect', `${a.mon.label} is tightening its focus!`);
     this.queue = this.sortActions(actions);
     for (const a of this.queue) if (a.kind === 'move') a.mon.v.plannedMove = a.move;
     this.continueTurn();
@@ -222,10 +231,10 @@ class Battle {
   continueTurn() {
     while (this.queue.length && !this.ended) {
       const a = this.queue.shift();
-      if (a.kind === 'switch') { if (this.isActive(a.mon)) this.doSwitch(a.side, a.index, false); }
+      if (a.kind === 'switch') { if (this.isActive(a.mon)) this.doSwitch(a.side, a.mon.pos, a.index); }
       else if (this.isActive(a.mon)) this.useMove(a.mon, a.move, a);
       if (this.checkWin()) return;
-      if (this.pendingSwitches.length) { this.onUpdate(); return; }
+      if (this.pendingSwitches.length) { this.emit(); return; }
     }
     if (this.ended) return;
     this.endOfTurn();
@@ -233,30 +242,38 @@ class Battle {
   endOfTurn() {
     this.residuals();
     if (this.checkWin()) return;
-    let need = false;
-    for (const s of this.sides) {
-      const a = this.active(s);
-      s.needSwitch = (!a || a.fainted) && this.bench(s).length > 0;
-      if (s.needSwitch) need = true;
-    }
-    if (need) { this.phase = 'switch'; this.onUpdate(); return; }
+    if (this.computeNeedSwitch()) { this.phase = 'switch'; this.emit(); return; }
     this.nextTurn();
+  }
+  computeNeedSwitch() {
+    let any = false;
+    for (const s of this.sides) {
+      s.switchChoice = null;
+      const empty = s.active.map((m, p) => (!m || m.fainted) ? p : -1).filter(p => p >= 0);
+      s.needSwitch = empty.slice(0, this.bench(s).length);
+      if (s.needSwitch.length) any = true;
+    }
+    return any;
   }
   nextTurn() {
     this.phase = 'move'; this.turn++;
     this.add('turn', `Turn ${this.turn}`);
-    this.onUpdate();
+    this.emit();
   }
   resolveFaintSwitches() {
     const mons = [];
-    for (const s of this.sides) if (s.needSwitch && s.choice) { s.activeIdx = s.choice.index; s.choice = null; s.needSwitch = false; mons.push(this.active(s)); }
-    for (const m of this.speedOrder(mons)) { m.resetVolatiles(); this.add('switch', `${m.side.name} sent out ${this.illusionName(m)}!`); }
-    for (const m of this.speedOrder(mons)) { if (!m.fainted) this.onSwitchIn(m); }
+    for (const s of this.sides) if (s.needSwitch.length && s.switchChoice) {
+      for (const sw of s.switchChoice) {
+        const old = s.active[sw.pos]; if (old) old.pos = -1;
+        const m = s.team[sw.index]; m.resetVolatiles(); this.placeMon(s, sw.pos, m); mons.push(m);
+      }
+      s.switchChoice = null; s.needSwitch = [];
+    }
+    const order = this.speedOrder(mons);
+    for (const m of order) this.add('switch', `${m.side.name} sent out ${this.illusionName(m)}!`);
+    for (const m of order) if (!m.fainted) this.onSwitchIn(m);
     if (this.checkWin()) return;
-    // hazards may have KO'd the incoming fighter
-    let need = false;
-    for (const s of this.sides) { const a = this.active(s); s.needSwitch = a.fainted && this.bench(s).length > 0; if (s.needSwitch) need = true; }
-    if (need) { this.onUpdate(); return; }
+    if (this.computeNeedSwitch()) { this.emit(); return; }
     this.nextTurn();
   }
   checkWin() {
@@ -266,23 +283,20 @@ class Battle {
     return false;
   }
   win(n) { this.add('win', `${this.sides[n].name} won the battle!`); this.end(n); }
-  end(n) { this.ended = true; this.winner = n; this.phase = 'ended'; this.queue = []; this.pendingSwitches = []; this.onUpdate(); }
-
+  end(n) { this.ended = true; this.winner = n; this.phase = 'ended'; this.queue = []; this.pendingSwitches = []; this.emit(); }
   speedOrder(mons) {
     const tr = this.field.trickroom > 0;
-    return mons.filter(Boolean).sort((a, b) => {
-      const d = this.getSpeed(b) - this.getSpeed(a);
-      return d !== 0 ? (tr ? -d : d) : (this.rng() < 0.5 ? -1 : 1);
-    });
+    return mons.filter(Boolean).sort((a, b) => { const d = this.getSpeed(b) - this.getSpeed(a); return d ? (tr ? -d : d) : (this.rng() < 0.5 ? -1 : 1); });
   }
 
   // ---------------- switching ----------------
-  doSwitch(side, index, forced) {
-    const out = this.active(side);
+  doSwitch(side, pos, index) {
+    const out = side.active[pos];
     if (out && !out.fainted) this.onSwitchOut(out);
-    side.activeIdx = index;
-    const inc = this.active(side);
+    if (out) out.pos = -1;
+    const inc = side.team[index];
     inc.resetVolatiles();
+    this.placeMon(side, pos, inc);
     this.add('switch', `${side.name} sent out ${this.illusionName(inc)}!`);
     this.onSwitchIn(inc);
   }
@@ -290,28 +304,18 @@ class Battle {
     const s = mon.spec;
     if (s.regenerator && !mon.fainted) mon.hp = Math.min(mon.maxhp, mon.hp + Math.floor(mon.maxhp / 3));
     if (s.naturalCure && mon.status) mon.status = '';
-    // Trapping by this mon ends
-    const foe = this.foeOf(mon); if (foe && foe.v.trapped === mon) delete foe.v.trapped;
-    if (foe && foe.v.leechSeedBy === mon) { /* seed persists on foe */ }
+    for (const o of this.allActive()) if (o.v.trapped === mon) delete o.v.trapped;
     this.add('switch', `${mon.side.name} withdrew ${mon.displaySpecies.name}.`);
     mon.resetVolatiles();
   }
   onSwitchIn(mon) {
-    const side = mon.side; const cond = side.conditions;
-    // hazards
-    const boots = this.hasItem(mon, 'Heavy-Duty Boots');
+    const cond = mon.side.conditions;
     const hz = mon.spec.hazardImmune || [];
-    if (!boots) {
-      if (cond.stealthrock) {
-        const eff = effectiveness('Rock', mon.types);
-        this.damage(mon, Math.floor(mon.maxhp * eff / 8), `${mon.label} was hurt by the pointed stones!`);
-      }
+    if (!this.hasItem(mon, 'Heavy-Duty Boots')) {
+      if (cond.stealthrock) this.damage(mon, Math.floor(mon.maxhp * effectiveness('Rock', mon.types) / 8), `${mon.label} was hurt by the pointed stones!`);
       if (mon.fainted) return;
       if (this.isGrounded(mon)) {
-        if (cond.spikes && !hz.includes('spikes')) {
-          const f = [0, 1 / 8, 1 / 6, 1 / 4][cond.spikes];
-          this.damage(mon, Math.floor(mon.maxhp * f), `${mon.label} was hurt by the spikes!`);
-        }
+        if (cond.spikes && !hz.includes('spikes')) this.damage(mon, Math.floor(mon.maxhp * [0, 1 / 8, 1 / 6, 1 / 4][cond.spikes]), `${mon.label} was hurt by the spikes!`);
         if (mon.fainted) return;
         if (cond.toxicspikes && !hz.includes('toxicspikes')) {
           if (mon.types.includes('Poison')) { delete cond.toxicspikes; this.add('effect', `${mon.label} absorbed the poison spikes!`); }
@@ -325,31 +329,36 @@ class Battle {
     this.checkThresholds(mon);
   }
   abilityOnStart(mon) {
-    const s = mon.spec; const foe = this.foeOf(mon);
-    if (s.intimidate && foe && !foe.fainted) {
-      this.add('ability', `${mon.label}'s ${mon.ability} intimidates the foe!`);
-      const fs = foe.spec;
-      if (fs.noIntimidate) this.add('effect', `${foe.label} isn't affected!`);
-      else if (foe.v.substitute) this.add('effect', `${foe.label}'s substitute blocked it!`);
-      else { this.boost(foe, { atk: -1 }, mon); if (fs.rattled) this.boost(foe, { spe: 1 }, foe); }
+    const s = mon.spec; const foes = this.foesOf(mon);
+    if (s.intimidate && foes.length) {
+      this.add('ability', `${mon.label}'s ${mon.ability} intimidates the opposing team!`);
+      for (const foe of foes) {
+        if (foe.spec.noIntimidate) this.add('effect', `${foe.label} isn't affected!`);
+        else if (foe.v.substitute) this.add('effect', `${foe.label}'s substitute blocked it!`);
+        else { this.boost(foe, { atk: -1 }, mon); if (foe.spec.rattled) this.boost(foe, { spe: 1 }, foe); }
+      }
     }
-    if (s.trace && foe && !foe.fainted && !foe.spec.trace && !foe.spec.illusion) {
-      mon.ability = foe.ability;
-      this.add('ability', `${mon.label} copied ${foe.label}'s ${foe.ability}!`);
-      if (mon.ability !== mon.baseAbility) this.abilityOnStart(mon);
-      return;
+    if (s.trace) {
+      const opts = foes.filter(f => !f.spec.trace && !f.spec.illusion);
+      if (opts.length) {
+        const foe = opts[this.random(opts.length)];
+        mon.ability = foe.ability;
+        this.add('ability', `${mon.label} copied ${foe.label}'s ${foe.ability}!`);
+        if (mon.ability !== mon.baseAbility) this.abilityOnStart(mon);
+        return;
+      }
     }
-    if (s.frisk && foe && foe.item) this.add('ability', `${mon.label} frisked ${foe.label} and found its ${foe.item}!`);
-    if (s.anticipation && foe && foe.moves.some(mv => { const md = MOVES[mv.name]; return md.cat !== 'Status' && effectiveness(md.type, mon.types) > 1; }))
+    if (s.frisk) for (const foe of foes) if (foe.item) this.add('ability', `${mon.label} frisked ${foe.label} and found its ${foe.item}!`);
+    if (s.anticipation && foes.some(f => f.moves.some(mv => { const md = MOVES[mv.name]; return md.cat !== 'Status' && effectiveness(md.type, mon.types) > 1; })))
       this.add('ability', `${mon.label} shuddered! It senses danger.`);
-    if (s.copyBoosts && foe) {
+    if (s.copyBoosts) {
       let any = false;
-      for (const k of BOOST_STATS) if (foe.boosts[k] > 0) { mon.boosts[k] = foe.boosts[k]; any = true; }
-      if (any) this.add('ability', `${mon.label} copied ${foe.label}'s stat boosts!`);
+      for (const foe of foes) for (const k of BOOST_STATS) if (foe.boosts[k] > mon.boosts[k] && foe.boosts[k] > 0) { mon.boosts[k] = foe.boosts[k]; any = true; }
+      if (any) this.add('ability', `${mon.label} copied the opposing stat boosts!`);
     }
-    if (s.clearFoeBoosts && foe && BOOST_STATS.some(k => foe.boosts[k])) {
-      for (const k of BOOST_STATS) foe.boosts[k] = 0;
-      this.add('ability', `${mon.label}'s Ball of Light erased ${foe.label}'s stat changes!`);
+    if (s.clearFoeBoosts && foes.some(f => BOOST_STATS.some(k => f.boosts[k]))) {
+      for (const foe of foes) for (const k of BOOST_STATS) foe.boosts[k] = 0;
+      this.add('ability', `${mon.label}'s Ball of Light erased the opposing stat changes!`);
     }
     if (s.startSide) {
       const { cond, turns } = s.startSide;
@@ -357,9 +366,9 @@ class Battle {
     }
     if (s.startField && !this.field[s.startField.cond]) { this.field[s.startField.cond] = s.startField.turns; this.add('ability', `${mon.label}'s ${mon.ability} intensified gravity!`); }
     if (s.startWeather) this.setWeather(s.startWeather, mon, 5);
-    if (s.download && foe) {
-      const stat = this.getStat(foe, 'def') < this.getStat(foe, 'spd') ? 'atk' : 'spa';
-      this.add('ability', `${mon.label}'s ${mon.ability} analyzed the foe!`); this.boost(mon, { [stat]: 1 }, mon);
+    if (s.download && foes.length) {
+      const def = foes.reduce((a, f) => a + this.getStat(f, 'def'), 0), spd = foes.reduce((a, f) => a + this.getStat(f, 'spd'), 0);
+      this.add('ability', `${mon.label}'s ${mon.ability} analyzed the foe!`); this.boost(mon, { [def < spd ? 'atk' : 'spa']: 1 }, mon);
     }
     if (s.announcement && !mon.once.announced) {
       mon.once.announced = true;
@@ -368,35 +377,25 @@ class Battle {
     if (s.startBoost) { this.add('ability', `${mon.label}'s ${mon.ability} activated!`); this.boost(mon, s.startBoost, mon); }
     if (s.pressure) this.add('ability', `${mon.label} is exerting its pressure!`);
     if (s.unnerve) this.add('ability', `The opposing team is too nervous to eat Berries!`);
-    if (s.illusion && mon.v.illusion) { /* hidden */ }
   }
 
   // ---------------- stats ----------------
   getStat(mon, stat, opts = {}) {
-    let v = mon.stats[stat];
     let stage = mon.boosts[stat];
     if (opts.ignorePositive && stage > 0) stage = 0;
     if (opts.ignoreNegative && stage < 0) stage = 0;
-    if (opts.ignoreBoosts) stage = 0;
-    v = Math.floor(v * boostMult(stage));
+    let v = Math.floor(mon.stats[stat] * boostMult(stage));
     const s = mon.spec; const item = mon.item;
+    const evio = item === 'Eviolite' && EVIOLITE_USERS.includes(mon.species.id);
     if (stat === 'atk') {
       if (item === 'Choice Band') v *= 1.5;
       if (s.guts && mon.status) v *= 1.5;
-      if (s.lowHpStat && s.lowHpStat.stat === 'atk' && mon.hpFrac() <= s.lowHpStat.below && (!s.lowHpStat.strict || mon.hpFrac() < s.lowHpStat.below)) v *= s.lowHpStat.mult;
+      const l = s.lowHpStat;
+      if (l && l.stat === 'atk' && (l.strict ? mon.hpFrac() < l.below : mon.hpFrac() <= l.below)) v *= l.mult;
     }
-    if (stat === 'spa') {
-      if (item === 'Choice Specs') v *= 1.5;
-      if (s.solarPower && this.weather() === 'sun') v *= 1.5;
-    }
-    if (stat === 'spd') {
-      if (item === 'Assault Vest') v *= 1.5;
-      if (item === 'Eviolite' && EVIOLITE_USERS.includes(mon.species.id)) v *= 1.5;
-    }
-    if (stat === 'def') {
-      if (item === 'Eviolite' && EVIOLITE_USERS.includes(mon.species.id)) v *= 1.5;
-      if (this.weather() === 'snow' && mon.types.includes('Ice')) v *= 1.5;
-    }
+    if (stat === 'spa') { if (item === 'Choice Specs') v *= 1.5; if (s.solarPower && this.field.weather === 'sun') v *= 1.5; }
+    if (stat === 'spd') { if (item === 'Assault Vest') v *= 1.5; if (evio) v *= 1.5; }
+    if (stat === 'def') { if (evio) v *= 1.5; if (this.field.weather === 'snow' && mon.types.includes('Ice')) v *= 1.5; }
     return Math.floor(v);
   }
   getSpeed(mon) {
@@ -406,33 +405,27 @@ class Battle {
     if (mon.status === 'par') v *= 0.5;
     if (mon.side.conditions.tailwind) v *= 2;
     const s = mon.spec;
-    if (s.weatherSpeed && this.weather() === s.weatherSpeed) v *= 2;
+    if (s.weatherSpeed && this.field.weather === s.weatherSpeed) v *= 2;
     if (s.unburden && mon.unburdened) v *= 2;
     return Math.floor(v);
   }
   getPriority(mon, md) {
-    let p = md.prio || 0;
-    const s = mon.spec;
+    let p = md.prio || 0; const s = mon.spec;
     if (s.prankster && md.cat === 'Status') p += 1;
     if (s.galeWings && md.type === 'Flying' && mon.hp === mon.maxhp) p += 1;
     if (s.firstMovePrio && !mon.movedSinceSwitch) p += 1;
     return p;
   }
-  weather() { return this.field.weather; }
   isGrounded(mon, attacker) {
-    if (this.field.gravity) return true;
-    if (mon.v.ingrain) return true;
-    if (mon.types.includes('Flying')) return false;
-    if (mon.item === 'Air Balloon') return false;
-    if (this.abilityActive(mon, attacker).levitate) return false;
-    return true;
+    if (this.field.gravity || mon.v.ingrain) return true;
+    if (mon.types.includes('Flying') || mon.item === 'Air Balloon') return false;
+    return !this.abilityActive(mon, attacker).levitate;
   }
 
-  // ---------------- HP / status helpers ----------------
+  // ---------------- HP / status ----------------
   damage(mon, amt, msg) {
     if (mon.fainted || amt <= 0) return 0;
-    amt = Math.max(1, Math.floor(amt));
-    amt = Math.min(amt, mon.hp);
+    amt = Math.min(Math.max(1, Math.floor(amt)), mon.hp);
     mon.hp -= amt;
     if (msg) this.add('dmg', msg);
     if (mon.hp <= 0) this.faint(mon); else this.checkThresholds(mon);
@@ -440,22 +433,20 @@ class Battle {
   }
   heal(mon, amt, msg) {
     if (mon.fainted || mon.hp >= mon.maxhp) return 0;
-    amt = Math.max(1, Math.floor(amt));
-    const h = Math.min(amt, mon.maxhp - mon.hp);
-    mon.hp += h;
-    if (msg) this.add('heal', msg);
+    const h = Math.min(Math.max(1, Math.floor(amt)), mon.maxhp - mon.hp);
+    mon.hp += h; if (msg) this.add('heal', msg);
     return h;
   }
   faint(mon) {
     mon.hp = 0; mon.fainted = true; mon.status = '';
     this.add('faint', `${mon.label} fainted!`);
     this.queue = this.queue.filter(a => a.mon !== mon);
-    const foe = this.foeOf(mon); if (foe && foe.v.trapped === mon) delete foe.v.trapped;
+    for (const o of this.allActive()) if (o.v.trapped === mon) delete o.v.trapped;
   }
   checkThresholds(mon) {
     if (mon.fainted) return;
     const t = mon.spec.threshold;
-    if (t && !mon.once.threshold && mon.hpFrac() < t.below + 1e-9 && mon.hpFrac() <= t.below) {
+    if (t && !mon.once.threshold && mon.hpFrac() <= t.below) {
       mon.once.threshold = true;
       this.add('ability', `${mon.label}'s ${mon.ability} activated!`);
       if (t.heal) this.heal(mon, mon.maxhp * t.heal, `${mon.label} restored HP!`);
@@ -464,27 +455,24 @@ class Battle {
     if (mon.item === 'Sitrus Berry' && mon.hpFrac() <= 0.5) this.eatBerry(mon, () => this.heal(mon, mon.maxhp / 4 * (mon.spec.ripen ? 2 : 1), `${mon.label} restored HP with its Sitrus Berry!`));
   }
   eatBerry(mon, effect) {
-    const foe = this.foeOf(mon);
-    if (foe && !foe.fainted && foe.spec.unnerve) return;
-    const item = mon.item;
+    if (this.foesOf(mon).some(f => f.spec.unnerve)) return;
+    const item = mon.item; const s = mon.spec;
     effect();
-    const s = mon.spec;
     if (s.berryBonusHeal) this.heal(mon, mon.maxhp * s.berryBonusHeal, `${mon.label}'s ${mon.ability} restored extra HP!`);
-    if (s.berryRandomBoost) { const st = ['atk', 'def', 'spa', 'spd', 'spe'][this.random(5)]; this.boost(mon, { [st]: 1 }, mon); }
+    if (s.berryRandomBoost) this.boost(mon, { [['atk', 'def', 'spa', 'spd', 'spe'][this.random(5)]]: 1 }, mon);
     mon.berryUses++;
     if (s.berryTwice && mon.berryUses < 2) { this.add('ability', `${mon.label} saved half of its ${item} for later!`); return; }
     this.loseItem(mon, true);
   }
   loseItem(mon, consumed) {
     if (!mon.item) return;
-    if (consumed) mon.consumedItem = mon.item;
+    if (consumed) { mon.consumedItem = mon.item; mon.v.consumedThisTurn = true; }
     mon.item = '';
-    if (mon.v.choiceLock) delete mon.v.choiceLock;
+    delete mon.v.choiceLock;
     if (mon.spec.unburden) mon.unburdened = true;
   }
-  canStatus(mon, status, source, fromHazard) {
-    if (mon.fainted) return false;
-    if (mon.status) return false;
+  canStatus(mon, status, source) {
+    if (mon.fainted || mon.status) return false;
     const s = (source && source !== mon) ? this.abilityActive(mon, source) : mon.spec;
     if (s.statusImmune && s.statusImmune.includes(status)) return false;
     if (s.statusImmuneTurns && mon.turnsActive < s.statusImmuneTurns) return false;
@@ -492,13 +480,12 @@ class Battle {
     if (status === 'brn' && t.includes('Fire')) return false;
     if (status === 'par' && t.includes('Electric')) return false;
     if ((status === 'psn' || status === 'tox') && (t.includes('Poison') || t.includes('Steel'))) return false;
-    if (status === 'frz' && (t.includes('Ice') || this.weather() === 'sun')) return false;
-    if (source && source !== mon && mon.side.conditions.safeguard) return false;
+    if (status === 'frz' && (t.includes('Ice') || this.field.weather === 'sun')) return false;
     return true;
   }
   trySetStatus(mon, status, source, fromHazard, quiet) {
     if (status === 'tri') status = ['brn', 'par', 'frz'][this.random(3)];
-    if (!this.canStatus(mon, status, source, fromHazard)) { if (!quiet) this.add('effect', `It doesn't affect ${mon.label}...`); return false; }
+    if (!this.canStatus(mon, status, source)) { if (!quiet) this.add('effect', `It doesn't affect ${mon.label}...`); return false; }
     mon.status = status; mon.statusTurns = status === 'slp' ? 2 + this.random(3) : 0; mon.toxCount = 0;
     this.add('status', `${mon.label} was ${STATUS_LABEL[status]}!`);
     if (this.hasItem(mon, 'Lum Berry')) this.eatBerry(mon, () => { mon.status = ''; this.add('heal', `${mon.label}'s Lum Berry cured it!`); });
@@ -523,9 +510,9 @@ class Battle {
       const before = mon.boosts[k];
       mon.boosts[k] = clamp(before + raw, -6, 6);
       const diff = mon.boosts[k] - before;
-      if (diff === 0) { this.add('effect', `${mon.label}'s ${STAT_LABEL[k]} won't go any ${raw > 0 ? 'higher' : 'lower'}!`); continue; }
-      const word = Math.abs(diff) >= 3 ? 'drastically' : Math.abs(diff) === 2 ? 'sharply' : '';
-      this.add('boost', `${mon.label}'s ${STAT_LABEL[k]} ${diff > 0 ? 'rose' : 'fell'}${word ? ' ' + word : ''}!`);
+      if (!diff) { this.add('effect', `${mon.label}'s ${STAT_LABEL[k]} won't go any ${raw > 0 ? 'higher' : 'lower'}!`); continue; }
+      const word = Math.abs(diff) >= 3 ? ' drastically' : Math.abs(diff) === 2 ? ' sharply' : '';
+      this.add('boost', `${mon.label}'s ${STAT_LABEL[k]} ${diff > 0 ? 'rose' : 'fell'}${word}!`);
       if (diff < 0 && fromFoe) dropped = true;
     }
     if (dropped && s.onStatDrop) { this.add('ability', `${mon.label}'s ${mon.ability} activated!`); this.boost(mon, s.onStatDrop, mon); }
@@ -537,49 +524,59 @@ class Battle {
     return true;
   }
 
+  // ---------------- targeting ----------------
+  resolveTargets(mon, md, chosen) {
+    const foes = this.foesOf(mon);
+    const t = md.target || 'normal';
+    if (t === 'allFoes') return foes;
+    if (t === 'all') return this.allActive().filter(m => m !== mon);
+    if (t === 'randomFoe') return foes.length ? [foes[this.random(foes.length)]] : [];
+    if (t === 'self' || t === 'foeSide' || t === 'scripted') return [];
+    if (chosen && this.sides[chosen.side]) {
+      const m = this.sides[chosen.side].active[chosen.pos];
+      if (m && !m.fainted && m !== mon) return [m];
+      if (chosen.side === mon.side.n) return []; // the chosen ally is gone
+    }
+    // default / retarget: a foe (the other one if the chosen foe fainted)
+    if (!foes.length) return [];
+    return [foes[this.random(foes.length)]];
+  }
+
   // ---------------- moves ----------------
   useMove(mon, moveName, action) {
-    const foe = this.foeOf(mon);
-    // pre-move checks
-    if (mon.v.flinch) { this.add('effect', `${mon.label} flinched and couldn't move!`); if (mon.spec.steadfast) this.boost(mon, { spe: 1 }, mon); this.afterFail(mon); return; }
+    if (mon.v.flinch) { this.add('effect', `${mon.label} flinched and couldn't move!`); if (mon.spec.steadfast) this.boost(mon, { spe: 1 }, mon); return this.afterFail(mon); }
     if (mon.status === 'slp') {
       mon.statusTurns--;
-      if (mon.statusTurns > 0) { this.add('effect', `${mon.label} is fast asleep.`); this.afterFail(mon); return; }
+      if (mon.statusTurns > 0) { this.add('effect', `${mon.label} is fast asleep.`); return this.afterFail(mon); }
       mon.status = ''; this.add('effect', `${mon.label} woke up!`);
     }
     if (mon.status === 'frz') {
-      if (MOVES[moveName] && MOVES[moveName].thaws || this.chance(20)) { mon.status = ''; this.add('effect', `${mon.label} thawed out!`); }
-      else { this.add('effect', `${mon.label} is frozen solid!`); this.afterFail(mon); return; }
+      if ((MOVES[moveName] && MOVES[moveName].thaws) || this.chance(20)) { mon.status = ''; this.add('effect', `${mon.label} thawed out!`); }
+      else { this.add('effect', `${mon.label} is frozen solid!`); return this.afterFail(mon); }
     }
     if (mon.v.confusion) {
       mon.v.confusion--;
       if (mon.v.confusion <= 0) { delete mon.v.confusion; this.add('effect', `${mon.label} snapped out of its confusion!`); }
       else {
         this.add('effect', `${mon.label} is confused!`);
-        if (this.chance(33)) {
-          const d = this.calcConfusionDamage(mon);
-          this.damage(mon, d, `It hurt itself in its confusion!`); this.afterFail(mon); return;
-        }
+        if (this.chance(33)) { this.damage(mon, this.confusionDamage(mon), 'It hurt itself in its confusion!'); return this.afterFail(mon); }
       }
     }
-    if (mon.v.attract && this.isActive(mon.v.attract)) {
-      if (this.chance(50)) { this.add('effect', `${mon.label} is immobilized by love!`); this.afterFail(mon); return; }
-    }
-    if (mon.status === 'par' && this.chance(25)) { this.add('effect', `${mon.label} is paralyzed! It can't move!`); this.afterFail(mon); return; }
+    if (mon.v.attract && this.isActive(mon.v.attract) && this.chance(50)) { this.add('effect', `${mon.label} is immobilized by love!`); return this.afterFail(mon); }
+    if (mon.status === 'par' && this.chance(25)) { this.add('effect', `${mon.label} is paralyzed! It can't move!`); return this.afterFail(mon); }
 
-    // resolve calling moves
-    let md = moveName === 'Struggle' ? STRUGGLE : MOVES[moveName];
+    let md = getMove(moveName);
     const slotObj = mon.moves.find(x => x.name === moveName);
+    let chosen = action && action.target;
     if (!action || !action.locked) {
       if (slotObj) {
         if (mon.v.taunt && md.cat === 'Status') { this.add('effect', `${mon.label} can't use ${moveName} after the taunt!`); return; }
-        let cost = 1;
-        if (foe && !foe.fainted && foe.spec.pressure && md.cat !== 'Status') cost = 2;
-        slotObj.pp = Math.max(0, slotObj.pp - cost);
+        const pre = md.target === 'normal' || md.target === 'allFoes' || md.target === 'all' ? this.foesOf(mon) : [];
+        slotObj.pp = Math.max(0, slotObj.pp - (pre.some(t => t.spec.pressure) ? 2 : 1));
       }
     }
     mon.movedSinceSwitch = true;
-    if (this.hasItem(mon, 'Choice Band') || this.hasItem(mon, 'Choice Specs') || this.hasItem(mon, 'Choice Scarf')) if (slotObj) mon.v.choiceLock = moveName;
+    if (slotObj && ['Choice Band', 'Choice Specs', 'Choice Scarf'].includes(mon.item)) mon.v.choiceLock = moveName;
     if (moveName === 'Metronome' || moveName === 'Copycat') {
       this.add('move', `${mon.label} used ${moveName}!`);
       let called;
@@ -587,75 +584,54 @@ class Battle {
       else called = this.lastMoveUsed && !NO_METRONOME.has(this.lastMoveUsed) ? this.lastMoveUsed : null;
       if (!called) { this.add('effect', 'But it failed!'); return; }
       this.add('effect', `${moveName} called ${called}!`);
-      moveName = called; md = MOVES[called];
+      moveName = called; md = MOVES[called]; chosen = null;
     }
-    // charging moves
-    if (md.charge && !mon.v.charging) {
-      const sunSkip = md.sunSkip && this.weather() === 'sun';
-      if (!sunSkip) {
-        this.add('move', `${mon.label} used ${moveName}!`);
-        mon.v.charging = { move: moveName, semi: md.semi };
-        const msg = { fly: 'flew up high!', dig: 'burrowed underground!', dive: 'hid underwater!', phantom: 'vanished instantly!' }[md.semi] || 'is charging up!';
-        this.add('effect', `${mon.label} ${msg}`);
-        if (md.chargeBoost) this.boost(mon, md.chargeBoost, mon);
-        return;
-      }
+    if (md.charge && !mon.v.charging && !(md.sunSkip && this.field.weather === 'sun')) {
+      this.add('move', `${mon.label} used ${moveName}!`);
+      mon.v.charging = { move: moveName, semi: md.semi }; mon.v.lockTarget = chosen;
+      this.add('effect', `${mon.label} ${{ fly: 'flew up high!', dig: 'burrowed underground!', dive: 'hid underwater!', phantom: 'vanished instantly!' }[md.semi] || 'is charging up!'}`);
+      if (md.chargeBoost) this.boost(mon, md.chargeBoost, mon);
+      return;
     }
-    const wasCharging = !!mon.v.charging;
     delete mon.v.charging;
-    if (!wasCharging || !md.charge) this.add('move', `${mon.label} used ${moveName}!`);
-    else this.add('move', `${mon.label} used ${moveName}!`);
+    this.add('move', `${mon.label} used ${moveName}!`);
     if (moveName !== 'Struggle') this.lastMoveUsed = moveName;
     mon.lastMove = moveName;
-
     if (md.special === 'focuspunch' && mon.v.tookDamage) { this.add('effect', `${mon.label} lost its focus and couldn't move!`); return; }
-    if (mon.spec.protean && !mon.switchFlags.protean && !(mon.types.length === 1 && mon.types[0] === md.type) && moveName !== 'Struggle') {
+    if (mon.spec.protean && !mon.switchFlags.protean && moveName !== 'Struggle' && !(mon.types.length === 1 && mon.types[0] === md.type)) {
       mon.types = [md.type]; mon.switchFlags.protean = true;
       this.add('ability', `${mon.label}'s ${mon.ability} made it the ${md.type} type!`);
     }
-    // mold breaker
     this.moldBreaker = (mon.spec.moldBreaker || (mon.spec.fireBreaker && md.type === 'Fire')) ? mon : null;
     try {
-      if (md.cat === 'Status') this.runStatusMove(mon, foe, md);
-      else this.runAttack(mon, foe, md, moveName);
+      if (md.cat === 'Status') this.runStatusMove(mon, md, chosen);
+      else this.runAttack(mon, md, chosen);
     } finally { this.moldBreaker = null; }
     if (md.special === 'outrage' && !mon.fainted) {
       if (!mon.v.outrage) mon.v.outrage = 1 + this.random(2);
-      else { mon.v.outrage--; if (mon.v.outrage <= 0) { delete mon.v.outrage; this.add('effect', `${mon.label} became confused due to fatigue!`); this.tryConfuse(mon, mon); } }
+      else if (--mon.v.outrage <= 0) { delete mon.v.outrage; this.add('effect', `${mon.label} became confused due to fatigue!`); this.tryConfuse(mon, mon); }
     }
     if (md.special === 'steelbeam' && !mon.fainted) this.damage(mon, Math.ceil(mon.maxhp / 2), `${mon.label} lost half its HP to power the beam!`);
   }
   afterFail(mon) { delete mon.v.charging; delete mon.v.outrage; mon.v.rollout = 0; mon.movedSinceSwitch = true; }
-
-  calcConfusionDamage(mon) {
-    const a = this.getStat(mon, 'atk'), d = this.getStat(mon, 'def');
-    return Math.floor(Math.floor(Math.floor(2 * LEVEL / 5 + 2) * 40 * a / d) / 50) + 2;
-  }
+  confusionDamage(mon) { return Math.floor(Math.floor(Math.floor(2 * LEVEL / 5 + 2) * 40 * this.getStat(mon, 'atk') / this.getStat(mon, 'def')) / 50) + 2; }
 
   accuracyCheck(mon, target, md, moveName) {
-    if (target.v.charging && target.v.charging.semi) {
-      const semi = target.v.charging.semi;
-      if (!(md.hitsSemi && md.hitsSemi.includes(semi))) { this.add('effect', `${target.label} avoided the attack!`); return false; }
-    }
+    if (target.v.charging && target.v.charging.semi && !(md.hitsSemi && md.hitsSemi.includes(target.v.charging.semi))) { this.add('effect', `${target.label} avoided the attack!`); return false; }
     if (md.acc === true) return true;
     if (md.poisonNeverMiss && mon.types.includes('Poison')) return true;
     if (moveName === 'Bounce' && mon.spec.bounceBoost) return true;
-    let acc = md.acc;
-    const w = this.weather();
-    if (md.rainAcc && w === 'rain') return true;
-    if (md.rainAcc && w === 'sun') acc = 50;
-    if (md.snowAcc && w === 'snow') return true;
-    let stage = mon.boosts.accuracy - (md.ignoreDefBoosts ? 0 : target.boosts.evasion);
-    stage = clamp(stage, -6, 6);
-    acc *= accMult(stage);
+    const w = this.field.weather;
+    if ((md.rainAcc && w === 'rain') || (md.snowAcc && w === 'snow')) return true;
+    let acc = md.rainAcc && w === 'sun' ? 50 : md.acc;
+    acc *= accMult(clamp(mon.boosts.accuracy - (md.ignoreDefBoosts ? 0 : target.boosts.evasion), -6, 6));
     if (mon.spec.accMult) acc *= mon.spec.accMult;
     if (this.field.gravity) acc *= 5 / 3;
     if (this.rng() * 100 < acc) return true;
-    this.add('effect', `${mon.label}'s attack missed!`);
+    this.add('effect', `${target.label} avoided the attack!`);
     if (target.spec.foeMissBoost && !target.fainted) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(target, target.spec.foeMissBoost, target); }
     return false;
   }
-
   checkProtect(mon, target, md) {
     if (!target.v.protect) return false;
     if (md.breaksProtect) { delete target.v.protect; this.add('effect', `${mon.label} broke through the protection!`); return false; }
@@ -664,297 +640,252 @@ class Battle {
     const ts = target.spec;
     if (ts.protectFoeBoost) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(mon, ts.protectFoeBoost, target); }
     if (ts.protectSelfBoost) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(target, ts.protectSelfBoost, target); }
-    if (md.special === 'crash') this.damage(mon, mon.maxhp / 2, `${mon.label} kept going and crashed!`);
     return true;
   }
   makesContact(mon, md) { return !!md.contact && !mon.spec.longReach; }
-
   isReflectable(md) {
     if (md.cat !== 'Status') return false;
     if (md.status || md.hazard || (md.boosts && md.boosts.target === 'foe')) return true;
     return ['taunt', 'encore', 'disable', 'leechseed', 'forceswitch', 'partingshot'].includes(md.special);
   }
 
-  runStatusMove(mon, foe, md) {
+  runStatusMove(mon, md, chosen) {
     const name = md.name;
-    const targetsFoe = !!(md.status || (md.boosts && md.boosts.target === 'foe') || ['taunt', 'encore', 'disable', 'leechseed', 'forceswitch', 'partingshot', 'trick', 'painsplit'].includes(md.special));
-    let target = foe; let user = mon;
-    if (targetsFoe) {
-      if (!foe || foe.fainted) { this.add('effect', 'But there was no target...'); return; }
-      if (mon.spec.prankster && foe.types.includes('Dark')) { this.add('effect', `It doesn't affect ${foe.label}...`); return; }
-      if (this.checkProtect(mon, foe, md)) return;
-      // Magic Coat / Magic Bounce
-      if (this.isReflectable(md) && (foe.v.magiccoat || this.abilityActive(foe, mon).magicBounce)) {
-        this.add('effect', `${foe.label} bounced the ${name} back!`);
-        target = mon; user = foe;
+    let user = mon, target = null;
+    if (md.target === 'normal') {
+      target = this.resolveTargets(mon, md, chosen)[0];
+      if (!target) { this.add('effect', 'But there was no target...'); return; }
+      const vsFoe = target.side !== mon.side;
+      if (vsFoe && mon.spec.prankster && target.types.includes('Dark')) { this.add('effect', `It doesn't affect ${target.label}...`); return; }
+      if (this.checkProtect(mon, target, md)) return;
+      if (vsFoe && this.isReflectable(md) && (target.v.magiccoat || this.abilityActive(target, mon).magicBounce)) {
+        this.add('effect', `${target.label} bounced the ${name} back!`);
+        user = target; target = mon;
       }
-      if (md.acc !== true && target !== user && !this.accuracyCheck(user, target, md, name)) return;
-      if (target.v.substitute && !md.sound && !user.spec.infiltrator && target !== user && md.special !== 'painsplit') { this.add('effect', 'But it failed!'); return; }
+      if (md.acc !== true && !this.accuracyCheck(user, target, md, name)) return;
+      if (target.v.substitute && !md.sound && !user.spec.infiltrator && md.special !== 'painsplit') { this.add('effect', 'But it failed!'); return; }
       if (md.powder && target.types.includes('Grass')) { this.add('effect', `It doesn't affect ${target.label}...`); return; }
     }
     if (mon.spec.statusMoveHeal) this.heal(mon, mon.maxhp * mon.spec.statusMoveHeal, `${mon.label} restored a little HP with ${mon.ability}!`);
-
-    if (md.status) { if (!this.trySetStatus(target, md.status, user)) return; return; }
-    if (md.boosts) {
-      const { target: who, ...b } = md.boosts;
-      this.boost(who === 'self' ? user : target, b, user);
-      return;
-    }
+    if (md.status) { this.trySetStatus(target, md.status, user); return; }
+    if (md.boosts) { const { target: who, ...b } = md.boosts; this.boost(who === 'self' ? user : target, b, user); return; }
     if (md.heal) {
       if (user.hp >= user.maxhp) { this.add('effect', `${user.label}'s HP is full!`); return; }
       let f = md.heal;
-      if (md.sunHeal) { const w = this.weather(); f = w === 'sun' ? 2 / 3 : (w === 'rain' || w === 'snow') ? 0.25 : 0.5; }
+      if (md.sunHeal) { const w = this.field.weather; f = w === 'sun' ? 2 / 3 : (w === 'rain' || w === 'snow') ? 0.25 : 0.5; }
       if (user.spec.healBoost) f *= user.spec.healBoost;
-      this.heal(user, user.maxhp * f, `${user.label} restored HP!`);
-      return;
+      this.heal(user, user.maxhp * f, `${user.label} restored HP!`); return;
     }
     if (md.weather) { if (!this.setWeather(md.weather, user, 5)) this.add('effect', 'But it failed!'); return; }
-    if (md.field) {
-      const f = md.field;
-      if (f === 'trickroom') {
-        if (this.field.trickroom) { this.field.trickroom = 0; this.add('field', 'The twisted dimensions returned to normal!'); }
-        else { this.field.trickroom = 5; this.add('field', `${user.label} twisted the dimensions!`); }
-      } else if (f === 'gravity') {
-        if (this.field.gravity) { this.add('effect', 'But it failed!'); return; }
-        this.field.gravity = 5; this.add('field', 'Gravity intensified!');
-        for (const s of this.sides) { const a = this.active(s); if (a && a.v.charging && a.v.charging.semi === 'fly') delete a.v.charging; }
-      }
+    if (md.field === 'trickroom') {
+      if (this.field.trickroom) { this.field.trickroom = 0; this.add('field', 'The twisted dimensions returned to normal!'); }
+      else { this.field.trickroom = 5; this.add('field', `${user.label} twisted the dimensions!`); }
+      return;
+    }
+    if (md.field === 'gravity') {
+      if (this.field.gravity) { this.add('effect', 'But it failed!'); return; }
+      this.field.gravity = 5; this.add('field', 'Gravity intensified!');
+      for (const a of this.allActive()) if (a.v.charging && a.v.charging.semi === 'fly') delete a.v.charging;
       return;
     }
     if (md.side) {
       const c = user.side.conditions;
       if (c[md.side]) { this.add('effect', 'But it failed!'); return; }
-      const turns = md.side === 'tailwind' ? 4 : (this.hasItem(user, 'Light Clay') ? 8 : 5);
-      c[md.side] = turns;
+      c[md.side] = md.side === 'tailwind' ? 4 : (this.hasItem(user, 'Light Clay') ? 8 : 5);
       this.add('field', { reflect: `Reflect made ${user.side.name}'s team stronger against physical moves!`, lightscreen: `Light Screen made ${user.side.name}'s team stronger against special moves!`, tailwind: `The tailwind blew from behind ${user.side.name}'s team!` }[md.side]);
       return;
     }
     if (md.hazard) {
-      const c = this.foe(user.side).conditions; const h = md.hazard;
-      const max = { spikes: 3, toxicspikes: 2, stealthrock: 1, stickyweb: 1 }[h];
-      if ((c[h] || 0) >= max) { this.add('effect', 'But it failed!'); return; }
+      const fs = this.foeSide(user.side);
+      if (this.actives(fs).some(f => f.spec.magicBounce)) { this.add('effect', `The ${name} was bounced back!`); return; }
+      const c = fs.conditions; const h = md.hazard;
+      if ((c[h] || 0) >= { spikes: 3, toxicspikes: 2, stealthrock: 1, stickyweb: 1 }[h]) { this.add('effect', 'But it failed!'); return; }
       c[h] = (c[h] || 0) + 1;
       this.add('field', { spikes: 'Spikes were scattered around the opposing team!', toxicspikes: 'Poison spikes were scattered around the opposing team!', stealthrock: 'Pointed stones float in the air around the opposing team!', stickyweb: 'A sticky web spread out around the opposing team!' }[h]);
       return;
     }
-    const sp = md.special;
-    switch (sp) {
+    switch (md.special) {
       case 'protect': {
         const ok = this.queue.length > 0 && this.chance(100 / Math.pow(3, user.protectCount));
         if (!ok) { this.add('effect', 'But it failed!'); user.protectCount = 0; return; }
         user.v.protect = md.kingsShield ? 'kings' : true; user.protectCount++; user.v.protectedThisTurn = true;
-        this.add('effect', `${user.label} protected itself!`);
-        return;
+        this.add('effect', `${user.label} protected itself!`); return;
       }
       case 'substitute': {
         if (user.v.substitute) { this.add('effect', `${user.label} already has a substitute!`); return; }
         const cost = Math.floor(user.maxhp / (user.spec.cheapSub ? 8 : 4));
         if (user.hp <= cost) { this.add('effect', 'But it does not have enough HP left to make a substitute!'); return; }
-        this.damage(user, cost);
-        user.v.substitute = cost; this.add('effect', `${user.label} put in a substitute!`);
-        return;
+        this.damage(user, cost); user.v.substitute = cost; this.add('effect', `${user.label} put in a substitute!`); return;
       }
-      case 'bellydrum': {
+      case 'bellydrum':
         if (user.hp <= user.maxhp / 2 || user.boosts.atk >= 6) { this.add('effect', 'But it failed!'); return; }
-        this.damage(user, user.maxhp / 2);
-        user.boosts.atk = 6; this.add('boost', `${user.label} cut its own HP and maximized its Attack!`);
-        return;
-      }
-      case 'wish': {
-        if (user.side.conditions.wish) { this.add('effect', 'But it failed!'); return; }
-        user.side.conditions.wish = { turns: 2, hp: Math.floor(user.maxhp / 2), from: user.displaySpecies.name };
-        this.add('effect', `${user.label} made a wish!`);
-        return;
-      }
-      case 'rest': {
-        if (user.hp >= user.maxhp || user.status === 'slp') { this.add('effect', 'But it failed!'); return; }
-        if (user.spec.statusImmune && user.spec.statusImmune.includes('slp')) { this.add('effect', 'But it failed!'); return; }
-        user.status = 'slp'; user.statusTurns = 3; user.hp = user.maxhp;
-        this.add('heal', `${user.label} slept and became healthy!`);
-        return;
-      }
+        this.damage(user, user.maxhp / 2); user.boosts.atk = 6; this.add('boost', `${user.label} cut its own HP and maximized its Attack!`); return;
+      case 'wish':
+        if (user.side.wishes[user.pos]) { this.add('effect', 'But it failed!'); return; }
+        user.side.wishes[user.pos] = { turns: 2, hp: Math.floor(user.maxhp / 2), from: user.displaySpecies.name };
+        this.add('effect', `${user.label} made a wish!`); return;
+      case 'rest':
+        if (user.hp >= user.maxhp || user.status === 'slp' || (user.spec.statusImmune && user.spec.statusImmune.includes('slp'))) { this.add('effect', 'But it failed!'); return; }
+        user.status = 'slp'; user.statusTurns = 3; user.hp = user.maxhp; this.add('heal', `${user.label} slept and became healthy!`); return;
       case 'focusenergy': user.v.focusEnergy = true; this.add('effect', `${user.label} is getting pumped!`); return;
-      case 'healbell': {
-        for (const m of user.side.team) m.status = '';
-        this.add('heal', `A soothing aroma wafted through ${user.side.name}'s team!`);
-        return;
-      }
+      case 'healbell': for (const m of user.side.team) m.status = ''; this.add('heal', `A soothing aroma wafted through ${user.side.name}'s team!`); return;
       case 'painsplit': {
         const avg = Math.floor((user.hp + target.hp) / 2);
         user.hp = Math.min(user.maxhp, avg); target.hp = Math.min(target.maxhp, avg);
-        this.add('effect', 'The battlers shared their pain!');
-        this.checkThresholds(target);
-        return;
+        this.add('effect', 'The battlers shared their pain!'); this.checkThresholds(target); return;
       }
-      case 'leechseed': {
+      case 'leechseed':
         if (target.types.includes('Grass') || target.v.leechSeed) { this.add('effect', `It doesn't affect ${target.label}...`); return; }
-        target.v.leechSeed = true; this.add('effect', `${target.label} was seeded!`);
-        return;
-      }
-      case 'ingrain': {
+        target.v.leechSeed = { side: user.side.n, pos: user.pos }; this.add('effect', `${target.label} was seeded!`); return;
+      case 'ingrain':
         if (user.v.ingrain) { this.add('effect', 'But it failed!'); return; }
-        user.v.ingrain = true; this.add('effect', `${user.label} planted its roots!`);
-        return;
-      }
-      case 'taunt': {
+        user.v.ingrain = true; this.add('effect', `${user.label} planted its roots!`); return;
+      case 'taunt':
         if (target.v.taunt || this.abilityActive(target, user).noTaunt) { this.add('effect', 'But it failed!'); return; }
-        target.v.taunt = 3; this.add('effect', `${target.label} fell for the taunt!`);
-        return;
-      }
+        target.v.taunt = 3; this.add('effect', `${target.label} fell for the taunt!`); return;
       case 'encore': {
         const last = target.lastMove;
         if (!last || target.v.encore || !target.moves.some(x => x.name === last)) { this.add('effect', 'But it failed!'); return; }
-        target.v.encore = { move: last, turns: 3 }; this.add('effect', `${target.label} must do an encore!`);
-        return;
+        target.v.encore = { move: last, turns: 3 }; this.add('effect', `${target.label} must do an encore!`); return;
       }
       case 'disable': {
         const last = target.lastMove;
         if (!last || target.v.disable || !target.moves.some(x => x.name === last)) { this.add('effect', 'But it failed!'); return; }
-        target.v.disable = { move: last, turns: 4 }; this.add('effect', `${target.label}'s ${last} was disabled!`);
-        return;
+        target.v.disable = { move: last, turns: 4 }; this.add('effect', `${target.label}'s ${last} was disabled!`); return;
       }
       case 'trick': {
-        if ((!user.item && !target.item) || this.abilityActive(target, user).stickyHold) { this.add('effect', 'But it failed!'); return; }
+        if (!user.item && !target.item) { this.add('effect', 'But it failed!'); return; }
         const a = user.item, b = target.item;
         user.item = b; target.item = a;
         if (!user.item && user.spec.unburden) user.unburdened = true;
         if (!target.item && target.spec.unburden) target.unburdened = true;
         delete user.v.choiceLock; delete target.v.choiceLock;
-        this.add('effect', `${user.label} switched items with its target!`);
-        if (b) this.add('effect', `${user.label} obtained ${b}.`);
-        if (a) this.add('effect', `${target.label} obtained ${a}.`);
-        return;
+        this.add('effect', `${user.label} switched items with ${target.label}!`); return;
       }
       case 'magiccoat': user.v.magiccoat = true; this.add('effect', `${user.label} shrouded itself with Magic Coat!`); return;
       case 'defog': {
         for (const s of this.sides) for (const h of ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb']) delete s.conditions[h];
-        const fc = this.foe(user.side).conditions; delete fc.reflect; delete fc.lightscreen;
+        const fc = this.foeSide(user.side).conditions; delete fc.reflect; delete fc.lightscreen;
         this.add('field', `${user.label} blew away the hazards and screens!`);
-        if (foe && !foe.fainted) this.boost(foe, { evasion: -1 }, user);
-        return;
+        if (target) this.boost(target, { evasion: -1 }, user); return;
       }
-      case 'forceswitch': {
+      case 'forceswitch':
         if (target.v.ingrain || this.abilityActive(target, user).suctionCups) { this.add('effect', `${target.label} anchored itself!`); return; }
-        this.dragOut(target);
-        return;
-      }
-      case 'partingshot': {
+        this.dragOut(target); return;
+      case 'partingshot':
         this.boost(target, { atk: -1, spa: -1 }, user);
-        if (this.bench(user.side).length) this.requestPivot(user, 'pivot');
-        return;
-      }
-      case 'pivot': // Teleport
+        this.requestPivot(user, 'pivot'); return;
+      case 'pivot':
         if (this.bench(user.side).length) this.requestPivot(user, 'pivot'); else this.add('effect', 'But it failed!');
         return;
     }
     this.add('effect', 'But nothing happened.');
   }
-
   dragOut(target) {
     const b = this.bench(target.side);
     if (!b.length) return;
-    const pick = b[this.random(b.length)];
     this.add('effect', `${target.label} was dragged out!`);
-    this.doSwitch(target.side, target.side.team.indexOf(pick), true);
+    this.doSwitch(target.side, target.pos, b[this.random(b.length)].teamIndex);
   }
   requestPivot(mon, reason) {
-    if (!this.bench(mon.side).length || this.ended || this.inResiduals) return;
-    if (this.pendingSwitches.some(p => p.side === mon.side.n)) return;
-    this.pendingSwitches.push({ side: mon.side.n, reason });
+    if (!this.bench(mon.side).length || this.ended || this.inResiduals || mon.fainted || mon.pos < 0) return;
+    if (this.pendingSwitches.some(p => p.side === mon.side.n && p.pos === mon.pos)) return;
+    const promised = this.pendingSwitches.filter(p => p.side === mon.side.n).length;
+    if (promised >= this.bench(mon.side).length) return;
+    this.pendingSwitches.push({ side: mon.side.n, pos: mon.pos, reason });
   }
 
-  // effectiveness with move-specific tweaks
   typeEff(mon, target, md) {
     let types = target.types;
     if (md.special === 'thousandarrows' && types.includes('Flying')) types = types.filter(t => t !== 'Flying');
     let eff = effectiveness(md.type, types);
-    if (md.special === 'freezedry' && target.types.includes('Water')) eff = eff / (effectiveness('Ice', ['Water'])) * 2;
-    if (eff === 0 && target.types.includes('Ghost') && md.type === 'Normal' && mon.spec.scrappy) {
-      eff = effectiveness('Normal', target.types.filter(t => t !== 'Ghost'));
-    }
+    if (md.special === 'freezedry' && target.types.includes('Water')) eff = eff / effectiveness('Ice', ['Water']) * 2;
+    if (eff === 0 && md.type === 'Normal' && target.types.includes('Ghost') && mon.spec.scrappy) eff = effectiveness('Normal', target.types.filter(t => t !== 'Ghost'));
     if (md.type === 'Normal' && mon.spec.normalVsGhost && target.types.includes('Ghost')) eff *= mon.spec.normalVsGhost;
     if (md.name === 'Struggle') eff = 1;
     return eff;
   }
 
-  runAttack(mon, foe, md, moveName) {
-    const target = foe;
-    if (!target || target.fainted) { this.add('effect', 'But there was no target...'); mon.v.rollout = 0; return; }
-    if (md.special === 'fakeout' && mon.turnsActive > 0) { this.add('effect', 'But it failed!'); return; }
-    if (md.special === 'sucker') {
-      const planned = target.v.plannedMove ? MOVES[target.v.plannedMove] : null;
-      const targetMoved = !this.queue.some(a => a.mon === target && a.kind === 'move');
-      if (!planned || planned.cat === 'Status' || targetMoved) { this.add('effect', 'But it failed!'); return; }
+  runAttack(mon, md, chosen) {
+    if (md.special === 'futuresight') {
+      const t = this.resolveTargets(mon, md, chosen)[0];
+      if (!t) { this.add('effect', 'But there was no target...'); return; }
+      const key = { side: t.side.n, pos: t.pos };
+      if (this.futures.some(f => f.side === key.side && f.pos === key.pos)) { this.add('effect', 'But it failed!'); return; }
+      this.futures.push({ ...key, turns: 3, user: mon }); this.add('effect', `${mon.label} foresaw an attack!`); return;
     }
-    if (md.special === 'poltergeist' && !target.item) { this.add('effect', 'But it failed!'); return; }
-    if (md.special === 'fling' && !mon.item) { this.add('effect', 'But it failed!'); return; }
-    if (this.checkProtect(mon, target, md)) { mon.v.rollout = 0; return; }
-    if (!this.accuracyCheck(mon, target, md, moveName)) {
-      if (md.special === 'crash') this.damage(mon, mon.maxhp / 2, `${mon.label} kept going and crashed!`);
-      mon.v.rollout = 0;
+    if (md.special === 'counter' || md.special === 'mirrorcoat') {
+      const want = md.special === 'counter' ? 'Physical' : 'Special';
+      const h = mon.v.lastHit;
+      if (!h || h.cat !== want || !this.isActive(h.by) || h.by.side === mon.side) { this.add('effect', 'But it failed!'); return; }
+      const t = h.by;
+      if (this.checkProtect(mon, t, md)) return;
+      const d = this.applyDamage(mon, t, md, h.amount * 2, { eff: 1 });
+      this.afterAttack(mon, [t], md, d, new Map([[t, d]]));
       return;
     }
+    if (md.special === 'fakeout' && mon.turnsActive > 0) { this.add('effect', 'But it failed!'); return; }
+    if (md.special === 'fling' && !mon.item) { this.add('effect', 'But it failed!'); return; }
+    const targets = this.resolveTargets(mon, md, chosen);
+    if (!targets.length) { this.add('effect', 'But there was no target...'); mon.v.rollout = 0; return; }
+    const spread = targets.length > 1;
+    let total = 0; const dealtMap = new Map(); let anyHit = false;
+    for (const target of targets) {
+      if (target.fainted) continue;
+      const d = this.attackOne(mon, target, md, spread);
+      if (d >= 0) { anyHit = true; total += d; dealtMap.set(target, d); }
+      if (mon.fainted) break;
+    }
+    if (!anyHit) { mon.v.rollout = 0; if (md.special === 'crash' && !mon.fainted) this.damage(mon, mon.maxhp / 2, `${mon.label} kept going and crashed!`); }
+    if (md.special === 'rollout' && anyHit) mon.v.rollout = (mon.v.rollout || 0) + 1;
+    this.afterAttack(mon, [...dealtMap.keys()], md, total, dealtMap);
+  }
+
+  // damage dealt to one target, or -1 if the move didn't connect
+  attackOne(mon, target, md, spread) {
+    if (md.special === 'sucker') {
+      const planned = target.v.plannedMove ? getMove(target.v.plannedMove) : null;
+      if (!planned || planned.cat === 'Status' || !this.queue.some(a => a.mon === target && a.kind === 'move')) { this.add('effect', 'But it failed!'); return -1; }
+    }
+    if (md.special === 'poltergeist' && !target.item) { this.add('effect', 'But it failed!'); return -1; }
+    if (this.checkProtect(mon, target, md)) return -1;
+    if (!this.accuracyCheck(mon, target, md, md.name)) return -1;
     const ts = this.abilityActive(target, mon);
-    // Immunities
     const eff = this.typeEff(mon, target, md);
     const groundImmune = md.type === 'Ground' && md.special !== 'thousandarrows' && !this.isGrounded(target, mon);
-    if (md.special !== 'counter' && md.special !== 'mirrorcoat' && md.special !== 'level' && (eff === 0 || groundImmune)) {
-      this.add('effect', `It doesn't affect ${target.label}...`); mon.v.rollout = 0;
-      if (md.special === 'crash') this.damage(mon, mon.maxhp / 2, `${mon.label} kept going and crashed!`);
-      return;
-    }
-    if (md.special === 'level' && target.types.includes('Normal')) { this.add('effect', `It doesn't affect ${target.label}...`); return; }
+    if (md.special !== 'level' && (eff === 0 || groundImmune)) { this.add('effect', `It doesn't affect ${target.label}...`); return -1; }
+    if (md.special === 'level' && target.types.includes('Normal')) { this.add('effect', `It doesn't affect ${target.label}...`); return -1; }
     if (ts.absorb && ts.absorb.type === md.type) {
       this.add('ability', `${target.label}'s ${target.ability} absorbed the attack!`);
       if (ts.absorb.heal) this.heal(target, target.maxhp * ts.absorb.heal, `${target.label} restored HP!`);
       if (ts.absorb.boosts) this.boost(target, ts.absorb.boosts, target);
-      return;
+      return -1;
     }
-    if (ts.immuneFlag && md[ts.immuneFlag]) { this.add('ability', `${target.label}'s ${target.ability} blocked the attack!`); return; }
-    if (ts.pocket && md.bullet && !target.switchFlags.pocketUsed) { target.switchFlags.pocketUsed = true; this.add('ability', `${target.label} pocketed the attack!`); return; }
-
-    // break screens
+    if (ts.immuneFlag && md[ts.immuneFlag]) { this.add('ability', `${target.label}'s ${target.ability} blocked the attack!`); return -1; }
+    if (ts.pocket && md.bullet && !target.switchFlags.pocketUsed) { target.switchFlags.pocketUsed = true; this.add('ability', `${target.label} pocketed the attack!`); return -1; }
     if (md.special === 'brickbreak') {
       const c = target.side.conditions;
       if (c.reflect || c.lightscreen) { delete c.reflect; delete c.lightscreen; this.add('field', `${mon.label} shattered the screens!`); }
     }
-
-    // Counter / Mirror Coat
-    if (md.special === 'counter' || md.special === 'mirrorcoat') {
-      const want = md.special === 'counter' ? 'Physical' : 'Special';
-      const h = mon.v.lastHit;
-      if (!h || h.cat !== want || h.by !== target) { this.add('effect', 'But it failed!'); return; }
-      this.applyDamage(mon, target, md, h.amount * 2, { eff: 1 });
-      return;
-    }
-
-    // number of hits
     let hits = 1;
     if (md.multihit) {
-      if (Array.isArray(md.multihit)) {
-        if (mon.spec.skillLink) hits = md.multihit[1];
-        else { const r = this.random(100); hits = r < 35 ? 2 : r < 70 ? 3 : r < 85 ? 4 : 5; }
-      } else hits = md.multihit;
+      if (Array.isArray(md.multihit)) { if (mon.spec.skillLink) hits = md.multihit[1]; else { const r = this.random(100); hits = r < 35 ? 2 : r < 70 ? 3 : r < 85 ? 4 : 5; } }
+      else hits = md.multihit;
     }
-    const pBond = mon.spec.parentalBond && hits === 1 && !md.charge && md.special !== 'explosion';
+    const pBond = mon.spec.parentalBond && hits === 1 && !spread && md.special !== 'explosion';
     if (pBond) hits = 2;
-
-    let totalDealt = 0; let hitCount = 0; let lastCrit = false;
+    let dealt = 0, count = 0;
     for (let h = 0; h < hits; h++) {
       if (target.fainted || mon.fainted) break;
       let power = this.basePower(mon, target, md, h);
       if (pBond && h === 1) power = Math.floor(power / 4);
-      const { dmg, crit } = this.calcDamage(mon, target, md, power, eff);
-      lastCrit = crit;
-      if (crit) this.add('effect', 'A critical hit!');
+      const { dmg, crit } = this.calcDamage(mon, target, md, power, eff, false, spread);
+      if (crit) this.add('effect', `A critical hit on ${target.label}!`);
       if (h === 0 && !target.v.substitute) { if (eff > 1) this.add('eff', "It's super effective!"); else if (eff < 1) this.add('eff', "It's not very effective..."); }
-      const dealt = this.applyDamage(mon, target, md, dmg, { eff, crit, hitIndex: h });
-      totalDealt += dealt; hitCount++;
-      if (dealt < 0) break;
+      dealt += this.applyDamage(mon, target, md, dmg, { eff, crit }); count++;
     }
-    if (hits > 1 && hitCount) this.add('effect', `Hit ${hitCount} time${hitCount > 1 ? 's' : ''}!`);
-    if (md.special === 'rollout') mon.v.rollout = (mon.v.rollout || 0) + 1;
-    this.afterAttack(mon, target, md, totalDealt, lastCrit);
+    if (hits > 1 && count) this.add('effect', `Hit ${count} time${count > 1 ? 's' : ''}!`);
+    return dealt;
   }
 
   basePower(mon, target, md, hitIndex) {
@@ -972,60 +903,46 @@ class Battle {
     return p;
   }
 
-  calcDamage(mon, target, md, power, eff, noRandom) {
+  calcDamage(mon, target, md, power, eff, noRandom, spread) {
     const s = mon.spec; const ts = this.abilityActive(target, mon);
-    // crit
-    let critStage = (md.crit || 0) + (s.critBonus || 0) + (mon.v.focusEnergy ? 2 : 0);
-    if (s.flagCrit && md[s.flagCrit]) critStage += 1;
+    const critStage = (md.crit || 0) + (s.critBonus || 0) + (mon.v.focusEnergy ? 2 : 0) + (s.flagCrit && md[s.flagCrit] ? 1 : 0);
     let crit = false;
     if (s.hitCounterCrit && mon.v.chargedCrit && (!s.hitCounterCrit.flag || md[s.hitCounterCrit.flag])) { crit = true; if (!noRandom) mon.v.chargedCrit = false; }
     else if (!noRandom) crit = this.rng() < [1 / 24, 1 / 8, 1 / 2, 1, 1][Math.min(critStage, 4)];
     if (ts.battleArmor) crit = false;
-
     const physical = md.cat === 'Physical';
-    let atkStat, defStat;
-    const atkOpts = crit ? { ignoreNegative: true } : {};
-    const defOpts = crit || md.ignoreDefBoosts ? { ignorePositive: true } : {};
-    if (md.special === 'bodypress') atkStat = this.getStat(mon, 'def', atkOpts);
-    else atkStat = this.getStat(mon, physical ? 'atk' : 'spa', atkOpts);
-    defStat = this.getStat(target, (physical || md.useDef) ? 'def' : 'spd', defOpts);
-
-    // base power modifiers
+    const atkStat = md.special === 'bodypress' ? this.getStat(mon, 'def', crit ? { ignoreNegative: true } : {}) : this.getStat(mon, physical ? 'atk' : 'spa', crit ? { ignoreNegative: true } : {});
+    const defStat = this.getStat(target, (physical || md.useDef) ? 'def' : 'spd', (crit || md.ignoreDefBoosts) ? { ignorePositive: true } : {});
     let bp = power;
     if (s.flagBoost && (md[s.flagBoost.flag] || (s.flagBoost.flag === 'contact' && this.makesContact(mon, md)))) bp *= s.flagBoost.mult;
     if (s.typeBoost && s.typeBoost[md.type]) bp *= s.typeBoost[md.type];
     if (s.vsType && target.types.some(t => s.vsType[t])) bp *= Math.max(...target.types.map(t => s.vsType[t] || 1));
     if (s.pinch && s.pinch.type === md.type && mon.hpFrac() <= 1 / 3) bp *= 1.5;
     if (s.sheerForce && md.sec) bp *= 1.3;
-    if (s.analytic && !this.queue.some(a => a.mon === target)) bp *= 1.3;
+    if (s.analytic && !this.queue.some(a => a.kind === 'move')) bp *= 1.3;
     if (s.weightBoost && md.weightMove) bp *= s.weightBoost;
     if (s.bounceBoost && md.name === 'Bounce') bp *= 1.5;
-    if (md.hitsSemi && target.v.charging && md.hitsSemi.includes(target.v.charging.semi) && ['dig', 'dive'].includes(target.v.charging.semi)) bp *= 2;
+    if (md.hitsSemi && target.v.charging && ['dig', 'dive'].includes(target.v.charging.semi) && md.hitsSemi.includes(target.v.charging.semi)) bp *= 2;
     bp = Math.max(1, Math.floor(bp));
-
     let dmg = Math.floor(Math.floor(Math.floor(2 * LEVEL / 5 + 2) * bp * atkStat / defStat) / 50) + 2;
-    // weather
-    const w = this.weather();
+    if (spread) dmg *= 0.75;
+    const w = this.field.weather;
     if (w === 'rain') { if (md.type === 'Water') dmg *= 1.5; if (md.type === 'Fire') dmg *= 0.5; }
     if (w === 'sun') { if (md.type === 'Fire') dmg *= 1.5; if (md.type === 'Water') dmg *= 0.5; }
     if (crit) dmg *= s.sniper ? 2.25 : 1.5;
-    if (!noRandom) dmg = Math.floor(dmg * (85 + this.random(16)) / 100);
-    else dmg = Math.floor(dmg * 0.925);
+    dmg = Math.floor(dmg * (noRandom ? 0.925 : (85 + this.random(16)) / 100));
     if (mon.types.includes(md.type) && md.name !== 'Struggle') dmg *= 1.5;
     dmg *= eff;
     if (physical && mon.status === 'brn' && !s.guts && md.special !== 'facade') dmg *= 0.5;
-    // screens
     const c = target.side.conditions;
     const ignoreScreens = crit || s.infiltrator || (s.fireBreaker && md.type === 'Fire');
-    if (!ignoreScreens && ((physical && c.reflect) || (!physical && c.lightscreen))) dmg *= 0.5;
-    // defender abilities
+    if (!ignoreScreens && ((physical && c.reflect) || (!physical && c.lightscreen))) dmg *= this.activeCount > 1 ? 2 / 3 : 0.5;
     if (ts.filter && eff > 1) dmg *= ts.filter;
     if (ts.typeTaken && ts.typeTaken[md.type]) dmg *= ts.typeTaken[md.type];
     if (ts.flagTaken && md[ts.flagTaken.flag]) dmg *= ts.flagTaken.mult;
     if (ts.fullHpTaken && target.hp === target.maxhp) dmg *= ts.fullHpTaken;
     if (ts.gutCheck && this.makesContact(mon, md) && !target.switchFlags.gutCheck) { dmg *= 0.5; if (!noRandom) target.switchFlags.gutCheck = true; }
     if (ts.luma && (target.once.lumaHits || 0) < 2) { dmg *= 0.75; if (!noRandom) target.once.lumaHits = (target.once.lumaHits || 0) + 1; }
-    // items
     if (mon.item === 'Life Orb') dmg *= 1.3;
     if (mon.item === 'Expert Belt' && eff > 1) dmg *= 1.2;
     dmg = Math.floor(dmg);
@@ -1033,11 +950,9 @@ class Battle {
     return { dmg, crit };
   }
 
-  // returns damage dealt, or -1 if the hit chain should stop
   applyDamage(mon, target, md, dmg, info) {
     const ts = this.abilityActive(target, mon);
     if (md.special === 'level') dmg = LEVEL;
-    // substitute
     if (target.v.substitute && !md.sound && !mon.spec.infiltrator) {
       const d = Math.min(dmg, target.v.substitute);
       target.v.substitute -= d;
@@ -1045,20 +960,15 @@ class Battle {
       if (target.v.substitute <= 0) { delete target.v.substitute; this.add('effect', `${target.label}'s substitute faded!`); }
       return d;
     }
-    if (ts.disguise && !target.once.disguise) {
-      target.once.disguise = true;
-      this.add('ability', `${target.label}'s ${target.ability} took the hit! Its mask fell off.`);
-      return 0;
-    }
+    if (ts.disguise && !target.once.disguise) { target.once.disguise = true; this.add('ability', `${target.label}'s ${target.ability} took the hit! Its mask fell off.`); return 0; }
     if (target.v.illusion) { target.v.illusion = false; target.once.illusionBroken = true; target.displaySpecies = target.species; this.add('ability', `${target.side.name}'s ${target.species.name}'s illusion wore off!`); }
-    // survival effects
     if (dmg >= target.hp) {
       if (target.hp === target.maxhp && ts.sturdy) { dmg = target.hp - 1; this.add('ability', `${target.label} endured the hit with ${target.ability}!`); }
       else if (target.hp === target.maxhp && this.hasItem(target, 'Focus Sash')) { dmg = target.hp - 1; this.add('effect', `${target.label} hung on using its Focus Sash!`); this.loseItem(target, true); }
       else if (ts.surviveOnce && !target.once.survived) { target.once.survived = true; dmg = target.hp - 1; this.add('ability', `${target.label} hung on with ${target.ability}!`); }
     }
     dmg = Math.min(dmg, target.hp);
-    const pctBefore = target.hp;
+    const hpBefore = target.hp;
     target.hp -= dmg;
     this.add('dmg', `${target.label} lost ${Math.round(dmg / target.maxhp * 1000) / 10}% of its HP!`);
     target.v.tookDamage = true;
@@ -1067,30 +977,22 @@ class Battle {
     if (target.item === 'Air Balloon') { this.add('effect', `${target.label}'s Air Balloon popped!`); this.loseItem(target, false); }
     if (target.spec.hitCounterCrit && target.hitsTaken % target.spec.hitCounterCrit.hits === 0) { target.v.chargedCrit = true; this.add('ability', `${target.label}'s ${target.ability} is charged!`); }
     if (target.hp <= 0) { this.faint(target); this.onKO(mon, target); }
-    else {
-      this.onDamagedBy(target, mon, md, info, pctBefore);
-      this.checkThresholds(target);
-    }
-    if (dmg > 0 && md.drain) this.heal(mon, Math.max(1, Math.floor(dmg * md.drain)), `${target.label} had its energy drained!`);
-    if (dmg > 0 && mon.spec.drainAll) this.heal(mon, Math.floor(dmg * mon.spec.drainAll), `${mon.label}'s ${mon.ability} restored its HP!`);
-    // contact reactions
+    else { this.onDamagedBy(target, mon, md, info, hpBefore); this.checkThresholds(target); }
+    if (dmg > 0 && md.drain && !mon.fainted) this.heal(mon, Math.max(1, Math.floor(dmg * md.drain)), `${target.label} had its energy drained!`);
+    if (dmg > 0 && mon.spec.drainAll && !mon.fainted) this.heal(mon, Math.floor(dmg * mon.spec.drainAll), `${mon.label}'s ${mon.ability} restored its HP!`);
     if (dmg > 0 && this.makesContact(mon, md) && !mon.fainted) this.contactReactions(mon, target, md);
     return dmg;
   }
-
   onDamagedBy(target, mon, md, info, hpBefore) {
     const s = target.spec;
-    if (s.hitByType && s.hitByType.type === md.type) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(target, s.hitByType.boosts, target); }
-    if (s.rattled && ['Bug', 'Ghost', 'Dark'].includes(md.type)) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(target, { spe: 1 }, target); }
-    if (s.hitBoost) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(target, s.hitBoost, target); }
+    const act = () => this.add('ability', `${target.label}'s ${target.ability} activated!`);
+    if (s.hitByType && s.hitByType.type === md.type) { act(); this.boost(target, s.hitByType.boosts, target); }
+    if (s.rattled && ['Bug', 'Ghost', 'Dark'].includes(md.type)) { act(); this.boost(target, { spe: 1 }, target); }
+    if (s.hitBoost) { act(); this.boost(target, s.hitBoost, target); }
     if (s.angerPoint && info.crit && target.boosts.atk < 6) { target.boosts.atk = 6; this.add('ability', `${target.label}'s ${target.ability} maxed its Attack!`); }
     if (s.colorChange && !target.types.includes(md.type) && md.name !== 'Struggle') { target.types = [md.type]; this.add('ability', `${target.label}'s ${target.ability} made it the ${md.type} type!`); }
-    if (s.emergencyExit && hpBefore > target.maxhp / 2 && target.hp <= target.maxhp / 2 && this.bench(target.side).length) {
-      this.add('ability', `${target.label}'s ${target.ability} activated!`);
-      this.requestPivot(target, 'emergency');
-    }
+    if (s.emergencyExit && hpBefore > target.maxhp / 2 && target.hp <= target.maxhp / 2 && this.bench(target.side).length) { act(); this.requestPivot(target, 'emergency'); }
   }
-
   contactReactions(mon, target, md) {
     const ts = target.spec;
     if (ts.roughSkin) this.damage(mon, mon.maxhp * ts.roughSkin, `${mon.label} was hurt by ${target.label}'s ${target.ability}!`);
@@ -1101,107 +1003,79 @@ class Battle {
     if (ts.contactAttract && !mon.v.attract && this.chance(ts.contactAttract)) { mon.v.attract = target; this.add('status', `${mon.label} fell in love!`); }
     if (ts.contactFoeBoost) this.boost(mon, ts.contactFoeBoost, target);
     if (ts.mummy && mon.ability !== target.ability && !mon.spec.mummy) { mon.ability = target.ability; this.add('ability', `${mon.label}'s ability became ${target.ability}!`); }
-    if (ts.pickpocket && !target.fainted && !target.item && mon.item) {
-      target.item = mon.item; this.loseItem(mon, false);
-      this.add('ability', `${target.label} stole ${mon.label}'s ${target.item}!`);
-    }
+    if (ts.pickpocket && !target.fainted && !target.item && mon.item) { target.item = mon.item; this.loseItem(mon, false); this.add('ability', `${target.label} stole ${mon.label}'s ${target.item}!`); }
   }
-
   onKO(attacker, target) {
-    if (attacker.fainted || attacker === target) return;
-    const s = attacker.spec;
-    if (s.onKO) { this.add('ability', `${attacker.label}'s ${attacker.ability} activated!`); this.boost(attacker, s.onKO, attacker); }
+    if (attacker.fainted || attacker === target || attacker.side === target.side) return;
+    if (attacker.spec.onKO) { this.add('ability', `${attacker.label}'s ${attacker.ability} activated!`); this.boost(attacker, attacker.spec.onKO, attacker); }
   }
-
-  afterAttack(mon, target, md, dealt, crit) {
-    const s = mon.spec;
-    const sheer = s.sheerForce && md.sec;
-    // recoil
-    if (dealt > 0 && md.recoil && !s.rockHead && !mon.fainted) this.damage(mon, Math.max(1, Math.floor(dealt * md.recoil)), `${mon.label} was damaged by the recoil!`);
+  afterAttack(mon, targets, md, total, dealtMap) {
+    const s = mon.spec; const sheer = s.sheerForce && md.sec;
+    if (total > 0 && md.recoil && !s.rockHead && !mon.fainted) this.damage(mon, Math.max(1, Math.floor(total * md.recoil)), `${mon.label} was damaged by the recoil!`);
     if (md.name === 'Struggle' && !mon.fainted) this.damage(mon, mon.maxhp / 4, `${mon.label} was damaged by the recoil!`);
     if (md.special === 'explosion' && !mon.fainted) this.faint(mon);
-    if (dealt > 0 && mon.item === 'Life Orb' && !sheer && !mon.fainted) this.damage(mon, mon.maxhp / 10, `${mon.label} lost some of its HP!`);
-    // secondaries
-    const hitSub = target.v && target.v.substitute;
-    if (dealt > 0 && md.sec && !sheer) {
-      for (const e of md.sec) {
+    if (total > 0 && mon.item === 'Life Orb' && !sheer && !mon.fainted) this.damage(mon, mon.maxhp / 10, `${mon.label} lost some of its HP!`);
+    for (const target of targets) {
+      const dealt = dealtMap.get(target) || 0;
+      const hitSub = !!target.v.substitute;
+      if (dealt > 0 && md.sec && !sheer) for (const e of md.sec) {
         if (!this.chance(e.chance)) continue;
         if (e.self) { if (!mon.fainted) this.boost(mon, e.self, mon); continue; }
         if (target.fainted || hitSub) continue;
         if (e.status) this.trySetStatus(target, e.status, mon, false, true);
-        if (e.volatile === 'flinch') { const ts = this.abilityActive(target, mon); if (!ts.noFlinch && this.queue.some(a => a.mon === target)) target.v.flinch = true; }
+        if (e.volatile === 'flinch' && !this.abilityActive(target, mon).noFlinch && this.queue.some(a => a.mon === target)) target.v.flinch = true;
         if (e.volatile === 'confusion') this.tryConfuse(target, mon);
         if (e.boosts) this.boost(target, e.boosts, mon);
       }
+      if (dealt > 0 && s.attackStatus && !target.fainted && !hitSub) {
+        const a = s.attackStatus;
+        if ((!a.contactOnly || this.makesContact(mon, md)) && (!a.flag || md[a.flag]) && this.chance(a.chance)) this.trySetStatus(target, a.status, mon, false, true);
+      }
+      if (dealt > 0 && md.special === 'knockoff' && target.item && !target.fainted) { this.add('effect', `${mon.label} knocked off ${target.label}'s ${target.item}!`); this.loseItem(target, false); }
+      if (dealt > 0 && (md.special === 'thief' || s.magician) && !mon.item && target.item && !mon.fainted) { mon.item = target.item; this.loseItem(target, false); this.add('effect', `${mon.label} stole ${target.label}'s ${mon.item}!`); }
+      if (md.special === 'trap' && dealt > 0 && !target.fainted && !target.types.includes('Ghost')) { target.v.trapped = mon; this.add('effect', `${target.label} can no longer escape!`); }
+      if (md.special === 'dragout' && dealt > 0 && !target.fainted && !mon.fainted && !(target.v.ingrain || this.abilityActive(target, mon).suctionCups)) this.dragOut(target);
     }
-    if (dealt > 0 && s.attackStatus && !target.fainted && !hitSub) {
-      const a = s.attackStatus;
-      if ((!a.contactOnly || this.makesContact(mon, md)) && (!a.flag || md[a.flag]) && this.chance(a.chance)) this.trySetStatus(target, a.status, mon, false, true);
-    }
-    if (md.selfBoost && !mon.fainted && dealt >= 0) this.boost(mon, md.selfBoost, mon);
-    // item interactions
-    if (dealt > 0 && md.special === 'knockoff' && target.item && !target.fainted) { this.add('effect', `${mon.label} knocked off ${target.label}'s ${target.item}!`); this.loseItem(target, false); }
-    if (dealt > 0 && (md.special === 'thief' || s.magician) && !mon.item && target.item && !mon.fainted) {
-      mon.item = target.item; this.loseItem(target, false); this.add('effect', `${mon.label} stole ${target.label}'s ${mon.item}!`);
-    }
+    if (md.selfBoost && !mon.fainted && targets.length) this.boost(mon, md.selfBoost, mon);
     if (md.special === 'fling' && mon.item) { this.add('effect', `${mon.label} flung its ${mon.item}!`); this.loseItem(mon, false); }
-    if (md.special === 'rapidspin' && dealt > 0 && !mon.fainted) {
+    if (md.special === 'rapidspin' && total > 0 && !mon.fainted) {
       const c = mon.side.conditions; let any = false;
       for (const h of ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb']) if (c[h]) { delete c[h]; any = true; }
       if (mon.v.leechSeed) { delete mon.v.leechSeed; any = true; }
       if (mon.v.trapped) { delete mon.v.trapped; any = true; }
       if (any) this.add('effect', `${mon.label} blew away the hazards!`);
     }
-    if (md.special === 'trap' && dealt > 0 && !target.fainted && !target.types.includes('Ghost')) { target.v.trapped = mon; this.add('effect', `${target.label} can no longer escape!`); }
-    if (md.special === 'dragout' && dealt > 0 && !target.fainted && !mon.fainted) {
-      if (!(target.v.ingrain || this.abilityActive(target, mon).suctionCups)) this.dragOut(target);
-    }
-    if (md.special === 'futuresight') { /* handled before damage: not used */ }
-    if (md.special === 'pivot' && dealt > 0 && !mon.fainted && this.bench(mon.side).length && !this.ended) this.requestPivot(mon, 'pivot');
+    if (md.special === 'pivot' && total > 0) this.requestPivot(mon, 'pivot');
   }
 
-  // Future Sight is queued rather than dealt immediately
-  // (overrides runAttack path)
   // ---------------- end of turn ----------------
-  residuals() {
-    this.inResiduals = true;
-    try { this._residuals(); } finally { this.inResiduals = false; }
-  }
+  residuals() { this.inResiduals = true; try { this._residuals(); } finally { this.inResiduals = false; } }
   _residuals() {
-    const order = this.speedOrder(this.sides.map(s => this.active(s)).filter(m => m && !m.fainted));
-    // weather
-    if (this.field.weather) {
-      this.field.weatherTurns--;
-      if (this.field.weatherTurns <= 0) { this.add('weather', { rain: 'The rain stopped.', sun: 'The harsh sunlight faded.', snow: 'The snow stopped.' }[this.field.weather]); this.field.weather = ''; }
+    if (this.field.weather && --this.field.weatherTurns <= 0) {
+      this.add('weather', { rain: 'The rain stopped.', sun: 'The harsh sunlight faded.', snow: 'The snow stopped.' }[this.field.weather]);
+      this.field.weather = '';
     }
-    // future sight
     for (const f of this.futures.slice()) {
-      f.turns--;
-      if (f.turns <= 0) {
-        this.futures.splice(this.futures.indexOf(f), 1);
-        const t = this.active(this.sides[f.side]);
-        if (t && !t.fainted) {
-          this.add('move', `${t.label} took the Future Sight attack!`);
-          const md = MOVES['Future Sight'];
-          const eff = effectiveness('Psychic', t.types);
-          if (eff === 0) this.add('effect', `It doesn't affect ${t.label}...`);
-          else { const { dmg } = this.calcDamage(f.user, t, md, 120, eff); this.applyDamage(f.user, t, md, dmg, { eff }); }
-        }
-      }
+      if (--f.turns > 0) continue;
+      this.futures.splice(this.futures.indexOf(f), 1);
+      const t = this.sides[f.side].active[f.pos];
+      if (!t || t.fainted) continue;
+      this.add('move', `${t.label} took the Future Sight attack!`);
+      const md = MOVES['Future Sight']; const eff = effectiveness('Psychic', t.types);
+      if (!eff) this.add('effect', `It doesn't affect ${t.label}...`);
+      else this.applyDamage(f.user, t, md, this.calcDamage(f.user, t, md, 120, eff).dmg, { eff });
     }
-    // wish
-    for (const s of this.sides) {
-      const w = s.conditions.wish;
-      if (w) { w.turns--; if (w.turns <= 0) { const a = this.active(s); if (a && !a.fainted) this.heal(a, w.hp, `${w.from}'s wish came true!`); delete s.conditions.wish; } }
+    for (const s of this.sides) for (const pos of Object.keys(s.wishes)) {
+      const w = s.wishes[pos];
+      if (--w.turns > 0) continue;
+      const a = s.active[pos]; if (a && !a.fainted) this.heal(a, w.hp, `${w.from}'s wish came true!`);
+      delete s.wishes[pos];
     }
-    for (const mon of order) {
+    for (const mon of this.speedOrder(this.allActive())) {
       if (mon.fainted) continue;
-      const s = mon.spec; const w = this.weather();
+      const s = mon.spec; const w = this.field.weather;
       if (mon.item === 'Leftovers') this.heal(mon, mon.maxhp / 16, `${mon.label} restored a little HP using its Leftovers!`);
-      if (mon.item === 'Black Sludge') {
-        if (mon.types.includes('Poison')) this.heal(mon, mon.maxhp / 16, `${mon.label} restored a little HP using its Black Sludge!`);
-        else this.damage(mon, mon.maxhp / 8, `${mon.label} was hurt by its Black Sludge!`);
-      }
+      if (mon.item === 'Black Sludge') { if (mon.types.includes('Poison')) this.heal(mon, mon.maxhp / 16, `${mon.label} restored a little HP using its Black Sludge!`); else this.damage(mon, mon.maxhp / 8, `${mon.label} was hurt by its Black Sludge!`); }
       if (mon.fainted) continue;
       if (s.iceBody && w === 'snow') this.heal(mon, mon.maxhp / 16, `${mon.label}'s ${mon.ability} restored HP!`);
       if (s.rainDish && w === 'rain') this.heal(mon, mon.maxhp / 16, `${mon.label}'s ${mon.ability} restored HP!`);
@@ -1210,9 +1084,9 @@ class Battle {
       if (mon.fainted) continue;
       if (mon.v.ingrain) this.heal(mon, mon.maxhp / 16, `${mon.label} absorbed nutrients with its roots!`);
       if (mon.v.leechSeed) {
-        const foe = this.foeOf(mon);
         const d = this.damage(mon, mon.maxhp / 8, `${mon.label}'s health is sapped by Leech Seed!`);
-        if (foe && !foe.fainted && d) this.heal(foe, d);
+        const seeder = this.sides[mon.v.leechSeed.side].active[mon.v.leechSeed.pos];
+        if (seeder && !seeder.fainted && d) this.heal(seeder, d);
       }
       if (mon.fainted) continue;
       if (s.shedSkin && mon.status && this.chance(30)) { mon.status = ''; this.add('ability', `${mon.label}'s ${mon.ability} cured its status!`); }
@@ -1223,10 +1097,8 @@ class Battle {
         else { mon.toxCount = Math.min(15, mon.toxCount + 1); this.damage(mon, mon.maxhp * mon.toxCount / 16, `${mon.label} was hurt by poison!`); }
       }
       if (mon.fainted) continue;
-      // counters
-      for (const k of ['taunt']) if (mon.v[k]) { mon.v[k]--; if (mon.v[k] <= 0) { delete mon.v[k]; this.add('effect', `${mon.label} shook off the taunt!`); } }
-      for (const k of ['encore', 'disable']) if (mon.v[k]) { mon.v[k].turns--; if (mon.v[k].turns <= 0) { delete mon.v[k]; this.add('effect', `${mon.label}'s ${k} ended.`); } }
-      // ability residuals
+      if (mon.v.taunt && --mon.v.taunt <= 0) { delete mon.v.taunt; this.add('effect', `${mon.label} shook off the taunt!`); }
+      for (const k of ['encore', 'disable']) if (mon.v[k] && --mon.v[k].turns <= 0) { delete mon.v[k]; this.add('effect', `${mon.label}'s ${k} ended.`); }
       if (s.speedBoost && mon.turnsActive > 0) { this.add('ability', `${mon.label}'s ${mon.ability} activated!`); this.boost(mon, { spe: 1 }, mon); }
       if (s.moody) {
         const up = ['atk', 'def', 'spa', 'spd', 'spe'].filter(k => mon.boosts[k] < 6);
@@ -1245,27 +1117,20 @@ class Battle {
         mon.boosts[next] = clamp(mon.boosts[next] + 1, -6, 6);
         this.add('ability', `${mon.label} activated Monado ${{ spe: 'Speed', def: 'Shield', atk: 'Buster', spa: 'Smash' }[next]}! (+1 ${STAT_LABEL[next]})`);
       }
-      if (s.harvest && !mon.item && mon.consumedItem && BERRIES.has(mon.consumedItem) && (this.weather() === 'sun' || this.chance(50))) {
-        mon.item = mon.consumedItem; mon.berryUses = 0; this.add('ability', `${mon.label} harvested a ${mon.item}!`);
-      }
+      if (s.harvest && !mon.item && BERRIES.has(mon.consumedItem) && (w === 'sun' || this.chance(50))) { mon.item = mon.consumedItem; mon.berryUses = 0; this.add('ability', `${mon.label} harvested a ${mon.item}!`); }
       if (s.pickup && !mon.item) {
-        const foe = this.foeOf(mon);
-        if (foe && foe.consumedItem && foe.v.consumedThisTurn) { mon.item = foe.consumedItem; this.add('ability', `${mon.label} picked up a ${mon.item}!`); }
+        const src = this.allActive().find(o => o !== mon && o.consumedItem && o.v.consumedThisTurn);
+        if (src) { mon.item = src.consumedItem; this.add('ability', `${mon.label} picked up a ${mon.item}!`); }
         else if (mon.consumedItem && this.chance(30)) { mon.item = mon.consumedItem; mon.berryUses = 0; this.add('ability', `${mon.label} found a ${mon.item}!`); }
       }
-      mon.checkedLum = false;
     }
-    // side conditions
-    for (const s of this.sides) {
-      for (const k of ['reflect', 'lightscreen', 'tailwind']) {
-        if (s.conditions[k]) { s.conditions[k]--; if (s.conditions[k] <= 0) { delete s.conditions[k]; this.add('field', `${s.name}'s ${{ reflect: 'Reflect', lightscreen: 'Light Screen', tailwind: 'tailwind' }[k]} wore off.`); } }
-      }
+    for (const s of this.sides) for (const k of ['reflect', 'lightscreen', 'tailwind']) {
+      if (s.conditions[k] && --s.conditions[k] <= 0) { delete s.conditions[k]; this.add('field', `${s.name}'s ${{ reflect: 'Reflect', lightscreen: 'Light Screen', tailwind: 'tailwind' }[k]} wore off.`); }
     }
-    if (this.field.trickroom) { this.field.trickroom--; if (!this.field.trickroom) this.add('field', 'The twisted dimensions returned to normal!'); }
-    if (this.field.gravity) { this.field.gravity--; if (!this.field.gravity) this.add('field', 'Gravity returned to normal!'); }
-    // clear per-turn volatiles
+    if (this.field.trickroom && --this.field.trickroom === 0) this.add('field', 'The twisted dimensions returned to normal!');
+    if (this.field.gravity && --this.field.gravity === 0) this.add('field', 'Gravity returned to normal!');
     for (const s of this.sides) for (const m of s.team) {
-      delete m.v.flinch; delete m.v.protect; delete m.v.magiccoat; delete m.v.tookDamage; delete m.v.lastHit; delete m.v.focusing; delete m.v.plannedMove;
+      for (const k of ['flinch', 'protect', 'magiccoat', 'tookDamage', 'lastHit', 'plannedMove', 'consumedThisTurn']) delete m.v[k];
       if (!m.v.protectedThisTurn) m.protectCount = 0;
       delete m.v.protectedThisTurn;
       if (this.isActive(m)) m.turnsActive++;
@@ -1274,79 +1139,53 @@ class Battle {
   }
 
   // ---------------- views ----------------
-  monInfo(m, own, i) {
-    const base = {
-      index: i, id: (own ? m.species : m.displaySpecies).id, name: (own ? m.species : m.displaySpecies).name,
-      types: own ? m.types : (m.v.illusion ? m.displaySpecies.types : m.types),
-      hpPct: Math.ceil(m.hp / m.maxhp * 100), status: m.status, fainted: m.fainted, active: this.active(m.side) === m,
-    };
-    if (own) Object.assign(base, {
-      hp: m.hp, maxhp: m.maxhp, ability: m.ability, item: m.item, stats: m.stats,
-      moves: m.moves.map(x => ({ name: x.name, pp: x.pp, maxpp: x.maxpp, type: MOVES[x.name].type })),
-    });
+  monInfo(m, own) {
+    const sp = own ? m.species : m.displaySpecies;
+    const base = { index: m.teamIndex, id: sp.id, name: sp.name, types: own || !m.v.illusion ? m.types : m.displaySpecies.types, hpPct: Math.ceil(m.hp / m.maxhp * 100), status: m.status, fainted: m.fainted, pos: m.pos };
+    if (own) Object.assign(base, { hp: m.hp, maxhp: m.maxhp, ability: m.ability, item: m.item, stats: m.stats, moves: m.moves.map(x => ({ name: x.name, pp: x.pp, maxpp: x.maxpp, type: MOVES[x.name].type })) });
     return base;
   }
   publicState(perspective) {
     return {
-      id: this.id, turn: this.turn, phase: this.phase, ended: this.ended, winner: this.winner,
+      id: this.id, format: this.format, turn: this.turn, phase: this.phase, ended: this.ended, winner: this.winner,
       field: { weather: this.field.weather, trickroom: this.field.trickroom, gravity: this.field.gravity },
       sides: this.sides.map(s => {
         const own = s.n === perspective;
-        const a = this.active(s);
         return {
           name: s.name, n: s.n,
-          conditions: Object.fromEntries(Object.entries(s.conditions).map(([k, v]) => [k, typeof v === 'object' ? true : v])),
-          active: a ? Object.assign(this.monInfo(a, own, s.activeIdx), {
+          conditions: Object.fromEntries(Object.entries(s.conditions)),
+          active: s.active.map(a => a ? Object.assign(this.monInfo(a, own), {
             boosts: Object.fromEntries(Object.entries(a.boosts).filter(([, v]) => v)),
             volatiles: Object.keys(a.v).filter(k => ['substitute', 'confusion', 'leechSeed', 'taunt', 'encore', 'trapped', 'ingrain', 'charging', 'attract'].includes(k)),
-          }) : null,
-          team: s.team.map((m, i) => {
-            const info = this.monInfo(m, own, i);
-            if (!own && a && a.v.illusion) info.active = m.species === a.displaySpecies;
-            return info;
-          }),
+          }) : null),
+          // opponents only learn which fighters were brought once they are sent out
+          team: s.team.filter(m => own || m.revealed).map(m => this.monInfo(m, own)),
+          brought: s.team.length, remaining: s.team.filter(m => !m.fainted).length,
         };
       }),
     };
   }
 
-  // rough damage estimate for AI (no randomness, no side effects)
+  // rough expected damage, for the CPU
   estimate(mon, target, moveName) {
     const md = MOVES[moveName];
-    if (!md || md.cat === 'Status' || !target) return 0;
+    if (!md || md.cat === 'Status' || !target || target.fainted) return 0;
     const eff = this.typeEff(mon, target, md);
-    if (eff === 0) return 0;
-    if (md.type === 'Ground' && !this.isGrounded(target, mon) && md.special !== 'thousandarrows') return 0;
+    if (!eff) return 0;
+    if (md.type === 'Ground' && md.special !== 'thousandarrows' && !this.isGrounded(target, mon)) return 0;
     const ts = target.spec;
-    if (ts.absorb && ts.absorb.type === md.type) return 0;
-    if (ts.immuneFlag && md[ts.immuneFlag]) return 0;
-    let p = md.power;
-    if (md.special === 'gyroball') p = Math.min(150, Math.floor(25 * this.getSpeed(target) / Math.max(1, this.getSpeed(mon))) + 1);
-    if (md.special === 'counter' || md.special === 'mirrorcoat') return 0;
+    if ((ts.absorb && ts.absorb.type === md.type) || (ts.immuneFlag && md[ts.immuneFlag])) return 0;
+    if (['counter', 'mirrorcoat', 'explosion', 'futuresight'].includes(md.special)) return 0;
     if (md.special === 'level') return LEVEL;
     if (md.special === 'fakeout' && mon.turnsActive > 0) return 0;
-    if (md.special === 'explosion') return 0;
+    let p = md.power;
+    if (md.special === 'gyroball') p = Math.min(150, Math.floor(25 * this.getSpeed(target) / Math.max(1, this.getSpeed(mon))) + 1);
+    if (md.multihit) p *= Array.isArray(md.multihit) ? 3 : md.multihit;
     const saved = JSON.stringify([target.switchFlags, target.once]);
-    const { dmg } = this.calcDamage(mon, target, md, p * (md.multihit ? (Array.isArray(md.multihit) ? 3 : md.multihit) : 1), eff, true);
-    const [sf, on] = JSON.parse(saved); target.switchFlags = sf; target.once = on;
-    let acc = md.acc === true ? 1 : md.acc / 100;
-    return dmg * acc * (md.charge && !(md.sunSkip && this.weather() === 'sun') ? 0.5 : 1);
+    const { dmg } = this.calcDamage(mon, target, md, p, eff, true, md.target === 'allFoes' || md.target === 'all');
+    [target.switchFlags, target.once] = JSON.parse(saved);
+    return dmg * (md.acc === true ? 1 : md.acc / 100) * (md.charge && !(md.sunSkip && this.field.weather === 'sun') ? 0.5 : 1);
   }
 }
 
-const STRUGGLE = { name: 'Struggle', type: 'Normal', cat: 'Physical', power: 50, acc: true, pp: 1, prio: 0, contact: true };
-
-// Future Sight: schedule instead of hitting now
-const _runAttack = Battle.prototype.runAttack;
-Battle.prototype.runAttack = function (mon, foe, md, moveName) {
-  if (md.special === 'futuresight') {
-    const sideN = 1 - mon.side.n;
-    if (this.futures.some(f => f.side === sideN)) { this.add('effect', 'But it failed!'); return; }
-    this.futures.push({ side: sideN, turns: 3, user: mon });
-    this.add('effect', `${mon.label} foresaw an attack!`);
-    return;
-  }
-  return _runAttack.call(this, mon, foe, md, moveName);
-};
-
-module.exports = { Battle, FIGHTERS, FIGHTER_BY_ID, MOVES };
+module.exports = { Battle, FIGHTERS, FIGHTER_BY_ID, MOVES, LEVEL };

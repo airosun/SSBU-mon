@@ -303,4 +303,22 @@ m('Charm', 'Fairy', 'Status', 0, 100, 20, { boosts: { target: 'foe', atk: -2 } }
 // Egg Bomb is Normal in Pokémon
 m('Egg Bomb', 'Normal', 'Physical', 100, 75, 10, { bullet: true });
 
+// ---------- Targeting (matters in doubles) ----------
+// normal: one chosen target · allFoes: every opposing fighter · all: everyone else on the field (ally too)
+// self: the user / its side · foeSide: the opposing side (hazards) · randomFoe: a random opponent
+const SPREAD_FOES = ['Rock Slide', 'Hyper Voice', 'Dazzling Gleam', 'Icy Wind', 'Blizzard', 'Disarming Voice', 'Swift', 'Thousand Arrows', 'Air Cutter'];
+const SPREAD_ALL = ['Earthquake', 'Surf', 'Discharge', 'Bulldoze', 'Petal Blizzard', 'Explosion', 'Sludge Wave', 'Boomburst'];
+const SELF_SPECIALS = ['protect', 'substitute', 'bellydrum', 'wish', 'rest', 'focusenergy', 'healbell', 'ingrain', 'magiccoat', 'pivot', 'metronome', 'copycat'];
+for (const mv of Object.values(MOVES)) {
+  if (SPREAD_FOES.includes(mv.name)) mv.target = 'allFoes';
+  else if (SPREAD_ALL.includes(mv.name)) mv.target = 'all';
+  else if (mv.special === 'outrage') mv.target = 'randomFoe';
+  else if (mv.special === 'counter' || mv.special === 'mirrorcoat') mv.target = 'scripted';
+  else if (mv.cat === 'Status') {
+    if (mv.hazard) mv.target = 'foeSide';
+    else if ((mv.boosts && mv.boosts.target === 'self') || mv.heal || mv.side || mv.field || mv.weather || SELF_SPECIALS.includes(mv.special)) mv.target = 'self';
+    else mv.target = 'normal';
+  } else mv.target = 'normal';
+}
+
 module.exports = MOVES;
