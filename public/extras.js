@@ -66,22 +66,94 @@
     return `<div class="list-item replay-row">${res}<div class="grow"><b>${esc(b.players[0])}</b> vs <b>${esc(b.players[1])}</b> <span class="muted small">· ${esc(label(b.mode, b.format))} · ${b.turns} turns · ${new Date(b.created).toLocaleDateString()}</span><div>${teams[0]} <span class="muted small">vs</span> ${teams[1]}</div></div>${b.hasReplay ? `<button class="small" data-replay="${esc(b.id)}">▶ Watch</button>` : '<span class="muted small">no replay</span>'}</div>`;
   };
 
+
+  // ---------- home page: most used fighters today and all time ----------
+  S.homeUsage = S.homeUsage || { t: 0, today: null, all: null, loading: false };
+  const usageList = (d, empty) => !d ? '<div class="muted small">Loading…</div>' : !d.teams ? `<div class="muted small">${empty}</div>`
+    : `<div class="usage-list">${d.rows.slice(0, 10).map((x, i) => `<div class="usage-item"><span class="rank">${i + 1}</span>${sprite(F(x.species), 'sm')}<span class="grow"><b>${esc(x.name)}</b><span class="usage-bar"><i style="width:${Math.min(100, x.usage * 100)}%"></i></span></span><span class="nums"><b>${pct(x.usage)}</b><span class="muted small">${pct(x.winRate)} wins</span></span></div>`).join('')}</div><div class="muted small" style="margin-top:6px">${d.teams} team${d.teams === 1 ? '' : 's'} brought to battle</div>`;
+  U.homeUsageHtml = () => {
+    const H = S.homeUsage;
+    return `<div class="row"><h2 class="grow" style="margin:0">Most used fighters</h2><a href="#" data-goto-stats class="small">Full usage stats →</a></div>
+      <p class="muted small" style="margin-top:4px">Fighters players bring into battle (CPU teams don't count). Usage is the share of teams that brought them.</p>
+      <div class="usage-cols"><div><h3>Today</h3>${usageList(H.today, 'No player battles yet today. Be the first!')}</div><div><h3>All time</h3>${usageList(H.all, 'No player battles yet.')}</div></div>`;
+  };
+  U.loadHomeUsage = () => {
+    const H = S.homeUsage;
+    const link = $('[data-goto-stats]'); if (link) link.onclick = e => { e.preventDefault(); S.tab = 'stats'; U.render(); };
+    if (H.loading || Date.now() - H.t < 30000) return;
+    H.loading = true;
+    Promise.all(['today', 'all'].map(p => fetch('/api/stats/usage?period=' + p).then(r => r.json()))).then(([today, all]) => {
+      Object.assign(H, { today, all, t: Date.now(), loading: false });
+      const el = $('#homeUsage'); if (el && S.tab === 'home') { el.innerHTML = U.homeUsageHtml(); U.loadHomeUsage(); }
+    }).catch(() => { H.loading = false; });
+  };
+
+  // ---------- trainer cards ----------
+  const recordLine = r => { const w = r.wins, l = r.losses; return `${w}–${l}${r.ties ? '–' + r.ties : ''}${w + l ? ` <span class="muted">(${pct(w / (w + l))})</span>` : ''}`; };
+  U.cardHtml = (p, opts = {}) => {
+    const av = p.avatar && S.byId[p.avatar];
+    const team = p.favoriteTeam;
+    return `<div class="trainer-card">
+      <div class="tc-top"><div class="tc-avatar">${av ? sprite(av, 'lg') : `<div class="tc-blank">${esc(p.username[0].toUpperCase())}</div>`}</div>
+        <div class="grow"><div class="tc-name">${esc(p.username)}</div>${p.title ? `<div class="tc-title">${esc(p.title)}</div>` : ''}
+          <div class="muted small">${p.joined ? 'Joined ' + new Date(p.joined).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) + ' · ' : ''}${p.battles} battle${p.battles === 1 ? '' : 's'}</div></div>
+        ${opts.edit ? '<button class="small" id="tcEdit">Edit card</button>' : ''}</div>
+      ${p.bio ? `<div class="tc-bio">${esc(p.bio)}</div>` : ''}
+      <div class="tc-stats"><div><span>vs players</span><b>${recordLine(p.record.pvp)}</b></div><div><span>All battles</span><b>${recordLine(p.record.total)}</b></div>
+        <div><span>Favorite fighters</span><b class="tc-top3">${p.top.length ? p.top.map(x => sprite(F(x.species), 'sm')).join('') : '<span class="muted small">none yet</span>'}</b></div></div>
+      ${team ? `<div class="tc-team"><div class="muted small">Showcase team · <b>${esc(team.name)}</b></div><div class="tc-mons">${team.mons.map(m => `<div class="tc-mon" data-tiphtml="${esc(`<div class='tip-h'>${esc(F(m.species).name)}${m.item ? ' @ ' + esc(m.item) : ''}</div><div class='small'>${esc(renamed(m.ability))} · ${esc(m.nature)}</div><div>${m.moves.map(x => `<span class='chip'>${esc(x)}</span>`).join(' ')}</div>`)}">${sprite(F(m.species), 'sm')}${m.item ? `<span class="tc-item">${esc(m.item)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
+    </div>`;
+  };
+  U.showProfile = async name => {
+    modal('<div class="muted">Loading…</div>');
+    try { const r = await fetch('/api/profile/' + encodeURIComponent(name)); const p = await r.json(); if (!r.ok) throw new Error(p.error);
+      modal(`${U.cardHtml(p)}<div class="row" style="margin-top:10px"><span class="grow"></span><button id="pfClose">Close</button></div>`); $('#pfClose').onclick = closeModal;
+    } catch (e) { modal(`<p>${esc(e.message || 'Could not load that card.')}</p><button id="pfClose">Close</button>`); $('#pfClose').onclick = closeModal; }
+  };
+  document.addEventListener('click', e => { const a = e.target.closest('[data-profile]'); if (a) { e.preventDefault(); U.showProfile(a.dataset.profile); } });
+  function editCard(p) {
+    const allIds = [...S.dex.fighters.map(f => f.id), ...Object.values(S.dex.finalSmashes).map(x => x.id)];
+    let avatar = p.avatar;
+    modal(`<h2>Edit your trainer card</h2>
+      <div class="field"><label>Title</label><input id="tcT" maxlength="32" value="${esc(p.title)}" placeholder="e.g. Final Smash Fanatic"></div>
+      <div class="field"><label>About you</label><textarea id="tcB" maxlength="160" rows="2" class="paste" style="font-family:inherit">${esc(p.bio)}</textarea></div>
+      <div class="field"><label>Showcase team</label><select id="tcF"><option value="">(none)</option>${S.elite.map((t, i) => `<option value="${i}" ${p.favoriteTeam && p.favoriteTeam.name === t.name ? 'selected' : ''}>${esc(t.name)} (${t.mons.length})</option>`).join('')}</select></div>
+      <div class="field"><label>Avatar</label><input id="tcQ" placeholder="Search fighters…"><div class="avatar-grid" id="tcGrid"></div></div>
+      <div class="row"><span class="grow"></span><button id="tcCancel">Cancel</button><button class="primary" id="tcSave">Save</button></div>`);
+    const grid = () => { const q = $('#tcQ').value.toLowerCase(); $('#tcGrid').innerHTML = allIds.filter(id => !q || S.byId[id].name.toLowerCase().includes(q)).map(id => `<button class="av ${id === avatar ? 'on' : ''}" data-av="${id}" title="${esc(S.byId[id].name)}">${sprite(S.byId[id], 'sm')}</button>`).join(''); $$('[data-av]').forEach(b => b.onclick = () => { avatar = b.dataset.av; grid(); }); };
+    grid(); $('#tcQ').oninput = grid;
+    $('#tcCancel').onclick = closeModal;
+    $('#tcSave').onclick = async () => {
+      const fav = $('#tcF').value;
+      const r = await fetch('/api/account/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ avatar, title: $('#tcT').value, bio: $('#tcB').value, favoriteTeam: fav === '' ? null : +fav }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return toast(j.error || 'Could not save your card.');
+      closeModal(); toast('Trainer card saved.'); if (S.tab === 'stats') U.renderStats();
+    };
+  }
+
   // ---------- stats tab: your record, usage, recent replays ----------
   S.statsView = S.statsView || { format: '', days: 30 };
   U.renderStats = async () => {
     const v = S.statsView;
-    $('#view').innerHTML = `<div class="stats-page"><section class="card" id="stMe"><h2>Your record</h2><div class="muted">Loading…</div></section>
+    $('#view').innerHTML = `<div class="stats-page">${S.account ? '<section class="card" id="stCard"><div class="muted">Loading your trainer card…</div></section>' : ''}<section class="card" id="stMe"><h2>Your record</h2><div class="muted">Loading…</div></section>
       <section class="card"><div class="row"><h2 class="grow" style="margin:0">Fighter usage</h2>
         <select id="stFmt"><option value="">All formats</option><option value="singles">Singles</option><option value="doubles">Doubles</option></select>
-        <select id="stDays"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></div>
+        <select id="stDays"><option value="today">Today</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select></div>
         <p class="muted small">How often each fighter is brought into battle by players (not the CPU), and how often those teams win.</p><div id="stUsage" class="muted">Loading…</div></section>
       <section class="card"><h2>Recent player battles</h2><div id="stRecent" class="muted">Loading…</div></section></div>`;
     $('#stFmt').value = v.format; $('#stDays').value = String(v.days);
     $('#stFmt').onchange = e => { v.format = e.target.value; U.renderStats(); };
-    $('#stDays').onchange = e => { v.days = +e.target.value; U.renderStats(); };
+    $('#stDays').onchange = e => { v.days = e.target.value; U.renderStats(); };
     const get = u => fetch(u, { credentials: 'same-origin' }).then(async r => ({ ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) }));
-    const [me, usage, recent] = await Promise.all([get('/api/stats/me'), get(`/api/stats/usage?days=${v.days}${v.format ? '&format=' + v.format : ''}`), get('/api/replays/recent')]);
+    const [me, usage, recent] = await Promise.all([get('/api/stats/me'), get(`/api/stats/usage?period=${v.days}${v.format ? '&format=' + v.format : ''}`), get('/api/replays/recent')]);
     if (S.tab !== 'stats') return;
+    if (S.account && $('#stCard')) {
+      const c = await get('/api/profile/' + encodeURIComponent(S.account.username));
+      if (S.tab !== 'stats') return;
+      $('#stCard').innerHTML = c.ok ? `<h2>Your trainer card</h2>${U.cardHtml(c.data, { edit: true })}<p class="muted small">Other players see this when they tap your name in the Online list.</p>` : '<div class="muted">Could not load your card.</div>';
+      const ed = $('#tcEdit'); if (ed) ed.onclick = () => editCard(c.data);
+    }
     const meEl = $('#stMe');
     if (!me.ok) meEl.innerHTML = `<h2>Your record</h2><p class="muted">${me.status === 401 ? 'Sign in to keep a record of your battles, your most-used fighters and your replays.' : esc(me.data.error || 'Could not load your record.')}</p>${me.status === 401 ? '<button class="primary" data-signin>Sign in</button>' : ''}`;
     else {

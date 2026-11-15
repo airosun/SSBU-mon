@@ -81,6 +81,22 @@ function pvp(timed = true) {
     });
     if (store.close) await store.close();
   }
+  await test('trainer cards: only real avatars, trimmed text, showcase from your own saved team', () => {
+    const { sanitizeProfile } = require('../server/profile.js');
+    const data = { roster: [{ uid: 'a', species: 'mario', nature: 'Adamant', ability: 'Super Mushroom' }], elite: [{ name: 'Mine', mons: [{ uid: 'a', moves: ['Fire Punch', ''], item: 'Leftovers' }, { uid: 'ghost', moves: [] }] }] };
+    const p = sanitizeProfile({ avatar: 'giga-bowser', title: '<b>' + 'x'.repeat(50), bio: 'hi\n there', favoriteTeam: 0 }, data);
+    assert.equal(p.avatar, 'giga-bowser'); assert.equal(p.title.length, 32); assert(!p.title.includes('<')); assert.equal(p.bio, 'hi there');
+    assert.deepEqual(p.favoriteTeam, { name: 'Mine', mons: [{ species: 'mario', nature: 'Adamant', ability: 'Super Mushroom', item: 'Leftovers', moves: ['Fire Punch'] }] });
+    assert.equal(sanitizeProfile({ avatar: 'not-real', favoriteTeam: 5 }, data).avatar, null);
+    assert.equal(sanitizeProfile({ favoriteTeam: 5 }, data).favoriteTeam, null);
+  });
+  await test('usage by period: since a time, or all time', async () => {
+    const st = createStore({ url: '', file: '' }); await st.init();
+    await st.saveBattle({ id: 'p1', mode: 'standard', format: 'singles', players: ['A', 'B'], cpu: [false, false], users: [null, null], winner: 0, turns: 3, teams: [['mario'], ['link']], replay: null });
+    assert.equal((await st.usageSides({ since: null })).length, 2);
+    assert.equal((await st.usageSides({ since: new Date(Date.now() + 60000) })).length, 0);
+    assert.equal((await st.usageSides({ since: new Date(Date.now() - 60000) })).length, 2);
+  });
   await test('damage calc matches engine rules', () => {
     const base = calc({ attacker: { species: 'mario', move: 'Flamethrower' }, defender: { species: 'link' } });
     const sun = calc({ attacker: { species: 'mario', move: 'Flamethrower' }, defender: { species: 'link' }, field: { weather: 'sun' } });

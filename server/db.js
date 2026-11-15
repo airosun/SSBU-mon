@@ -42,7 +42,11 @@ CREATE TABLE IF NOT EXISTS battles (
 );
 CREATE INDEX IF NOT EXISTS battles_created ON battles(created_at DESC);
 CREATE INDEX IF NOT EXISTS battles_p1 ON battles(p1_user);
-CREATE INDEX IF NOT EXISTS battles_p2 ON battles(p2_user);`;
+CREATE INDEX IF NOT EXISTS battles_p2 ON battles(p2_user);
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data JSONB NOT NULL
+);`;
 const KEEP_REPLAYS = 5000;   // older battles keep their result but drop the replay data
 const summary = r => ({ id: r.id, created: r.created_at, mode: r.mode, format: r.format, players: [r.p1_name, r.p2_name], cpu: [r.p1_cpu, r.p2_cpu], users: [r.p1_user, r.p2_user], winner: r.winner, turns: r.turns, teams: [r.p1_team, r.p2_team], hasReplay: r.has_replay !== undefined ? r.has_replay : !!r.replay });
 
@@ -93,17 +97,22 @@ function postgresStore(url) {
         UNION ALL SELECT mode, format, p1_cpu, winner, 1, p2_team FROM battles WHERE p2_user = $1`, [userId])).rows;
       return rows.map(r => ({ mode: r.mode, format: r.format, vsCpu: r.vs_cpu, result: r.winner === null ? 'T' : r.winner === r.me ? 'W' : 'L', team: r.team }));
     },
-    async usageSides({ days = 30, format = null } = {}) {
-      const rows = (await q(`SELECT p1_team AS team, winner = 0 AS won, format FROM battles WHERE NOT p1_cpu AND created_at > now() - make_interval(days => $1) AND ($2::text IS NULL OR format = $2)
-        UNION ALL SELECT p2_team, winner = 1, format FROM battles WHERE NOT p2_cpu AND created_at > now() - make_interval(days => $1) AND ($2::text IS NULL OR format = $2)`, [days, format])).rows;
+    // since: a Date, or null for all time
+    async usageSides({ since = null, days = null, format = null } = {}) {
+      if (days) since = new Date(Date.now() - days * 864e5);
+      const rows = (await q(`SELECT p1_team AS team, winner = 0 AS won FROM battles WHERE NOT p1_cpu AND ($1::timestamptz IS NULL OR created_at > $1) AND ($2::text IS NULL OR format = $2)
+        UNION ALL SELECT p2_team, winner = 1 FROM battles WHERE NOT p2_cpu AND ($1::timestamptz IS NULL OR created_at > $1) AND ($2::text IS NULL OR format = $2)`, [since, format])).rows;
       return rows.map(r => ({ team: r.team, won: !!r.won }));
     },
+    async getUserById(id) { return one('SELECT id, username, created_at FROM users WHERE id = $1', [id]); },
+    async getProfile(userId) { const r = await one('SELECT data FROM profiles WHERE user_id = $1', [userId]); return r ? r.data : null; },
+    async setProfile(userId, data) { await q('INSERT INTO profiles (user_id, data) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET data = EXCLUDED.data', [userId, data]); },
     async close() { await pool.end(); },
   };
 }
 
 function memoryStore(file) {
-  let s = { users: [], sessions: {}, data: {}, pass: {}, battles: [], nextId: 1 };
+  let s = { users: [], sessions: {}, data: {}, pass: {}, battles: [], profiles: {}, nextId: 1 };
   if (file) { try { s = Object.assign(s, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch {} }
   let timer = null;
   const save = () => {
@@ -117,7 +126,7 @@ function memoryStore(file) {
     async init() {},
     async createUser(username, passHash) {
       if (s.users.some(u => u.username_lc === username.toLowerCase())) return null;
-      const u = { id: s.nextId++, username, username_lc: username.toLowerCase(), pass_hash: passHash };
+      const u = { id: s.nextId++, username, username_lc: username.toLowerCase(), pass_hash: passHash, created_at: new Date().toISOString() };
       s.users.push(u); save(); return { id: u.id, username };
     },
     async getUserByName(name) { const u = s.users.find(x => x.username_lc === name.toLowerCase()); return u ? { id: u.id, username: u.username, pass_hash: u.pass_hash } : null; },
@@ -158,11 +167,14 @@ function memoryStore(file) {
       for (const b of s.battles) for (const me of [0, 1]) if (b.users[me] === userId) out.push({ mode: b.mode, format: b.format, vsCpu: b.cpu[1 - me], result: b.winner === null ? 'T' : b.winner === me ? 'W' : 'L', team: b.teams[me] });
       return out;
     },
-    async usageSides({ days = 30, format = null } = {}) {
-      const since = Date.now() - days * 864e5; const out = [];
-      for (const b of s.battles) if (Date.parse(b.created) > since && (!format || b.format === format)) for (const n of [0, 1]) if (!b.cpu[n]) out.push({ team: b.teams[n], won: b.winner === n });
+    async usageSides({ since = null, days = null, format = null } = {}) {
+      const from = days ? Date.now() - days * 864e5 : since ? +since : 0; const out = [];
+      for (const b of s.battles) if (Date.parse(b.created) > from && (!format || b.format === format)) for (const n of [0, 1]) if (!b.cpu[n]) out.push({ team: b.teams[n], won: b.winner === n });
       return out;
     },
+    async getUserById(id) { const u = s.users.find(x => x.id === id); return u ? { id: u.id, username: u.username, created_at: u.created_at || null } : null; },
+    async getProfile(userId) { return clone(s.profiles[userId] || null); },
+    async setProfile(userId, data) { s.profiles[userId] = clone(data); save(); },
     async close() {},
   };
 }
