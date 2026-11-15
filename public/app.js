@@ -27,8 +27,14 @@
 
   // ---------- helpers ----------
   const typeChip = t => `<span class="type" style="background:var(--t-${t})">${t}</span>`;
+  function sprite(f, cls = '', flip = false) {
+    const full = f && (f.image !== undefined ? f : (S.byId[f.id] || f));
+    if (!full || !full.image) return badge(full || f, cls.replace('battle', 'lg'));
+    return `<div class="sprite ${cls}" title="${esc(full.name)}"><img src="/images/${encodeURIComponent(full.image)}" alt="${esc(full.name)}" draggable="false"${flip ? ' class="flip"' : ''}></div>`;
+  }
   function badge(f, cls = '') {
     if (!f) return `<div class="badge ${cls}">?</div>`;
+    if (f.image && !cls.includes('nobadge')) return sprite(f, cls);
     const t = f.types || ['Normal'];
     const sub = f.name.match(/\((.*?)\)/);
     const words = f.name.replace(/\(.*?\)/g, '').replace(/[^A-Za-z0-9 &.]/g, '').split(/[\s&.]+/).filter(Boolean);
@@ -73,8 +79,10 @@
     if (!S.open.includes(m.id)) S.open.push(m.id);
     if (prev && prev.phase !== m.phase) { delete S.turn[m.id]; }
     if (prev && prev.battle && m.battle && prev.battle.state.turn !== m.battle.state.turn) delete S.turn[m.id];
+    if (m.battle) SSBU.onBattlePayload(m, prev);
     if (isNew && m.phase !== 'ended') { S.tab = m.id; S.searching = null; closeModal(); render(); return; }
-    if (S.tab === m.id) renderMatch(m.id); else { S.unread[m.id] = true; renderTabs(); }
+    if (S.tab === m.id) { if (!(m.battle && SSBU.isPlaying(m.id))) renderMatch(m.id); }
+    else { S.unread[m.id] = true; renderTabs(); }
   });
   socket.on('searchStatus', d => { S.searching = d.searching; if (S.tab === 'home') renderHome(); });
   socket.on('challenged', ({ from, name, mode, format, label: lbl }) => {
@@ -384,7 +392,7 @@
   function renderMatch(id) {
     const m = S.matches[id]; if (!m) return;
     delete S.unread[id];
-    if (m.battle) return renderBattle(id);
+    if (m.battle) return SSBU.renderBattle(id);
     let body = '';
     const me = m.you !== null ? m.players[m.you] : null;
     if (m.phase === 'ended') body = `<div class="banner ${m.result === m.you ? '' : 'lose'}"><span>${m.result === null ? 'Match ended.' : esc(m.players[m.result].name) + ' won!'}</span><button id="mBack">Back to lobby</button></div><div class="log" style="height:auto;margin-top:10px">${(m.log || []).map(l => `<div class="${l.cls}">${esc(l.text)}</div>`).join('')}</div>`;
@@ -450,141 +458,8 @@
       <div><h2>${esc(m.players[1 - m.you].name)}'s team</h2>${m.foeTeam.map(s => `<div class="list-item" style="margin-bottom:6px">${badge(F(s.species), 'sm')}<span class="grow">${esc(s.name)}</span>${s.types.map(typeChip).join(' ')}</div>`).join('')}</div></div>`;
   }
 
-  // ---------- battle ----------
-  function sideHtml(side, isFoe, b) {
-    const st = b.state;
-    const brought = side.brought;
-    const pips = [...Array(brought)].map((_, i) => { const m = side.team[i]; return `<span class="pip ${m ? (m.fainted ? 'fainted' : m.status ? 'status' : '') : 'unknown'}" title="${m ? esc(m.name) : 'Not revealed'}"></span>`; }).join('');
-    const mons = side.active.map((a, pos) => {
-      if (!a) return `<div class="combatant empty"></div>`;
-      const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
-      const vols = (a.volatiles || []).map(v => `<span class="chip">${{ substitute: 'Substitute', confusion: 'Confused', leechSeed: 'Seeded', taunt: 'Taunted', encore: 'Encore', trapped: 'Trapped', ingrain: 'Ingrained', charging: 'Charging', attract: 'Infatuated' }[v] || v}</span>`).join('');
-      return `<div class="combatant ${isFoe ? 'foe' : 'you'}">${badge({ name: a.name, types: a.types }, 'lg' + (a.fainted ? ' fainted' : ''))}
-        <div class="hpcard"><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
-          <div class="chips">${a.types.map(typeChip).join('')}</div>
-          <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
-          <div class="hptext">${a.hp !== undefined ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</div>
-          <div class="chips">${boosts}${vols}</div></div></div>`;
-    }).join('');
-    return `<div class="sidewrap ${isFoe ? 'foe' : 'you'}"><div class="sidelabel">${esc(side.name)} <span class="pips">${pips}</span></div><div class="actives n${side.active.length}">${mons}</div></div>`;
-  }
-  function fieldChips(st) {
-    const c = [];
-    if (st.field.weather) c.push({ rain: '🌧 Rain', sun: '☀ Harsh sun', snow: '❄ Snow' }[st.field.weather]);
-    if (st.field.trickroom) c.push(`Trick Room (${st.field.trickroom})`);
-    if (st.field.gravity) c.push(`Gravity (${st.field.gravity})`);
-    for (const s of st.sides) {
-      const k = s.conditions; const n = esc(s.name);
-      if (k.reflect) c.push(`${n}: Reflect`); if (k.lightscreen) c.push(`${n}: Light Screen`); if (k.tailwind) c.push(`${n}: Tailwind`);
-      if (k.stealthrock) c.push(`${n}: Stealth Rock`); if (k.spikes) c.push(`${n}: Spikes ×${k.spikes}`); if (k.toxicspikes) c.push(`${n}: Toxic Spikes ×${k.toxicspikes}`); if (k.stickyweb) c.push(`${n}: Sticky Web`);
-    }
-    return c.map(x => `<span class="chip">${x}</span>`).join('');
-  }
-  function moveTip(n) { const m = S.dex.moves[n]; return `${n} — ${m.type} ${m.cat}${m.power ? ', ' + m.power + ' BP' : ''}${m.acc === true ? '' : ', ' + m.acc + '% acc'}${m.prio ? ', priority ' + (m.prio > 0 ? '+' : '') + m.prio : ''}${m.target === 'allFoes' ? ', hits both foes' : m.target === 'all' ? ', hits everyone else' : ''}`; }
-
-  function battleControls(m) {
-    const b = m.battle; const r = b.request; const st = b.state; const you = m.you;
-    if (st.ended) { const won = st.winner === you; return `<div class="banner ${you !== null && !won ? 'lose' : ''}"><span>${st.winner === null ? 'Tie game!' : esc(st.sides[st.winner].name) + ' won!'}</span><button id="mBack">Back to lobby</button></div>`; }
-    if (you === null) return '<div class="muted">You are spectating.</div>';
-    if (r.kind === 'wait') return `<div class="row"><span class="muted grow">Waiting for ${esc(st.sides[1 - you].name)}…</span>${r.canUndo ? '<button class="small" id="bUndo">Undo</button>' : ''}</div>`;
-    const T = S.turn[m.id] = S.turn[m.id] || { step: 0, actions: [], targeting: null, switches: [] };
-    if (r.kind === 'switch') {
-      const pos = r.slots[T.switches.length];
-      const taken = new Set(T.switches.map(s => s.index));
-      return `<h2>${r.reason === 'faint' ? 'Send in a fighter' : 'Choose a fighter to switch in'}${r.slots.length > 1 ? ` (slot ${T.switches.length + 1} of ${r.slots.length})` : ''}</h2>
-        <div class="switches">${switchBtns(r.team, m => m.fainted || m.pos >= 0 || taken.has(m.index), 'data-sw')}</div>
-        ${T.switches.length ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
-    }
-    // move request: step through each active slot
-    const slots = r.actives.filter(Boolean);
-    const cur = slots[T.step];
-    const foeSide = st.sides[1 - you]; const mySide = st.sides[you];
-    if (T.targeting) {
-      const mv = cur.moves[T.targeting.index];
-      const opts = [];
-      foeSide.active.forEach((a, p) => { if (a && !a.fainted) opts.push({ side: 1 - you, pos: p, name: a.name, foe: true }); });
-      mySide.active.forEach((a, p) => { if (a && !a.fainted && p !== cur.pos) opts.push({ side: you, pos: p, name: a.name, foe: false }); });
-      return `<h2>${esc(mv.name)}: choose a target</h2><div class="targets">${opts.map(o => `<button class="${o.foe ? 'primary' : ''}" data-tgt="${o.side}:${o.pos}">${o.foe ? 'Foe' : 'Ally'}: ${esc(o.name)}</button>`).join('')}</div><button class="small" id="tBack" style="margin-top:8px">Back</button>`;
-    }
-    const taken = new Set(T.actions.filter(a => a.type === 'switch').map(a => a.index));
-    const moveBtns = cur.locked ? `<button class="move-btn" data-move="0" style="grid-column:span 2"><span class="mn">Continue: ${esc(cur.locked)}</span></button>`
-      : cur.struggle ? `<button class="move-btn" data-move="0" style="grid-column:span 2"><span class="mn">Struggle</span></button>`
-        : cur.moves.map(mv => `<button class="move-btn" data-move="${mv.index}" style="--tc:var(--t-${mv.type})" ${mv.disabled ? 'disabled' : ''} title="${esc(moveTip(mv.name))}"><span class="mn">${esc(mv.name)}</span><span class="mi">${mv.type} · ${mv.cat === 'Status' ? 'Status' : (mv.power || '—') + ' BP'} · ${mv.pp}/${mv.maxpp}${mv.target === 'allFoes' ? ' · spread' : mv.target === 'all' ? ' · hits all' : ''}</span></button>`).join('');
-    return `<h2>What will ${esc(cur.name)} do?${slots.length > 1 ? ` <span class="pill">${T.step + 1}/${slots.length}</span>` : ''}</h2>
-      <div class="moves">${moveBtns}</div>
-      <h2 style="margin-top:12px">Switch ${cur.canSwitch ? '' : '<span class="pill">can\'t switch</span>'}</h2>
-      <div class="switches">${switchBtns(r.team, mm => !cur.canSwitch || mm.fainted || mm.pos >= 0 || taken.has(mm.index), 'data-sw')}</div>
-      ${T.step > 0 ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
-  }
-  function switchBtns(team, disabled, attr) {
-    return team.map(mm => `<button class="sw-btn" ${attr}="${mm.index}" ${disabled(mm) ? 'disabled' : ''} title="${esc(`${mm.name} — ${mm.hp}/${mm.maxhp} HP · ${mm.ability}${mm.item ? ' · ' + mm.item : ''}\n${(mm.moves || []).map(x => x.name).join(', ')}`)}">${badge(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''))}<span class="grow">${esc(mm.name)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button>`).join('');
-  }
-  function renderBattle(id) {
-    const m = S.matches[id]; const b = m.battle; const st = b.state;
-    const you = m.you === null ? 0 : m.you;
-    const logEl = $('#blog'); const atBottom = !logEl || logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
-    $('#view').innerHTML = `<div class="battle">
-      <section>
-        <div class="row" style="margin-bottom:8px"><b class="grow">${esc(st.sides[0].name)} vs ${esc(st.sides[1].name)}</b><span class="pill">${esc(label(m.mode, m.format))}</span><span class="pill">Turn ${st.turn}</span>${!st.ended && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>
-        <div class="arena ${st.field.weather ? 'weather-' + st.field.weather : ''} ${m.format}">
-          ${sideHtml(st.sides[1 - you], true, b)}
-          <div class="fieldinfo">${fieldChips(st)}</div>
-          ${sideHtml(st.sides[you], false, b)}
-        </div>
-        <div class="controls card">${battleControls(m)}</div>
-      </section>
-      <section>
-        <div class="log" id="blog">${b.log.map(l => `<div class="${l.cls === 'chat' ? 'chatline' : l.cls}">${esc(l.text)}</div>`).join('')}</div>
-        <div class="row" style="margin-top:8px"><input id="bChat" class="grow" maxlength="300" placeholder="Chat…"><button id="bSend">Send</button></div>
-      </section></div>`;
-    const lg = $('#blog'); if (atBottom) lg.scrollTop = lg.scrollHeight;
-    wireBattle(m);
-  }
-  function wireBattle(m) {
-    const id = m.id; const r = m.battle.request; const st = m.battle.state;
-    const fo = $('#mForfeit'); if (fo) fo.onclick = () => { if (confirm('Forfeit this match?')) act(id, { type: 'forfeit' }); };
-    const bb = $('#mBack'); if (bb) bb.onclick = () => { S.tab = 'home'; render(); };
-    const send = () => { const v = $('#bChat').value.trim(); if (v) { socket.emit('chat', { room: id, text: v }); $('#bChat').value = ''; } };
-    $('#bSend').onclick = send; $('#bChat').onkeydown = e => { if (e.key === 'Enter') send(); };
-    const u = $('#bUndo'); if (u) u.onclick = () => { delete S.turn[id]; act(id, { type: 'undo' }); };
-    if (!r || m.you === null) return;
-    const T = S.turn[id];
-    const rerender = () => renderBattle(id);
-    const back = $('#tBack');
-    if (r.kind === 'switch') {
-      if (back) back.onclick = () => { T.switches.pop(); rerender(); };
-      $$('[data-sw]').forEach(el => el.onclick = () => {
-        T.switches.push({ pos: r.slots[T.switches.length], index: +el.dataset.sw });
-        if (T.switches.length === r.slots.length) { const sw = T.switches; delete S.turn[id]; act(id, { type: 'choose', choice: { switches: sw } }); }
-        else rerender();
-      });
-      return;
-    }
-    if (r.kind !== 'move') return;
-    const slots = r.actives.filter(Boolean);
-    const cur = slots[T.step];
-    const finish = () => {
-      if (T.step + 1 < slots.length) { T.step++; T.targeting = null; rerender(); return; }
-      const actions = T.actions; delete S.turn[id];
-      act(id, { type: 'choose', choice: { actions } });
-    };
-    if (back) back.onclick = () => { if (T.targeting) T.targeting = null; else { T.step--; T.actions.pop(); } rerender(); };
-    $$('[data-tgt]').forEach(el => el.onclick = () => {
-      const [side, pos] = el.dataset.tgt.split(':').map(Number);
-      T.actions.push({ pos: cur.pos, type: 'move', index: T.targeting.index, target: { side, pos } });
-      finish();
-    });
-    $$('[data-move]').forEach(el => el.onclick = () => {
-      const i = +el.dataset.move;
-      const mv = cur.moves[i];
-      const needsTarget = !cur.locked && !cur.struggle && mv && mv.target === 'normal' && m.format === 'doubles' && st.sides.reduce((a, s) => a + s.active.filter(x => x && !x.fainted).length, 0) > 2;
-      if (needsTarget) { T.targeting = { index: i }; rerender(); return; }
-      const foe = st.sides[1 - m.you].active.findIndex(x => x && !x.fainted);
-      T.actions.push({ pos: cur.pos, type: 'move', index: i, target: foe >= 0 ? { side: 1 - m.you, pos: foe } : undefined });
-      finish();
-    });
-    $$('[data-sw]').forEach(el => el.onclick = () => { T.actions.push({ pos: cur.pos, type: 'switch', index: +el.dataset.sw }); finish(); });
-  }
+  // ---------- shared with battle.js ----------
+  window.SSBU = { $, $$, esc, S, F, typeChip, badge, sprite, act, socket, label, toast, modal, closeModal, load, store, render: () => render() };
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {

@@ -25,6 +25,8 @@ A Pokémon VGC-style battle site where every Super Smash Bros. Ultimate fighter 
 
 **Saving:** there are no accounts yet. Your roster, Elite teams and name are saved in your browser, so the same browser picks up where it left off. Each roster fighter carries a server signature, so its nature, IVs and ability can't be edited in the browser before an Elite battle.
 
+**Battle screen:** animated turn playback (attacks, hits, faints, switches, stat changes) with a speed setting (normal, fast or off). Hover a move to see what it does. Tap a fighter's image to target it, and every fighter a move will hit flashes before you confirm. A **Type chart** button highlights the opposing fighters' types.
+
 You can battle the CPU, find a random opponent (queues are separate for each mode and format), challenge an online player, or watch live matches. There's lobby chat and battle chat.
 
 ## Run it locally
@@ -74,4 +76,4 @@ Use `render.yaml` (Blueprint), or create a Web Service by hand:
 - There are no EVs: fighters are defined by nature, IVs, ability, moves and item.
 - Weight isn't modelled: Heavy Slam is a flat 100 BP and Gigaton Hammer a flat 160. *Heavyweight* boosts those moves instead.
 - Redirection (Follow Me, Lightning Rod pulling attacks to itself) isn't implemented. Lightning Rod still absorbs Electric moves aimed at its user.
-- Fighters are shown as type-colored initial badges rather than character art.
+- Fighter images live in `public/images` (`<fighter name lowercased>.png`; exceptions are mapped in `IMAGE_OVERRIDE` in `tools/build_fighters.py`). Your own fighters are shown mirrored, like a back sprite. A fighter without an image (currently Sora) falls back to a type-colored badge.

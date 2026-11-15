@@ -147,6 +147,17 @@ STD_ABILITY_DESC = {
  "Intimidate": "Lowers the foe's Attack 1 stage on switch-in.",
 }
 
+IMAGE_OVERRIDE = {
+ "Larry Koopa": "larry.png", "Roy Koopa": "roy_koopa.png", "Wendy O. Koopa": "wendy.png", "Iggy Koopa": "iggy.png",
+ "Morton Koopa Jr.": "morton.png", "Lemmy Koopa": "lemmy.png", "Ludwig von Koopa": "ludwig.png",
+ "Hero (Luminary)": "hero-eleven.png", "Hero (Erdrick)": "hero-erdrick.png", "Hero (Solo)": "hero-solo.png", "Hero (Eight)": "hero-eight.png",
+}
+IMG_DIR = os.path.join(ROOT, 'public', 'images')
+
+def image_for(name):
+    fn = IMAGE_OVERRIDE.get(name, name.lower() + '.png')
+    return fn if os.path.exists(os.path.join(IMG_DIR, fn)) else None
+
 def slug(n):
     return re.sub(r'[^a-z0-9]+', '-', n.lower().replace('&', 'and')).strip('-')
 
@@ -180,7 +191,7 @@ for i, r in enumerate(R, 1):
         "num": i, "id": slug(name), "name": name, "series": series, "types": types,
         "stats": {"hp": hp, "atk": atk, "def": df, "spa": spa, "spd": spd, "spe": spe},
         "abilities": [split_ab(ab)], "hidden": split_ab(ha),
-        "signature": sig, "learnset": learn, "notes": note,
+        "signature": sig, "learnset": learn, "notes": note, "image": image_for(name),
     })
 
 if errors:
