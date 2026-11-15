@@ -1,64 +1,95 @@
 /* SSBU-mon client */
 (() => {
   const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
   const SL = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
   const BOOSTL = { atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe', accuracy: 'Acc', evasion: 'Eva' };
   const STATUSL = { brn: 'BRN', par: 'PAR', psn: 'PSN', tox: 'TOX', slp: 'SLP', frz: 'FRZ' };
+  const LEVEL = 50;
+
+  // ---------- browser storage ----------
+  function load(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } }
+  function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  let clientId = load('ssbu-client', null);
+  if (!clientId) { clientId = Math.random().toString(36).slice(2) + Date.now().toString(36); store('ssbu-client', clientId); }
 
   const S = {
-    dex: null, byId: {}, me: { id: null, name: '' }, lobby: { users: [], battles: [] }, lobbyChat: [],
-    teams: load('ssbu-teams', []), selTeam: load('ssbu-selteam', 0), tab: 'home',
-    battles: {}, openBattles: [], editTeam: null, editSlot: 0, searching: false, unread: {},
-    dexFilter: '', pickerFilter: '', outgoing: null,
+    dex: null, byId: {}, me: { id: null, name: '' }, lobby: { users: [], matches: [] }, lobbyChat: [],
+    tab: 'home', matches: {}, open: [], unread: {}, searching: null, outgoing: null,
+    mode: load('ssbu-mode', 'standard'), format: load('ssbu-format', 'singles'),
+    roster: load('ssbu-roster', []), elite: load('ssbu-elite', []), selElite: load('ssbu-sel-elite', 0),
+    pass: null, passSel: new Set(), editElite: null, eliteSlot: 0, dexFilter: '',
+    draft: {}, builds: {}, lineups: {}, turn: {},
   };
-  function load(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } }
-  function save() { try { localStorage.setItem('ssbu-teams', JSON.stringify(S.teams)); localStorage.setItem('ssbu-selteam', JSON.stringify(S.selTeam)); } catch {} }
-  let clientId = load('ssbu-client', null);
-  if (!clientId) { clientId = Math.random().toString(36).slice(2) + Date.now().toString(36); try { localStorage.setItem('ssbu-client', JSON.stringify(clientId)); } catch {} }
+  const saveRoster = () => { store('ssbu-roster', S.roster); store('ssbu-elite', S.elite); store('ssbu-sel-elite', S.selElite); };
 
   // ---------- helpers ----------
   const typeChip = t => `<span class="type" style="background:var(--t-${t})">${t}</span>`;
   function badge(f, cls = '') {
     if (!f) return `<div class="badge ${cls}">?</div>`;
     const t = f.types || ['Normal'];
-    const initials = f.name.replace(/\(.*?\)/g, '').replace(/[^A-Za-z0-9 &.]/g, '').split(/[\s&.]+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const sub = f.name.match(/\((.*?)\)/);
-    return `<div class="badge ${cls}" style="--c1:var(--t-${t[0]});--c2:var(--t-${t[1] || t[0]})" title="${esc(f.name)}">${esc(sub ? initials[0] + sub[1][0] : initials)}</div>`;
+    const words = f.name.replace(/\(.*?\)/g, '').replace(/[^A-Za-z0-9 &.]/g, '').split(/[\s&.]+/).filter(Boolean);
+    const ini = sub ? words[0][0] + sub[1][0] : words.map(w => w[0]).join('').slice(0, 2);
+    return `<div class="badge ${cls}" style="--c1:var(--t-${t[0]});--c2:var(--t-${t[1] || t[0]})" title="${esc(f.name)}">${esc(ini.toUpperCase())}</div>`;
   }
   const hpColor = p => p > 50 ? 'var(--good)' : p > 20 ? 'var(--warn)' : 'var(--bad)';
-  function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.add('hidden'), ms); }
+  function toast(msg, ms = 2800) { const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.add('hidden'), ms); }
   function modal(html) { $('#modalCard').innerHTML = html; $('#modal').classList.remove('hidden'); }
   function closeModal() { $('#modal').classList.add('hidden'); $('#modalCard').innerHTML = ''; }
   $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
-  const bst = f => STATS.reduce((a, s) => a + f.stats[s], 0);
-  const curTeam = () => S.teams[S.selTeam];
+  const F = id => S.byId[id];
+  const label = (mode, format) => `${mode === 'elite' ? 'Elite Smash' : 'Standard'} ${format === 'doubles' ? 'Doubles' : 'Singles'}`;
+  function statsOf(b) { const f = F(b.species); const o = {}; for (const s of STATS) o[s] = DEX.calcStat(s, f.stats[s], b.ivs[s], 0, LEVEL, b.nature); return o; }
+  function natureTag(n) { const x = S.dex.natures[n] || {}; return x.plus ? `${n} <span class="muted">(+${SL[x.plus]} −${SL[x.minus]})</span>` : `${n} <span class="muted">(neutral)</span>`; }
+  function abilityInfo(f, name) { const a = [...f.abilities, f.hidden].find(x => x.name === name) || { name, desc: '' }; return { ...a, hidden: f.hidden.name === name }; }
+  function ivTotal(b) { return STATS.reduce((a, s) => a + b.ivs[s], 0); }
+  function ivGrade(b) { const t = ivTotal(b); return t >= 160 ? 'S' : t >= 130 ? 'A' : t >= 100 ? 'B' : t >= 70 ? 'C' : 'D'; }
+
+  // A compact card for a randomized fighter (draft pool, pass roll, roster)
+  function fighterCard(b, opts = {}) {
+    const f = F(b.species); const st = statsOf(b); const ab = abilityInfo(f, b.ability); const nat = S.dex.natures[b.nature] || {};
+    return `<div class="fcard ${opts.sel ? 'sel' : ''} ${opts.dim ? 'dim' : ''}" ${opts.attr || ''}>
+      ${opts.order ? `<span class="order">${opts.order}</span>` : ''}
+      <div class="row">${badge(f)}<div class="grow"><div class="nm">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')}</div></div><span class="grade g-${ivGrade(b)}" title="IV total ${ivTotal(b)}/186">${ivGrade(b)}</span></div>
+      <div class="fmeta"><b>${esc(ab.name)}</b>${ab.hidden ? ' <span class="pill">Hidden</span>' : ''}<div class="muted small">${esc(ab.desc)}</div></div>
+      <div class="fmeta small">${natureTag(b.nature)}</div>
+      <div class="ivgrid">${STATS.map(s => `<span class="${nat.plus === s ? 'plus' : nat.minus === s ? 'minus' : ''}">${SL[s]}</span><b>${st[s]}</b><i title="IV">${b.ivs[s]}</i>`).join('')}</div>
+      ${opts.extra || ''}</div>`;
+  }
 
   // ---------- sockets ----------
   const socket = io();
   socket.on('connect', () => socket.emit('hello', { clientId, name: load('ssbu-name', '') }));
-  socket.on('welcome', d => { S.me = { id: d.id, name: d.name }; try { localStorage.setItem('ssbu-name', JSON.stringify(d.name)); } catch {} if (d.chat) S.lobbyChat = d.chat; $('#nameBtn').textContent = d.name; render(); });
+  socket.on('welcome', d => { S.me = { id: d.id, name: d.name }; store('ssbu-name', d.name); if (d.chat) S.lobbyChat = d.chat; if (d.pass) S.pass = d.pass; $('#nameBtn').textContent = d.name; render(); });
   socket.on('lobby', d => { S.lobby = d; if (S.tab === 'home') renderHome(); });
-  socket.on('chat', ({ room, msg }) => {
-    if (room === 'lobby') { S.lobbyChat.push(msg); if (S.tab === 'home') renderHome(); }
-  });
-  socket.on('battle', p => {
-    const isNew = !S.battles[p.id];
-    S.battles[p.id] = p;
-    if (!S.openBattles.includes(p.id)) S.openBattles.push(p.id);
-    if (isNew && !p.state.ended) { S.tab = p.id; S.searching = false; render(); return; }
-    if (S.tab === p.id) renderBattle(p.id); else { S.unread[p.id] = true; renderTabs(); }
+  socket.on('chat', ({ room, msg }) => { if (room === 'lobby') { S.lobbyChat.push(msg); if (S.tab === 'home') renderHome(); } });
+  socket.on('match', m => {
+    const isNew = !S.matches[m.id];
+    const prev = S.matches[m.id];
+    S.matches[m.id] = m;
+    if (!S.open.includes(m.id)) S.open.push(m.id);
+    if (prev && prev.phase !== m.phase) { delete S.turn[m.id]; }
+    if (prev && prev.battle && m.battle && prev.battle.state.turn !== m.battle.state.turn) delete S.turn[m.id];
+    if (isNew && m.phase !== 'ended') { S.tab = m.id; S.searching = null; closeModal(); render(); return; }
+    if (S.tab === m.id) renderMatch(m.id); else { S.unread[m.id] = true; renderTabs(); }
   });
   socket.on('searchStatus', d => { S.searching = d.searching; if (S.tab === 'home') renderHome(); });
-  socket.on('challenged', ({ from, name }) => {
-    modal(`<h2>Challenge!</h2><p><b>${esc(name)}</b> wants to battle you.</p>
-      <div class="field"><label>Your team</label>${teamSelect('chTeam')}</div>
+  socket.on('challenged', ({ from, name, mode, format, label: lbl }) => {
+    modal(`<h2>Challenge!</h2><p><b>${esc(name)}</b> wants a <b>${esc(lbl)}</b> battle.</p>
+      ${mode === 'elite' ? `<div class="field"><label>Your Elite team</label>${eliteSelect('chTeam')}</div>` : '<p class="muted">Standard battle: you will draft from 20 random fighters.</p>'}
       <div class="row" style="margin-top:14px"><button class="primary" id="chAccept">Accept</button><button id="chDecline">Decline</button></div>`);
-    $('#chAccept').onclick = () => { const t = S.teams[+$('#chTeam').value]; if (!t) return toast('Build a team first.'); socket.emit('respond', { from, accept: true, team: t.mons }, r => { if (r.error) toast(r.error, 5000); else closeModal(); }); };
+    $('#chAccept').onclick = () => {
+      let team = null;
+      if (mode === 'elite') { team = eliteTeamSets(+$('#chTeam').value); if (!team) return; }
+      socket.emit('respond', { from, accept: true, team }, r => { if (r.error) toast(r.error, 5000); else closeModal(); });
+    };
     $('#chDecline').onclick = () => { socket.emit('respond', { from, accept: false }); closeModal(); };
   });
-  socket.on('challengeDeclined', ({ by }) => { S.outgoing = null; toast(`${by} declined your challenge.`); renderHome(); });
+  socket.on('challengeDeclined', ({ by }) => { S.outgoing = null; toast(`${by} declined your challenge.`); if (S.tab === 'home') renderHome(); });
+  socket.on('challengeAccepted', () => { S.outgoing = null; });
   socket.on('challengeCancelled', () => { closeModal(); toast('The challenge was cancelled.'); });
 
   $('#nameBtn').onclick = () => {
@@ -70,25 +101,26 @@
 
   // ---------- tabs ----------
   function renderTabs() {
-    const tabs = [['home', 'Home'], ['builder', 'Teambuilder'], ['dex', 'Fighterdex']];
+    const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['dex', 'Fighterdex']];
     let h = tabs.map(([k, n]) => `<button class="tab ${S.tab === k ? 'active' : ''}" data-tab="${k}">${n}</button>`).join('');
-    for (const id of S.openBattles) {
-      const p = S.battles[id]; if (!p) continue;
-      const nm = `${p.players[0].name} vs ${p.players[1].name}`;
-      h += `<button class="tab ${S.tab === id ? 'active' : ''}" data-tab="${id}">${S.unread[id] ? '<span class="dot"></span>' : ''}${esc(nm)}<span class="x" data-close="${id}">✕</span></button>`;
+    for (const id of S.open) {
+      const m = S.matches[id]; if (!m) continue;
+      h += `<button class="tab ${S.tab === id ? 'active' : ''}" data-tab="${id}">${S.unread[id] ? '<span class="dot"></span>' : ''}${esc(m.players[0].name)} vs ${esc(m.players[1].name)}<span class="x" data-close="${id}">✕</span></button>`;
     }
     $('#tabs').innerHTML = h;
   }
   $('#tabs').addEventListener('click', e => {
     const c = e.target.closest('[data-close]');
     if (c) {
-      const id = c.dataset.close; const p = S.battles[id];
-      if (p && !p.state.ended && p.you !== null && !confirm('Leave this battle? You will forfeit.')) return;
-      if (p && !p.state.ended && p.you !== null) socket.emit('forfeit', { id });
-      socket.emit('leaveBattle', { id });
-      S.openBattles = S.openBattles.filter(x => x !== id); delete S.battles[id];
+      e.stopPropagation();
+      const id = c.dataset.close; const m = S.matches[id];
+      const live = m && m.phase !== 'ended' && m.you !== null;
+      if (live && !confirm('Leave this match? You will forfeit.')) return;
+      if (live) act(id, { type: 'forfeit' });
+      socket.emit('leave', { id });
+      S.open = S.open.filter(x => x !== id); delete S.matches[id];
       if (S.tab === id) S.tab = 'home';
-      render(); e.stopPropagation(); return;
+      render(); return;
     }
     const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; delete S.unread[S.tab]; render(); }
   });
@@ -96,41 +128,66 @@
     renderTabs();
     if (!S.dex) { $('#view').innerHTML = '<div class="card">Loading…</div>'; return; }
     if (S.tab === 'home') renderHome();
-    else if (S.tab === 'builder') renderBuilder();
+    else if (S.tab === 'pass') renderPass();
+    else if (S.tab === 'elite') renderElite();
     else if (S.tab === 'dex') renderDex();
-    else if (S.battles[S.tab]) renderBattle(S.tab);
+    else if (S.matches[S.tab]) renderMatch(S.tab);
     else { S.tab = 'home'; renderHome(); }
   }
+  const act = (id, action) => socket.emit('act', { id, action }, r => { if (r && r.error) toast(r.error, 4500); });
 
   // ---------- home ----------
-  function teamSelect(id) {
-    if (!S.teams.length) return `<select id="${id}" disabled><option>No teams yet — open the Teambuilder</option></select>`;
-    return `<select id="${id}">${S.teams.map((t, i) => `<option value="${i}" ${i === S.selTeam ? 'selected' : ''}>${esc(t.name)} (${t.mons.length})</option>`).join('')}</select>`;
+  function eliteSelect(id) {
+    const ok = S.elite.map((t, i) => ({ t, i })).filter(x => eliteReady(x.t));
+    if (!ok.length) return `<select id="${id}" disabled><option>No complete Elite team yet</option></select>`;
+    return `<select id="${id}">${ok.map(({ t, i }) => `<option value="${i}" ${i === S.selElite ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>`;
+  }
+  const rosterById = uid => S.roster.find(r => r.uid === uid);
+  function eliteReady(t) { return t.mons.length === 6 && t.mons.every(m => rosterById(m.uid) && m.moves.filter(Boolean).length); }
+  function eliteTeamSets(i) {
+    const t = S.elite[i];
+    if (!t || !eliteReady(t)) { toast('Build a complete Elite team (6 fighters with moves) in the Elite Teams tab first.', 4500); return null; }
+    return t.mons.map(m => Object.assign({}, rosterById(m.uid), { moves: m.moves.filter(Boolean), item: m.item || '' }));
+  }
+  function teamForMode() {
+    if (S.mode !== 'elite') return { team: null };
+    const sel = $('#homeElite');
+    const team = eliteTeamSets(sel && !sel.disabled ? +sel.value : -1);
+    return team ? { team } : null;
   }
   function renderHome() {
-    const chatScroll = $('#lobbyChat') ? $('#lobbyChat').scrollTop : null;
+    const chat = $('#lobbyChat'); const chatScroll = chat ? chat.scrollTop : null;
     const others = S.lobby.users.filter(u => u.id !== S.me.id);
+    const key = `${S.mode}:${S.format}`;
     $('#view').innerHTML = `
     <div class="grid-home">
       <section class="card hero span2">
         <h1>Battle with Smash Ultimate fighters</h1>
-        <p>Build a team of up to six fighters, then take on a friend, a random opponent, or the CPU.</p>
-        <div class="row">
-          ${teamSelect('homeTeam')}
-          <button class="primary" id="btnSearch">${S.searching ? 'Cancel search' : 'Find opponent'}</button>
-          <button id="btnCpu">Battle the CPU</button>
-          <button class="ghost" id="btnCpuRandom" title="Use a random team">Random team vs CPU</button>
-          ${S.searching ? '<span class="pill">Searching…</span>' : ''}
+        <div class="seg" id="segMode">
+          <button data-mode="standard" class="${S.mode === 'standard' ? 'on' : ''}"><b>Standard Battle</b><span>Draft 6 of 20 random fighters, then set moves and items</span></button>
+          <button data-mode="elite" class="${S.mode === 'elite' ? 'on' : ''}"><b>Elite Smash Battle</b><span>Bring a pre-built team from your Fighter Pass roster</span></button>
         </div>
+        <div class="seg small" id="segFormat">
+          <button data-format="singles" class="${S.format === 'singles' ? 'on' : ''}"><b>Singles</b><span>Bring 6, pick 3</span></button>
+          <button data-format="doubles" class="${S.format === 'doubles' ? 'on' : ''}"><b>Doubles</b><span>Bring 6, pick 4</span></button>
+        </div>
+        <div class="row" style="margin-top:12px">
+          ${S.mode === 'elite' ? eliteSelect('homeElite') : ''}
+          <button class="primary" id="btnSearch">${S.searching === key ? 'Cancel search' : 'Find opponent'}</button>
+          <button id="btnCpu">Battle the CPU</button>
+          ${S.searching ? `<span class="pill">Searching ${esc(label(...S.searching.split(':')))}…</span>` : ''}
+        </div>
+        ${S.mode === 'elite' && !S.elite.some(eliteReady) ? `<p class="muted small" style="margin:10px 0 0">You need a 6-fighter Elite team. Roll the <a href="#" data-goto="pass">Fighter Pass</a> to build your roster, then build a team in <a href="#" data-goto="elite">Elite Teams</a>.</p>` : ''}
       </section>
       <section class="card">
         <h2>Online (${S.lobby.users.length})</h2>
-        <div class="list">${others.length ? others.map(u => `<div class="list-item"><span class="grow">${esc(u.name)}</span>${u.searching ? '<span class="pill">searching</span>' : ''}<button class="small" data-challenge="${esc(u.id)}">Challenge</button></div>`).join('') : '<div class="muted">Nobody else is online. Share the link with a friend, or battle the CPU.</div>'}</div>
-        ${S.outgoing ? `<div class="row" style="margin-top:10px"><span class="pill">Waiting for ${esc(S.outgoing.name)}…</span><button class="small" id="btnCancelCh">Cancel</button></div>` : ''}
+        <div class="list">${others.length ? others.map(u => `<div class="list-item"><span class="grow">${esc(u.name)}</span>${u.searching ? `<span class="pill">${esc(label(...u.searching.split(':')))}</span>` : ''}<button class="small" data-challenge="${esc(u.id)}">Challenge</button></div>`).join('') : '<div class="muted">Nobody else is online. Share the link with a friend, or battle the CPU.</div>'}</div>
+        <p class="muted small">Challenges use the mode and format selected above.</p>
+        ${S.outgoing ? `<div class="row"><span class="pill">Waiting for ${esc(S.outgoing.name)}…</span><button class="small" id="btnCancelCh">Cancel</button></div>` : ''}
       </section>
       <section class="card">
-        <h2>Live battles</h2>
-        <div class="list">${S.lobby.battles.length ? S.lobby.battles.map(b => `<div class="list-item"><span class="grow">${esc(b.p1)} vs ${esc(b.p2)}</span><span class="pill">Turn ${b.turn}</span><button class="small" data-watch="${b.id}">Watch</button></div>`).join('') : '<div class="muted">No battles right now.</div>'}</div>
+        <h2>Live matches</h2>
+        <div class="list">${S.lobby.matches.length ? S.lobby.matches.map(b => `<div class="list-item"><span class="grow">${esc(b.p1)} vs ${esc(b.p2)}<div class="muted small">${esc(label(b.mode, b.format))} · ${b.phase === 'battle' ? 'Turn ' + b.turn : esc(b.phase)}</div></span><button class="small" data-watch="${b.id}">Watch</button></div>`).join('') : '<div class="muted">No matches right now.</div>'}</div>
       </section>
       <section class="card span2">
         <h2>Lobby chat</h2>
@@ -138,218 +195,278 @@
         <div class="row" style="margin-top:8px"><input id="lobbyIn" class="grow" maxlength="300" placeholder="Say something…"><button id="lobbySend">Send</button></div>
       </section>
     </div>`;
-    const lc = $('#lobbyChat'); lc.scrollTop = chatScroll ?? lc.scrollHeight; if (chatScroll === null || lc.scrollHeight - chatScroll < 400) lc.scrollTop = lc.scrollHeight;
-    const ht = $('#homeTeam'); if (ht && !ht.disabled) ht.onchange = () => { S.selTeam = +ht.value; save(); };
-    const team = () => { const t = curTeam(); if (!t || !t.mons.length) { toast('Build a team in the Teambuilder first.'); return null; } return t.mons; };
+    const lc = $('#lobbyChat'); lc.scrollTop = (chatScroll === null || lc.scrollHeight - chatScroll < 400) ? lc.scrollHeight : chatScroll;
+    $$('[data-goto]').forEach(a => a.onclick = e => { e.preventDefault(); S.tab = a.dataset.goto; render(); });
+    $$('[data-mode]').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; store('ssbu-mode', S.mode); renderHome(); });
+    $$('[data-format]').forEach(b => b.onclick = () => { S.format = b.dataset.format; store('ssbu-format', S.format); renderHome(); });
+    const he = $('#homeElite'); if (he && !he.disabled) he.onchange = () => { S.selElite = +he.value; saveRoster(); };
     $('#btnSearch').onclick = () => {
-      if (S.searching) { socket.emit('cancelSearch'); S.searching = false; renderHome(); return; }
-      const t = team(); if (!t) return;
-      socket.emit('search', { team: t }, r => { if (r.error) toast(r.error, 5000); else if (r.searching) { S.searching = true; renderHome(); } });
+      if (S.searching === key) { socket.emit('cancelSearch'); S.searching = null; renderHome(); return; }
+      const t = teamForMode(); if (!t) return;
+      socket.emit('search', { mode: S.mode, format: S.format, team: t.team }, r => { if (r.error) toast(r.error, 5000); else if (r.searching) { S.searching = r.searching; renderHome(); } });
     };
-    $('#btnCpu').onclick = () => { const t = team(); if (!t) return; socket.emit('cpu', { team: t }, r => { if (r.error) toast(r.error, 5000); }); };
-    $('#btnCpuRandom').onclick = () => socket.emit('cpu', { team: randomTeam() }, r => { if (r.error) toast(r.error, 5000); });
-    document.querySelectorAll('[data-challenge]').forEach(b => b.onclick = () => {
-      const t = team(); if (!t) return;
+    $('#btnCpu').onclick = () => { const t = teamForMode(); if (!t) return; socket.emit('cpu', { mode: S.mode, format: S.format, team: t.team }, r => { if (r.error) toast(r.error, 5000); }); };
+    $$('[data-challenge]').forEach(b => b.onclick = () => {
+      const t = teamForMode(); if (!t) return;
       const u = S.lobby.users.find(x => x.id === b.dataset.challenge);
-      socket.emit('challenge', { to: b.dataset.challenge, team: t }, r => { if (r.error) toast(r.error, 5000); else { S.outgoing = { id: u.id, name: u.name }; renderHome(); } });
+      socket.emit('challenge', { to: u.id, mode: S.mode, format: S.format, team: t.team }, r => { if (r.error) toast(r.error, 5000); else { S.outgoing = { id: u.id, name: u.name }; renderHome(); } });
     });
     const cc = $('#btnCancelCh'); if (cc) cc.onclick = () => { socket.emit('cancelChallenge', { to: S.outgoing.id }); S.outgoing = null; renderHome(); };
-    document.querySelectorAll('[data-watch]').forEach(b => b.onclick = () => socket.emit('spectate', { id: b.dataset.watch }, r => { if (r.error) toast(r.error); else { S.tab = b.dataset.watch; } }));
+    $$('[data-watch]').forEach(b => b.onclick = () => socket.emit('spectate', { id: b.dataset.watch }, r => { if (r.error) toast(r.error); else S.tab = b.dataset.watch; }));
     const send = () => { const v = $('#lobbyIn').value.trim(); if (v) { socket.emit('chat', { room: 'lobby', text: v }); $('#lobbyIn').value = ''; } };
     $('#lobbySend').onclick = send; $('#lobbyIn').onkeydown = e => { if (e.key === 'Enter') send(); };
   }
-  function randomTeam() {
-    const f = S.dex.fighters.slice().sort(() => Math.random() - .5).slice(0, 6);
-    return f.map(x => ({ species: x.id, ability: x.abilities[0].name, item: 'Leftovers', nature: 'Hardy', evs: { hp: 84, atk: 84, def: 84, spa: 84, spd: 84, spe: 84 }, moves: x.signature.map(s => s.move) }));
-  }
 
-  // ---------- teambuilder ----------
-  function newMon(f) {
-    const physical = f.stats.atk >= f.stats.spa;
-    return { species: f.id, ability: f.abilities[0].name, item: '', nature: physical ? 'Adamant' : 'Modest', evs: { hp: 4, atk: physical ? 252 : 0, def: 0, spa: physical ? 0 : 252, spd: 0, spe: 252 }, moves: f.signature.map(s => s.move) };
-  }
-  function renderBuilder() {
-    if (S.editTeam !== null && !S.teams[S.editTeam]) S.editTeam = null;
-    const list = S.teams.map((t, i) => `<div class="team-row ${i === S.editTeam ? 'sel' : ''}" data-team="${i}">
-      <div class="row"><b class="grow">${esc(t.name)}</b><span class="pill">${t.mons.length}/6</span></div>
-      <div class="mini">${t.mons.map(m => badge(S.byId[m.species], 'sm')).join('')}</div></div>`).join('');
-    $('#view').innerHTML = `<div class="tb">
-      <section class="card">
-        <h2>Your teams</h2>
-        <div class="row" style="margin-bottom:10px"><button class="primary" id="tbNew">New team</button><button id="tbImport">Import</button></div>
-        <div class="list" style="max-height:none">${list || '<div class="muted">No teams yet.</div>'}</div>
+  // ---------- Fighter Pass ----------
+  function renderPass() {
+    const p = S.pass || { rollsLeft: 0, perDay: 3, keep: 5 };
+    const pending = p.pending;
+    const rosterSorted = S.roster.slice().sort((a, b) => F(a.species).num - F(b.species).num);
+    $('#view').innerHTML = `
+      <section class="card hero">
+        <div class="row"><div class="grow"><h1 style="margin:0">Fighter Pass</h1><p style="margin:4px 0 0">Each roll shows 20 random fighters with random natures, IVs and abilities. Keep up to ${p.keep} of them for your Elite Smash roster.</p></div>
+          <div class="rolls">${[...Array(p.perDay)].map((_, i) => `<span class="roll-pip ${i < p.rollsLeft ? 'on' : ''}"></span>`).join('')}<div class="muted small">${p.rollsLeft} of ${p.perDay} rolls left today</div></div></div>
+        ${pending ? '' : `<button class="primary" id="btnRoll" ${p.rollsLeft ? '' : 'disabled'} style="margin-top:12px">${p.rollsLeft ? 'Roll the Fighter Pass' : 'Out of rolls — come back tomorrow'}</button>`}
       </section>
-      <section class="card" id="tbEditor">${S.editTeam === null ? '<div class="muted">Pick a team on the left or make a new one.</div>' : ''}</section>
-    </div>`;
-    $('#tbNew').onclick = () => { S.teams.push({ name: 'Team ' + (S.teams.length + 1), mons: [] }); S.editTeam = S.teams.length - 1; S.editSlot = 0; save(); renderBuilder(); openPicker(); };
-    $('#tbImport').onclick = () => {
-      modal(`<h2>Import team</h2><p class="muted">Paste a team in the text format (same as Export).</p><textarea class="export" id="impText"></textarea><div class="row" style="margin-top:10px"><input id="impName" placeholder="Team name" value="Imported team"><button class="primary" id="impOk">Import</button></div>`);
-      $('#impOk').onclick = () => { const r = parseTeam($('#impText').value); if (r.error) return toast(r.error, 5000); S.teams.push({ name: $('#impName').value || 'Imported team', mons: r.mons }); S.editTeam = S.teams.length - 1; save(); closeModal(); renderBuilder(); };
-    };
-    document.querySelectorAll('[data-team]').forEach(el => el.onclick = () => { S.editTeam = +el.dataset.team; S.editSlot = 0; renderBuilder(); });
-    if (S.editTeam !== null) renderTeamEditor();
-  }
-  function renderTeamEditor() {
-    const t = S.teams[S.editTeam];
-    if (S.editSlot >= t.mons.length) S.editSlot = Math.max(0, t.mons.length - 1);
-    const slots = [0, 1, 2, 3, 4, 5].map(i => {
-      const m = t.mons[i];
-      if (!m) return `<div class="slot" data-slot="add">＋<span class="muted">Add fighter</span></div>`;
-      const f = S.byId[m.species];
-      return `<div class="slot filled ${i === S.editSlot ? 'sel' : ''}" data-slot="${i}">${badge(f)}<span>${esc(f.name)}</span></div>`;
-    }).slice(0, Math.min(6, t.mons.length + 1)).join('');
-    const ed = $('#tbEditor');
-    ed.innerHTML = `
-      <div class="row"><input id="tName" class="grow" value="${esc(t.name)}" maxlength="40">
-        <button class="small" id="tUse">${S.selTeam === S.editTeam ? '✓ Selected' : 'Use for battles'}</button>
-        <button class="small" id="tExport">Export</button><button class="small" id="tDup">Duplicate</button><button class="small" id="tDel">Delete</button></div>
-      <div class="slots">${slots}</div>
-      <div id="monEditor"></div>`;
-    $('#tName').oninput = e => { t.name = e.target.value; save(); };
-    $('#tUse').onclick = () => { S.selTeam = S.editTeam; save(); renderTeamEditor(); };
-    $('#tExport').onclick = () => { modal(`<h2>Export: ${esc(t.name)}</h2><textarea class="export" readonly>${esc(exportTeam(t))}</textarea><div class="row" style="margin-top:10px"><button id="cpy" class="primary">Copy</button><button id="cls">Close</button></div>`); $('#cpy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(exportTeam(t)); toast('Copied.'); }; $('#cls').onclick = closeModal; };
-    $('#tDup').onclick = () => { S.teams.push(JSON.parse(JSON.stringify(Object.assign({}, t, { name: t.name + ' (copy)' })))); S.editTeam = S.teams.length - 1; save(); renderBuilder(); };
-    $('#tDel').onclick = () => { if (!confirm(`Delete "${t.name}"?`)) return; S.teams.splice(S.editTeam, 1); if (S.selTeam >= S.teams.length) S.selTeam = 0; S.editTeam = null; save(); renderBuilder(); };
-    ed.querySelectorAll('[data-slot]').forEach(el => el.onclick = () => { if (el.dataset.slot === 'add') { S.editSlot = t.mons.length; openPicker(); } else { S.editSlot = +el.dataset.slot; renderTeamEditor(); } });
-    if (t.mons[S.editSlot]) renderMonEditor(t, t.mons[S.editSlot]);
-  }
-  function openPicker() {
-    const t = S.teams[S.editTeam];
-    const draw = () => {
-      const q = S.pickerFilter.toLowerCase();
-      const used = new Set(t.mons.map((m, i) => i !== S.editSlot && m.species));
-      const list = S.dex.fighters.filter(f => !q || f.name.toLowerCase().includes(q) || f.series.toLowerCase().includes(q) || f.types.some(x => x.toLowerCase() === q));
-      $('#pickGrid').innerHTML = list.map(f => `<div class="dex-card" data-pick="${f.id}" style="${used.has(f.id) ? 'opacity:.35;pointer-events:none' : ''}">${badge(f)}<div class="grow"><div class="nm">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')}</div><div class="muted" style="font-size:12px;margin-top:3px">BST ${bst(f)} · ${esc(f.series)}</div></div></div>`).join('');
-      document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
-        const f = S.byId[el.dataset.pick];
-        t.mons[S.editSlot] = newMon(f); save(); closeModal(); renderBuilder();
+      ${pending ? `<section class="card" style="margin-top:14px">
+        <div class="row" style="margin-bottom:10px"><h2 class="grow" style="margin:0">Pick up to ${p.keep} to keep (${S.passSel.size}/${p.keep})</h2><button class="primary" id="btnClaim">Add ${S.passSel.size} to roster</button></div>
+        <p class="muted small" style="margin-top:0">Fighters you don't keep are gone once you claim. Grade = total IVs (S is best).</p>
+        <div class="fgrid">${pending.map(b => fighterCard(b, { sel: S.passSel.has(b.uid), attr: `data-pass="${b.uid}"`, extra: rosterHas(b.species) ? '<div class="muted small">You already own one</div>' : '' })).join('')}</div></section>` : ''}
+      <section class="card" style="margin-top:14px">
+        <h2>Your roster (${S.roster.length})</h2>
+        <p class="muted small" style="margin-top:-6px">Saved in this browser. Use these fighters to build Elite Smash teams.</p>
+        ${S.roster.length ? `<div class="fgrid">${rosterSorted.map(b => fighterCard(b, { extra: `<button class="small ghost" data-release="${b.uid}">Release</button>` })).join('')}</div>` : '<div class="muted">No fighters yet — roll the Fighter Pass!</div>'}
+      </section>`;
+    const r = $('#btnRoll'); if (r) r.onclick = () => socket.emit('pass:roll', {}, res => {
+      if (res.error) return toast(res.error);
+      S.pass = Object.assign({}, S.pass, { pending: res.pending, rollsLeft: res.rollsLeft }); S.passSel = new Set(); renderPass();
+    });
+    $$('[data-pass]').forEach(el => el.onclick = () => {
+      const u = el.dataset.pass;
+      if (S.passSel.has(u)) S.passSel.delete(u); else if (S.passSel.size < p.keep) S.passSel.add(u); else return toast(`You can keep up to ${p.keep}.`);
+      renderPass();
+    });
+    const c = $('#btnClaim'); if (c) c.onclick = () => {
+      if (!S.passSel.size && !confirm('Keep none of these fighters?')) return;
+      socket.emit('pass:claim', { uids: [...S.passSel] }, res => {
+        if (res.error) return toast(res.error);
+        S.roster.push(...res.fighters); saveRoster();
+        S.pass = Object.assign({}, S.pass, { pending: null, rollsLeft: res.rollsLeft }); S.passSel = new Set();
+        toast(`Added ${res.fighters.length} fighter${res.fighters.length === 1 ? '' : 's'} to your roster.`); renderPass();
       });
     };
-    modal(`<div class="row" style="margin-bottom:12px"><h2 class="grow" style="margin:0">Choose a fighter</h2><input id="pickQ" placeholder="Search name, series or type" value="${esc(S.pickerFilter)}"><button id="pickX">Close</button></div><div class="dex-grid" id="pickGrid"></div>`);
-    $('#pickQ').oninput = e => { S.pickerFilter = e.target.value; draw(); }; $('#pickQ').focus(); $('#pickX').onclick = closeModal;
-    draw();
-  }
-  function statsFor(m) { const f = S.byId[m.species]; const o = {}; for (const s of STATS) o[s] = DEX.calcStat(s, f.stats[s], 31, m.evs[s] || 0, 100, m.nature); return o; }
-  function renderMonEditor(t, m) {
-    const f = S.byId[m.species];
-    const abilities = [...f.abilities.map(a => ({ ...a, hidden: false })), { ...f.hidden, hidden: true }];
-    const ab = abilities.find(a => a.name === m.ability) || abilities[0];
-    const nat = S.dex.natures[m.nature] || {};
-    const st = statsFor(m);
-    const evTotal = STATS.reduce((a, s) => a + (m.evs[s] || 0), 0);
-    const items = Object.keys(S.dex.items).filter(i => i !== 'Eviolite' || S.dex.eviolite.includes(f.id));
-    const sigMoves = new Set(f.signature.map(s => s.move));
-    const sigFlav = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
-    const learn = f.learnset.slice().sort((a, b) => (sigMoves.has(b) - sigMoves.has(a)) || S.dex.moves[a].type.localeCompare(S.dex.moves[b].type) || a.localeCompare(b));
-    const moveOpts = sel => `<option value="">—</option>` + learn.map(n => `<option ${n === sel ? 'selected' : ''}>${esc(n)}</option>`).join('');
-    $('#monEditor').innerHTML = `
-      <div class="row" style="margin-bottom:12px">${badge(f, 'lg')}<div class="grow"><div style="font-size:20px;font-weight:700">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')} <span class="muted">· ${esc(f.series)} · BST ${bst(f)}</span></div></div>
-        <button class="small" id="mChange">Change fighter</button><button class="small" id="mRemove">Remove</button></div>
-      <div class="editor">
-        <div>
-          <div class="field"><label>Ability</label><select id="mAb">${abilities.map(a => `<option value="${esc(a.name)}" ${a.name === m.ability ? 'selected' : ''}>${esc(a.name)}${a.hidden ? ' (Hidden)' : ''}</option>`).join('')}</select><div class="desc">${esc(ab.desc)}</div></div>
-          <div class="field" style="margin-top:10px"><label>Item</label><select id="mItem"><option value="">(none)</option>${items.map(i => `<option ${i === m.item ? 'selected' : ''}>${esc(i)}</option>`).join('')}</select><div class="desc">${esc(S.dex.items[m.item] || '')}</div></div>
-          <div class="field" style="margin-top:10px"><label>Moves</label>${[0, 1, 2, 3].map(i => `<select data-mv="${i}" style="width:100%;margin-bottom:5px">${moveOpts(m.moves[i])}</select>`).join('')}</div>
-        </div>
-        <div>
-          <div class="field"><label>Nature</label><select id="mNat">${Object.keys(S.dex.natures).map(n => { const x = S.dex.natures[n]; return `<option value="${n}" ${n === m.nature ? 'selected' : ''}>${n}${x.plus ? ` (+${SL[x.plus]} −${SL[x.minus]})` : ''}</option>`; }).join('')}</select></div>
-          <div class="field" style="margin-top:10px"><label>EVs — ${evTotal}/510 used ${evTotal > 510 ? '<b style="color:var(--bad)">over limit</b>' : ''}</label>
-            ${STATS.map(s => `<div class="ev-row"><span class="${nat.plus === s ? 'plus' : nat.minus === s ? 'minus' : ''}">${SL[s]}</span><input type="range" min="0" max="252" step="4" value="${m.evs[s] || 0}" data-ev="${s}"><input type="number" min="0" max="252" value="${m.evs[s] || 0}" data-evn="${s}"><span class="stat">${st[s]}</span></div>`).join('')}
-            <div class="desc">Level 100, all IVs 31. Base stats: ${STATS.map(s => `${SL[s]} ${f.stats[s]}`).join(' · ')}</div>
-          </div>
-        </div>
-      </div>
-      <h2 style="margin-top:16px">Move pool (${f.learnset.length}) — click to add</h2>
-      <div class="move-table"><table><tr><th>Move</th><th>Type</th><th>Cat</th><th>Pow</th><th>Acc</th><th>PP</th></tr>
-        ${learn.map(n => { const mv = S.dex.moves[n]; return `<tr class="pick ${m.moves.includes(n) ? 'chosen' : ''}" data-addmv="${esc(n)}"><td>${esc(n)}${sigMoves.has(n) ? ` <span class="sig">★ ${esc(sigFlav[n] || 'Smash')}</span>` : ''}</td><td>${typeChip(mv.type)}</td><td><span class="cat">${mv.cat}</span></td><td>${mv.power || '—'}</td><td>${mv.acc === true ? '—' : mv.acc}</td><td>${Math.floor(mv.pp * 8 / 5)}</td></tr>`; }).join('')}
-      </table></div>`;
-    const re = () => { save(); renderMonEditor(t, m); };
-    $('#mChange').onclick = openPicker;
-    $('#mRemove').onclick = () => { t.mons.splice(S.editSlot, 1); S.editSlot = Math.max(0, S.editSlot - 1); save(); renderTeamEditor(); };
-    $('#mAb').onchange = e => { m.ability = e.target.value; re(); };
-    $('#mItem').onchange = e => { m.item = e.target.value; re(); };
-    $('#mNat').onchange = e => { m.nature = e.target.value; re(); };
-    document.querySelectorAll('[data-mv]').forEach(el => el.onchange = () => { const i = +el.dataset.mv; const v = el.value; if (v && m.moves.includes(v) && m.moves[i] !== v) { toast('Already has that move.'); el.value = m.moves[i] || ''; return; } m.moves[i] = v; m.moves = m.moves.filter((x, k) => x || k < 4).slice(0, 4); m.moves = m.moves.map(x => x || ''); re(); });
-    const setEv = (s, v) => { v = Math.max(0, Math.min(252, v | 0)); const others = STATS.reduce((a, k) => a + (k === s ? 0 : (m.evs[k] || 0)), 0); m.evs[s] = Math.min(v, 510 - others); };
-    document.querySelectorAll('[data-ev]').forEach(el => { el.oninput = () => { setEv(el.dataset.ev, +el.value); const n = document.querySelector(`[data-evn="${el.dataset.ev}"]`); n.value = m.evs[el.dataset.ev]; el.value = m.evs[el.dataset.ev]; }; el.onchange = re; });
-    document.querySelectorAll('[data-evn]').forEach(el => el.onchange = () => { setEv(el.dataset.evn, +el.value); re(); });
-    document.querySelectorAll('[data-addmv]').forEach(el => el.onclick = () => {
-      const n = el.dataset.addmv;
-      if (m.moves.includes(n)) { m.moves = m.moves.map(x => x === n ? '' : x); re(); return; }
-      const free = [0, 1, 2, 3].find(i => !m.moves[i]);
-      if (free === undefined) return toast('All 4 move slots are full — pick a slot above or click a chosen move to remove it.');
-      m.moves[free] = n; re();
+    $$('[data-release]').forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      const u = b.dataset.release; const f = F(rosterById(u).species);
+      if (!confirm(`Release ${f.name}? This can't be undone.`)) return;
+      S.roster = S.roster.filter(x => x.uid !== u);
+      for (const t of S.elite) t.mons = t.mons.filter(m => m.uid !== u);
+      saveRoster(); renderPass();
     });
   }
-  function exportTeam(t) {
-    return t.mons.map(m => {
-      const f = S.byId[m.species];
-      const evs = STATS.filter(s => m.evs[s]).map(s => `${m.evs[s]} ${SL[s]}`).join(' / ');
-      return [`${f.name}${m.item ? ' @ ' + m.item : ''}`, `Ability: ${m.ability}`, evs ? `EVs: ${evs}` : '', `${m.nature} Nature`, ...m.moves.filter(Boolean).map(x => `- ${x}`)].filter(Boolean).join('\n');
-    }).join('\n\n');
+  const rosterHas = species => S.roster.some(r => r.species === species);
+  socket.on('connect', () => socket.emit('pass:status', {}, st => { S.pass = st; if (S.tab === 'pass') renderPass(); }));
+
+  // ---------- moves / item editor (shared by Standard build and Elite teams) ----------
+  function setEditor(b, build, idPrefix, usedItems) {
+    const f = F(b.species);
+    const sig = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
+    const learn = f.learnset.slice().sort((x, y) => ((y in sig) - (x in sig)) || S.dex.moves[x].type.localeCompare(S.dex.moves[y].type) || x.localeCompare(y));
+    const items = Object.keys(S.dex.items).filter(i => i !== 'Eviolite' || S.dex.eviolite.includes(f.id));
+    const opt = sel => `<option value="">—</option>` + learn.map(n => { const m = S.dex.moves[n]; return `<option value="${esc(n)}" ${n === sel ? 'selected' : ''}>${esc(n)}${n in sig ? ' ★' : ''} · ${m.type} ${m.cat === 'Status' ? 'Status' : (m.power || '—')}</option>`; }).join('');
+    return `<div class="set-ed" data-set="${idPrefix}">
+      <div class="field"><label>Moves</label>${[0, 1, 2, 3].map(i => `<select data-mv="${i}">${opt(build.moves[i])}</select>`).join('')}</div>
+      <div class="field"><label>Item ${usedItems && build.item && usedItems.get(build.item) > 1 ? '<b style="color:var(--bad)">· duplicate (item clause)</b>' : ''}</label><select data-item><option value="">(none)</option>${items.map(i => `<option ${i === build.item ? 'selected' : ''}>${esc(i)}</option>`).join('')}</select>
+        <div class="desc">${esc(S.dex.items[build.item] || '')}</div></div>
+      <details class="pool"><summary>Move pool (${f.learnset.length})</summary><div class="move-table"><table>${learn.map(n => { const m = S.dex.moves[n]; return `<tr><td>${esc(n)}${n in sig ? ` <span class="sig">★ ${esc(sig[n])}</span>` : ''}</td><td>${typeChip(m.type)}</td><td><span class="cat">${m.cat}</span></td><td>${m.power || '—'}</td><td>${m.acc === true ? '—' : m.acc}</td><td class="muted small">${m.target === 'allFoes' ? 'Both foes' : m.target === 'all' ? 'All others' : ''}</td></tr>`; }).join('')}</table></div></details>
+    </div>`;
   }
-  function parseTeam(txt) {
-    const byName = Object.fromEntries(S.dex.fighters.map(f => [f.name.toLowerCase(), f]));
-    const revSL = Object.fromEntries(Object.entries(SL).map(([k, v]) => [v.toLowerCase(), k]));
-    const mons = [];
-    for (const block of txt.trim().split(/\n\s*\n/)) {
-      const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-      if (!lines.length) continue;
-      const [nm, item] = lines[0].split(' @ ');
-      const f = byName[nm.trim().toLowerCase()];
-      if (!f) return { error: `Unknown fighter: ${nm}` };
-      const m = newMon(f); m.item = item ? item.trim() : ''; m.moves = []; m.evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-      for (const l of lines.slice(1)) {
-        if (l.startsWith('Ability:')) m.ability = l.slice(8).trim();
-        else if (l.startsWith('EVs:')) for (const part of l.slice(4).split('/')) { const [v, s] = part.trim().split(/\s+/); if (revSL[(s || '').toLowerCase()]) m.evs[revSL[s.toLowerCase()]] = +v; }
-        else if (/Nature$/.test(l)) m.nature = l.replace(/Nature$/, '').trim();
-        else if (l.startsWith('-')) m.moves.push(l.slice(1).trim());
-      }
-      mons.push(m);
+  function wireSetEditor(root, build, onChange) {
+    root.querySelectorAll('[data-mv]').forEach(el => el.onchange = () => {
+      const i = +el.dataset.mv; const v = el.value;
+      if (v && build.moves.includes(v) && build.moves[i] !== v) { toast('Already has that move.'); el.value = build.moves[i] || ''; return; }
+      build.moves[i] = v; onChange();
+    });
+    root.querySelector('[data-item]').onchange = e => { build.item = e.target.value; onChange(); };
+  }
+  function itemCounts(builds) { const m = new Map(); for (const b of builds) if (b.item) m.set(b.item, (m.get(b.item) || 0) + 1); return m; }
+
+  // ---------- Elite Teams ----------
+  function renderElite() {
+    if (S.editElite !== null && !S.elite[S.editElite]) S.editElite = null;
+    $('#view').innerHTML = `<div class="tb">
+      <section class="card">
+        <h2>Elite Smash teams</h2>
+        <button class="primary" id="eNew" ${S.roster.length ? '' : 'disabled'}>New team</button>
+        ${S.roster.length ? '' : '<p class="muted small">Roll the Fighter Pass first — teams are built from your roster.</p>'}
+        <div class="list" style="max-height:none;margin-top:10px">${S.elite.map((t, i) => `<div class="team-row ${i === S.editElite ? 'sel' : ''}" data-et="${i}"><div class="row"><b class="grow">${esc(t.name)}</b><span class="pill">${eliteReady(t) ? 'Ready' : t.mons.length + '/6'}</span></div><div class="mini">${t.mons.map(m => rosterById(m.uid) ? badge(F(rosterById(m.uid).species), 'sm') : '').join('')}</div></div>`).join('') || '<div class="muted">No teams yet.</div>'}</div>
+      </section>
+      <section class="card" id="eEditor">${S.editElite === null ? '<div class="muted">Pick a team or make a new one. Each team has 6 fighters from your roster; you choose their moves and items.</div>' : ''}</section></div>`;
+    $('#eNew').onclick = () => { S.elite.push({ name: 'Elite team ' + (S.elite.length + 1), mons: [] }); S.editElite = S.elite.length - 1; S.eliteSlot = 0; saveRoster(); renderElite(); };
+    $$('[data-et]').forEach(el => el.onclick = () => { S.editElite = +el.dataset.et; S.eliteSlot = 0; renderElite(); });
+    if (S.editElite !== null) renderEliteEditor();
+  }
+  function renderEliteEditor() {
+    const t = S.elite[S.editElite];
+    t.mons = t.mons.filter(m => rosterById(m.uid));
+    if (S.eliteSlot > t.mons.length) S.eliteSlot = t.mons.length;
+    const counts = itemCounts(t.mons);
+    const slots = [0, 1, 2, 3, 4, 5].map(i => {
+      const m = t.mons[i];
+      if (!m) return i === t.mons.length ? `<div class="slot" data-eslot="add">＋<span class="muted">Add fighter</span></div>` : `<div class="slot" style="opacity:.3"></div>`;
+      const f = F(rosterById(m.uid).species);
+      return `<div class="slot filled ${i === S.eliteSlot ? 'sel' : ''}" data-eslot="${i}">${badge(f)}<span>${esc(f.name)}</span></div>`;
+    }).join('');
+    const m = t.mons[S.eliteSlot];
+    $('#eEditor').innerHTML = `
+      <div class="row"><input id="eName" class="grow" value="${esc(t.name)}" maxlength="40"><button class="small" id="eDup">Duplicate</button><button class="small" id="eDel">Delete</button></div>
+      <div class="slots">${slots}</div>
+      ${[...counts.values()].some(c => c > 1) ? '<p class="small" style="color:var(--bad)">Item clause: each item can only be used once per team.</p>' : ''}
+      ${m ? `<div class="editor"><div>${fighterCard(rosterById(m.uid))}<div class="row" style="margin-top:8px"><button class="small" id="eSwap">Swap fighter</button><button class="small" id="eRemove">Remove</button></div></div><div id="eSet">${setEditor(rosterById(m.uid), m, 'elite', counts)}</div></div>` : ''}`;
+    $('#eName').oninput = e => { t.name = e.target.value; saveRoster(); };
+    $('#eDup').onclick = () => { S.elite.push(JSON.parse(JSON.stringify(Object.assign({}, t, { name: t.name + ' (copy)' })))); S.editElite = S.elite.length - 1; saveRoster(); renderElite(); };
+    $('#eDel').onclick = () => { if (!confirm(`Delete "${t.name}"?`)) return; S.elite.splice(S.editElite, 1); S.editElite = null; S.selElite = 0; saveRoster(); renderElite(); };
+    $$('[data-eslot]').forEach(el => el.onclick = () => { if (el.dataset.eslot === 'add') { S.eliteSlot = t.mons.length; pickFromRoster(t, null); } else { S.eliteSlot = +el.dataset.eslot; renderEliteEditor(); } });
+    if (m) {
+      wireSetEditor($('#eSet'), m, () => { saveRoster(); renderEliteEditor(); });
+      $('#eSwap').onclick = () => pickFromRoster(t, S.eliteSlot);
+      $('#eRemove').onclick = () => { t.mons.splice(S.eliteSlot, 1); S.eliteSlot = Math.max(0, S.eliteSlot - 1); saveRoster(); renderElite(); };
     }
-    if (!mons.length || mons.length > 6) return { error: 'A team needs 1 to 6 fighters.' };
-    return { mons };
+  }
+  function pickFromRoster(t, slot) {
+    const takenSpecies = new Set(t.mons.filter((_, i) => i !== slot).map(m => rosterById(m.uid).species));
+    const avail = S.roster.filter(r => !takenSpecies.has(r.species));
+    if (!avail.length) return toast('No more roster fighters available (one of each fighter per team).');
+    modal(`<div class="row" style="margin-bottom:10px"><h2 class="grow" style="margin:0">Choose from your roster</h2><button id="rpX">Close</button></div>
+      <div class="fgrid">${avail.map(b => fighterCard(b, { attr: `data-rp="${b.uid}"` })).join('')}</div>`);
+    $('#rpX').onclick = closeModal;
+    $$('[data-rp]').forEach(el => el.onclick = () => {
+      const b = rosterById(el.dataset.rp); const f = F(b.species);
+      const entry = { uid: b.uid, moves: f.signature.map(s => s.move), item: '' };
+      if (slot === null) t.mons.push(entry); else t.mons[slot] = entry;
+      saveRoster(); closeModal(); renderElite();
+    });
   }
 
-  // ---------- fighterdex ----------
+  // ---------- Fighterdex ----------
   function renderDex() {
     const q = S.dexFilter.toLowerCase();
     const list = S.dex.fighters.filter(f => !q || f.name.toLowerCase().includes(q) || f.series.toLowerCase().includes(q) || f.types.some(x => x.toLowerCase() === q) || f.learnset.some(x => x.toLowerCase() === q));
-    const max = 160;
-    $('#view').innerHTML = `<section class="card"><div class="row" style="margin-bottom:12px"><h2 class="grow" style="margin:0">Fighterdex · ${list.length} fighters</h2><input id="dexQ" placeholder="Search name, series, type or move" value="${esc(S.dexFilter)}"></div>
-      <div class="dex-grid">${list.map(f => `<div class="dex-card" data-dex="${f.id}" style="flex-direction:column"><div class="row">${badge(f)}<div class="grow"><div class="nm">#${f.num} ${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')}</div></div><span class="pill">BST ${bst(f)}</span></div>
-        <div class="statbars">${STATS.map(s => `<span class="muted">${SL[s]}</span><span style="font-family:var(--mono)">${f.stats[s]}</span><div class="statbar"><i style="width:${Math.min(100, f.stats[s] / max * 100)}%;background:${f.stats[s] >= 110 ? 'var(--good)' : f.stats[s] >= 80 ? 'var(--warn)' : 'var(--bad)'}"></i></div>`).join('')}</div></div>`).join('')}</div></section>`;
+    $('#view').innerHTML = `<section class="card"><div class="row" style="margin-bottom:12px"><h2 class="grow" style="margin:0">Fighterdex · ${list.length}</h2><input id="dexQ" placeholder="Search name, series, type or move" value="${esc(S.dexFilter)}"></div>
+      <div class="dex-grid">${list.map(f => `<div class="dex-card" data-dex="${f.id}" style="flex-direction:column"><div class="row">${badge(f)}<div class="grow"><div class="nm">#${f.num} ${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')}</div></div><span class="pill">BST ${STATS.reduce((a, s) => a + f.stats[s], 0)}</span></div>
+        <div class="statbars">${STATS.map(s => `<span class="muted">${SL[s]}</span><span style="font-family:var(--mono)">${f.stats[s]}</span><div class="statbar"><i style="width:${Math.min(100, f.stats[s] / 1.6)}%;background:${f.stats[s] >= 110 ? 'var(--good)' : f.stats[s] >= 80 ? 'var(--warn)' : 'var(--bad)'}"></i></div>`).join('')}</div></div>`).join('')}</div></section>`;
     const inp = $('#dexQ'); inp.oninput = e => { S.dexFilter = e.target.value; const pos = inp.selectionStart; renderDex(); const n = $('#dexQ'); n.focus(); n.setSelectionRange(pos, pos); };
-    document.querySelectorAll('[data-dex]').forEach(el => el.onclick = () => showFighter(S.byId[el.dataset.dex]));
+    $$('[data-dex]').forEach(el => el.onclick = () => showFighter(F(el.dataset.dex)));
   }
   function showFighter(f) {
     const sig = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
     modal(`<div class="row" style="margin-bottom:10px">${badge(f, 'lg')}<div class="grow"><div style="font-size:22px;font-weight:800">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')} <span class="muted">· ${esc(f.series)}</span></div></div><button id="fx">Close</button></div>
-      <div class="statbars" style="max-width:420px">${STATS.map(s => `<span class="muted">${SL[s]}</span><span style="font-family:var(--mono)">${f.stats[s]}</span><div class="statbar"><i style="width:${Math.min(100, f.stats[s] / 1.6)}%;background:var(--accent2)"></i></div>`).join('')}</div>
-      <h2 style="margin-top:14px">Abilities</h2>
-      ${f.abilities.map(a => `<div><b>${esc(a.name)}</b> — <span class="muted">${esc(a.desc)}</span></div>`).join('')}
+      <h2>Abilities</h2>${f.abilities.map(a => `<div><b>${esc(a.name)}</b> — <span class="muted">${esc(a.desc)}</span></div>`).join('')}
       <div><b>${esc(f.hidden.name)}</b> <span class="pill">Hidden</span> — <span class="muted">${esc(f.hidden.desc)}</span></div>
       <h2 style="margin-top:14px">Move pool</h2>
-      <div class="move-table"><table><tr><th>Move</th><th>Type</th><th>Cat</th><th>Pow</th><th>Acc</th></tr>${f.learnset.map(n => { const mv = S.dex.moves[n]; return `<tr><td>${esc(n)}${sig[n] !== undefined ? ` <span class="sig">★ ${esc(sig[n])}</span>` : ''}</td><td>${typeChip(mv.type)}</td><td><span class="cat">${mv.cat}</span></td><td>${mv.power || '—'}</td><td>${mv.acc === true ? '—' : mv.acc}</td></tr>`; }).join('')}</table></div>`);
+      <div class="move-table"><table><tr><th>Move</th><th>Type</th><th>Cat</th><th>Pow</th><th>Acc</th></tr>${f.learnset.map(n => { const mv = S.dex.moves[n]; return `<tr><td>${esc(n)}${n in sig ? ` <span class="sig">★ ${esc(sig[n])}</span>` : ''}</td><td>${typeChip(mv.type)}</td><td><span class="cat">${mv.cat}</span></td><td>${mv.power || '—'}</td><td>${mv.acc === true ? '—' : mv.acc}</td></tr>`; }).join('')}</table></div>`);
     $('#fx').onclick = closeModal;
   }
 
+  // ---------- match screens ----------
+  function matchHeader(m) {
+    return `<div class="row" style="margin-bottom:10px"><b class="grow">${esc(m.players[0].name)} vs ${esc(m.players[1].name)}</b><span class="pill">${esc(label(m.mode, m.format))}</span>${m.phase !== 'ended' && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>`;
+  }
+  function steps(m) {
+    const list = m.mode === 'standard' ? [['draft', 'Draft 6'], ['build', 'Moves & items'], ['preview', `Pick ${m.bring}`], ['battle', 'Battle']] : [['preview', `Pick ${m.bring}`], ['battle', 'Battle']];
+    const idx = list.findIndex(x => x[0] === m.phase);
+    return `<div class="steps">${list.map(([k, n], i) => `<span class="${i < idx || m.phase === 'ended' ? 'done' : i === idx ? 'cur' : ''}">${i + 1}. ${n}</span>`).join('')}</div>`;
+  }
+  function waitingNote(m) {
+    const foe = m.players[1 - m.you];
+    return `<div class="row"><span class="muted grow">Waiting for ${esc(foe.name)}…</span></div>`;
+  }
+  function renderMatch(id) {
+    const m = S.matches[id]; if (!m) return;
+    delete S.unread[id];
+    if (m.battle) return renderBattle(id);
+    let body = '';
+    const me = m.you !== null ? m.players[m.you] : null;
+    if (m.phase === 'ended') body = `<div class="banner ${m.result === m.you ? '' : 'lose'}"><span>${m.result === null ? 'Match ended.' : esc(m.players[m.result].name) + ' won!'}</span><button id="mBack">Back to lobby</button></div><div class="log" style="height:auto;margin-top:10px">${(m.log || []).map(l => `<div class="${l.cls}">${esc(l.text)}</div>`).join('')}</div>`;
+    else if (m.you === null) body = `<div class="muted">The players are preparing their teams…</div>`;
+    else if (me.ready) body = waitingNote(m);
+    else if (m.phase === 'draft') body = draftView(m);
+    else if (m.phase === 'build') body = buildView(m);
+    else if (m.phase === 'preview') body = previewView(m);
+    $('#view').innerHTML = `<section class="card">${matchHeader(m)}${steps(m)}${body}</section>`;
+    wireMatch(m);
+  }
+  function wireMatch(m) {
+    const id = m.id;
+    const fo = $('#mForfeit'); if (fo) fo.onclick = () => { if (confirm('Forfeit this match?')) act(id, { type: 'forfeit' }); };
+    const bb = $('#mBack'); if (bb) bb.onclick = () => { S.tab = 'home'; render(); };
+    if (m.phase === 'draft' && m.pool) {
+      const sel = S.draft[id] = S.draft[id] || [];
+      $$('[data-draft]').forEach(el => el.onclick = () => {
+        const i = +el.dataset.draft; const k = sel.indexOf(i);
+        if (k >= 0) sel.splice(k, 1); else if (sel.length < 6) sel.push(i); else return toast('You already picked 6.');
+        renderMatch(id);
+      });
+      const c = $('#draftOk'); if (c) c.onclick = () => act(id, { type: 'draft', picks: sel });
+    }
+    if (m.phase === 'build' && m.picks) {
+      const builds = S.builds[id];
+      $$('[data-buildslot]').forEach(root => { const i = +root.dataset.buildslot; wireSetEditor(root, builds[i], () => renderMatch(id)); });
+      const c = $('#buildOk'); if (c) c.onclick = () => act(id, { type: 'build', builds: builds.map(b => ({ moves: b.moves.filter(Boolean), item: b.item })) });
+    }
+    if (m.phase === 'preview' && m.myTeam) {
+      const order = S.lineups[id] = S.lineups[id] || [];
+      $$('[data-line]').forEach(el => el.onclick = () => {
+        const i = +el.dataset.line; const k = order.indexOf(i);
+        if (k >= 0) order.splice(k, 1); else if (order.length < m.bring) order.push(i); else return toast(`You can only bring ${m.bring}.`);
+        renderMatch(id);
+      });
+      const c = $('#lineOk'); if (c) c.onclick = () => act(id, { type: 'lineup', order });
+    }
+  }
+  function draftView(m) {
+    const sel = S.draft[m.id] = S.draft[m.id] || [];
+    return `<div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">Choose 6 of these 20 (${sel.length}/6)</h2><button class="primary" id="draftOk" ${sel.length === 6 ? '' : 'disabled'}>Lock in team</button></div>
+      <p class="muted small" style="margin-top:0">Natures, IVs and abilities are random. Stats shown are at level 50. Your opponent drafts from their own 20.</p>
+      <div class="fgrid">${m.pool.map((b, i) => fighterCard(b, { sel: sel.includes(i), order: sel.includes(i) ? sel.indexOf(i) + 1 : null, attr: `data-draft="${i}"` })).join('')}</div>`;
+  }
+  function buildView(m) {
+    if (!S.builds[m.id]) S.builds[m.id] = m.picks.map(b => ({ moves: F(b.species).signature.map(s => s.move), item: '' }));
+    const builds = S.builds[m.id]; const counts = itemCounts(builds);
+    const bad = [...counts.values()].some(c => c > 1) || builds.some(b => !b.moves.filter(Boolean).length);
+    return `<div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">Set moves and items</h2><button class="primary" id="buildOk" ${bad ? 'disabled' : ''}>Lock in sets</button></div>
+      <p class="muted small" style="margin-top:0">Each fighter starts with its 4 Smash moves (★). One of each item per team.</p>
+      <div class="build-grid">${m.picks.map((b, i) => `<div class="build-card" data-buildslot="${i}">${fighterCard(b)}${setEditor(b, builds[i], 'b' + i, counts)}</div>`).join('')}</div>`;
+  }
+  function previewView(m) {
+    const order = S.lineups[m.id] = S.lineups[m.id] || [];
+    const lead = m.format === 'doubles' ? 2 : 1;
+    return `<div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">Teams revealed — pick ${m.bring} in order (${order.length}/${m.bring})</h2><button class="primary" id="lineOk" ${order.length === m.bring ? '' : 'disabled'}>Lock in lineup</button></div>
+      <p class="muted small" style="margin-top:0">Your first ${lead === 2 ? 'two lead' : 'pick leads'}; the rest wait in the back. Your opponent can't see your choice.</p>
+      <div class="preview"><div><h2>Your team</h2><div class="fgrid one">${m.myTeam.map((s, i) => {
+        const k = order.indexOf(i);
+        return fighterCard(s, { sel: k >= 0, order: k >= 0 ? (k < lead ? 'Lead ' + (k + 1) : k + 1) : null, attr: `data-line="${i}"`, extra: `<div class="small">${s.moves.map(x => `<span class="chip">${esc(x)}</span>`).join(' ')}${s.item ? ` <span class="chip up">${esc(s.item)}</span>` : ''}</div>` });
+      }).join('')}</div></div>
+      <div><h2>${esc(m.players[1 - m.you].name)}'s team</h2>${m.foeTeam.map(s => `<div class="list-item" style="margin-bottom:6px">${badge(F(s.species), 'sm')}<span class="grow">${esc(s.name)}</span>${s.types.map(typeChip).join(' ')}</div>`).join('')}</div></div>`;
+  }
+
   // ---------- battle ----------
-  function combatantHtml(side, isFoe, p) {
-    const a = side.active;
-    const pips = side.team.map(m => `<span class="pip ${m.fainted ? 'fainted' : m.status ? 'status' : ''}" title="${esc(m.name)}"></span>`).join('');
-    if (!a) return `<div class="combatant ${isFoe ? 'foe' : 'you'}"><div class="hpcard"><div class="nm">${esc(side.name)}</div><div class="pips">${pips}</div></div></div>`;
-    const f = S.byId[a.id] || { name: a.name, types: a.types };
-    const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
-    const vols = (a.volatiles || []).map(v => `<span class="chip">${{ substitute: 'Substitute', confusion: 'Confused', leechSeed: 'Seeded', taunt: 'Taunted', encore: 'Encore', trapped: 'Trapped', ingrain: 'Ingrained', charging: 'Charging', attract: 'Infatuated' }[v] || v}</span>`).join('');
-    const hpText = a.hp !== undefined ? `${a.hp}/${a.maxhp} HP` : `${a.hpPct}%`;
-    return `<div class="combatant ${isFoe ? 'foe' : 'you'}">${badge({ name: a.name, types: a.types }, 'lg' + (a.fainted ? ' fainted' : ''))}
-      <div class="hpcard"><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
-        <div class="chips">${a.types.map(typeChip).join('')}</div>
-        <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
-        <div class="hptext">${hpText} · ${esc(side.name)}</div>
-        <div class="chips">${boosts}${vols}</div>
-        <div class="pips">${pips}</div></div></div>`;
+  function sideHtml(side, isFoe, b) {
+    const st = b.state;
+    const brought = side.brought;
+    const pips = [...Array(brought)].map((_, i) => { const m = side.team[i]; return `<span class="pip ${m ? (m.fainted ? 'fainted' : m.status ? 'status' : '') : 'unknown'}" title="${m ? esc(m.name) : 'Not revealed'}"></span>`; }).join('');
+    const mons = side.active.map((a, pos) => {
+      if (!a) return `<div class="combatant empty"></div>`;
+      const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
+      const vols = (a.volatiles || []).map(v => `<span class="chip">${{ substitute: 'Substitute', confusion: 'Confused', leechSeed: 'Seeded', taunt: 'Taunted', encore: 'Encore', trapped: 'Trapped', ingrain: 'Ingrained', charging: 'Charging', attract: 'Infatuated' }[v] || v}</span>`).join('');
+      return `<div class="combatant ${isFoe ? 'foe' : 'you'}">${badge({ name: a.name, types: a.types }, 'lg' + (a.fainted ? ' fainted' : ''))}
+        <div class="hpcard"><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
+          <div class="chips">${a.types.map(typeChip).join('')}</div>
+          <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
+          <div class="hptext">${a.hp !== undefined ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</div>
+          <div class="chips">${boosts}${vols}</div></div></div>`;
+    }).join('');
+    return `<div class="sidewrap ${isFoe ? 'foe' : 'you'}"><div class="sidelabel">${esc(side.name)} <span class="pips">${pips}</span></div><div class="actives n${side.active.length}">${mons}</div></div>`;
   }
   function fieldChips(st) {
     const c = [];
@@ -363,72 +480,116 @@
     }
     return c.map(x => `<span class="chip">${x}</span>`).join('');
   }
-  function renderBattle(id) {
-    const p = S.battles[id]; if (!p) return;
-    delete S.unread[id];
-    const st = p.state; const you = p.you === null ? 0 : p.you;
-    const mine = st.sides[you], foe = st.sides[1 - you];
-    const logEl = $('#blog'); const atBottom = !logEl || logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
-    let controls = '';
-    const r = p.request;
-    if (st.ended) {
-      const won = st.winner === p.you;
-      controls = `<div class="banner ${p.you !== null && !won ? 'lose' : ''}"><span>${st.winner === null ? 'Tie game!' : `${esc(st.sides[st.winner].name)} won!`}</span><button id="bBack">Back to lobby</button></div>`;
-    } else if (p.you === null) controls = `<div class="muted">You are spectating.</div>`;
-    else if (r.kind === 'preview') {
-      controls = `<div class="preview"><div><h2>Choose your lead</h2>${r.team.map((m, i) => `<button class="lead-btn" data-lead="${i}">${badge(S.byId[m.id], 'sm')}<span class="grow">${esc(m.name)}</span>${m.types.map(typeChip).join(' ')}</button>`).join('')}</div>
-        <div><h2>${esc(foe.name)}'s team</h2>${foe.team.map(m => `<div class="list-item" style="margin-bottom:6px">${badge(S.byId[m.id], 'sm')}<span class="grow">${esc(m.name)}</span>${m.types.map(typeChip).join(' ')}</div>`).join('')}</div></div>`;
-    } else if (r.kind === 'move') {
-      const moveBtns = r.locked ? `<button class="move-btn primary" data-move="0" style="grid-column:span 2"><span class="mn">Continue: ${esc(r.locked)}</span></button>`
-        : r.struggle ? `<button class="move-btn" data-move="0" style="grid-column:span 2"><span class="mn">Struggle</span></button>`
-          : r.moves.map(m => `<button class="move-btn" data-move="${m.index}" style="--tc:var(--t-${m.type})" ${m.disabled ? 'disabled' : ''} title="${esc(moveTip(m.name))}"><span class="mn">${esc(m.name)}</span><span class="mi">${m.type} · ${m.cat === 'Status' ? 'Status' : (m.power || '—') + ' BP'} · ${m.pp}/${m.maxpp} PP</span></button>`).join('');
-      controls = `<div class="moves">${moveBtns}</div><h2 style="margin-top:12px">Switch ${r.canSwitch ? '' : '<span class="pill">trapped</span>'}</h2><div class="switches">${switchBtns(r, !r.canSwitch)}</div>`;
-    } else if (r.kind === 'switch') {
-      controls = `<h2>${r.reason === 'faint' ? 'Choose your next fighter' : 'Choose a fighter to switch in'}</h2><div class="switches">${switchBtns(r, false)}</div>`;
-    } else if (r.kind === 'wait') {
-      controls = `<div class="row"><span class="muted grow">Waiting for ${esc(foe.name)}…</span>${st.phase === 'move' ? '<button class="small" id="bUndo">Undo</button>' : ''}</div>`;
+  function moveTip(n) { const m = S.dex.moves[n]; return `${n} — ${m.type} ${m.cat}${m.power ? ', ' + m.power + ' BP' : ''}${m.acc === true ? '' : ', ' + m.acc + '% acc'}${m.prio ? ', priority ' + (m.prio > 0 ? '+' : '') + m.prio : ''}${m.target === 'allFoes' ? ', hits both foes' : m.target === 'all' ? ', hits everyone else' : ''}`; }
+
+  function battleControls(m) {
+    const b = m.battle; const r = b.request; const st = b.state; const you = m.you;
+    if (st.ended) { const won = st.winner === you; return `<div class="banner ${you !== null && !won ? 'lose' : ''}"><span>${st.winner === null ? 'Tie game!' : esc(st.sides[st.winner].name) + ' won!'}</span><button id="mBack">Back to lobby</button></div>`; }
+    if (you === null) return '<div class="muted">You are spectating.</div>';
+    if (r.kind === 'wait') return `<div class="row"><span class="muted grow">Waiting for ${esc(st.sides[1 - you].name)}…</span>${r.canUndo ? '<button class="small" id="bUndo">Undo</button>' : ''}</div>`;
+    const T = S.turn[m.id] = S.turn[m.id] || { step: 0, actions: [], targeting: null, switches: [] };
+    if (r.kind === 'switch') {
+      const pos = r.slots[T.switches.length];
+      const taken = new Set(T.switches.map(s => s.index));
+      return `<h2>${r.reason === 'faint' ? 'Send in a fighter' : 'Choose a fighter to switch in'}${r.slots.length > 1 ? ` (slot ${T.switches.length + 1} of ${r.slots.length})` : ''}</h2>
+        <div class="switches">${switchBtns(r.team, m => m.fainted || m.pos >= 0 || taken.has(m.index), 'data-sw')}</div>
+        ${T.switches.length ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
     }
+    // move request: step through each active slot
+    const slots = r.actives.filter(Boolean);
+    const cur = slots[T.step];
+    const foeSide = st.sides[1 - you]; const mySide = st.sides[you];
+    if (T.targeting) {
+      const mv = cur.moves[T.targeting.index];
+      const opts = [];
+      foeSide.active.forEach((a, p) => { if (a && !a.fainted) opts.push({ side: 1 - you, pos: p, name: a.name, foe: true }); });
+      mySide.active.forEach((a, p) => { if (a && !a.fainted && p !== cur.pos) opts.push({ side: you, pos: p, name: a.name, foe: false }); });
+      return `<h2>${esc(mv.name)}: choose a target</h2><div class="targets">${opts.map(o => `<button class="${o.foe ? 'primary' : ''}" data-tgt="${o.side}:${o.pos}">${o.foe ? 'Foe' : 'Ally'}: ${esc(o.name)}</button>`).join('')}</div><button class="small" id="tBack" style="margin-top:8px">Back</button>`;
+    }
+    const taken = new Set(T.actions.filter(a => a.type === 'switch').map(a => a.index));
+    const moveBtns = cur.locked ? `<button class="move-btn" data-move="0" style="grid-column:span 2"><span class="mn">Continue: ${esc(cur.locked)}</span></button>`
+      : cur.struggle ? `<button class="move-btn" data-move="0" style="grid-column:span 2"><span class="mn">Struggle</span></button>`
+        : cur.moves.map(mv => `<button class="move-btn" data-move="${mv.index}" style="--tc:var(--t-${mv.type})" ${mv.disabled ? 'disabled' : ''} title="${esc(moveTip(mv.name))}"><span class="mn">${esc(mv.name)}</span><span class="mi">${mv.type} · ${mv.cat === 'Status' ? 'Status' : (mv.power || '—') + ' BP'} · ${mv.pp}/${mv.maxpp}${mv.target === 'allFoes' ? ' · spread' : mv.target === 'all' ? ' · hits all' : ''}</span></button>`).join('');
+    return `<h2>What will ${esc(cur.name)} do?${slots.length > 1 ? ` <span class="pill">${T.step + 1}/${slots.length}</span>` : ''}</h2>
+      <div class="moves">${moveBtns}</div>
+      <h2 style="margin-top:12px">Switch ${cur.canSwitch ? '' : '<span class="pill">can\'t switch</span>'}</h2>
+      <div class="switches">${switchBtns(r.team, mm => !cur.canSwitch || mm.fainted || mm.pos >= 0 || taken.has(mm.index), 'data-sw')}</div>
+      ${T.step > 0 ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
+  }
+  function switchBtns(team, disabled, attr) {
+    return team.map(mm => `<button class="sw-btn" ${attr}="${mm.index}" ${disabled(mm) ? 'disabled' : ''} title="${esc(`${mm.name} — ${mm.hp}/${mm.maxhp} HP · ${mm.ability}${mm.item ? ' · ' + mm.item : ''}\n${(mm.moves || []).map(x => x.name).join(', ')}`)}">${badge(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''))}<span class="grow">${esc(mm.name)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button>`).join('');
+  }
+  function renderBattle(id) {
+    const m = S.matches[id]; const b = m.battle; const st = b.state;
+    const you = m.you === null ? 0 : m.you;
+    const logEl = $('#blog'); const atBottom = !logEl || logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
     $('#view').innerHTML = `<div class="battle">
       <section>
-        <div class="row" style="margin-bottom:8px"><b class="grow">${esc(st.sides[0].name)} vs ${esc(st.sides[1].name)}</b><span class="pill">Turn ${st.turn}</span>${!st.ended && p.you !== null ? '<button class="small" id="bForfeit">Forfeit</button>' : ''}</div>
-        <div class="arena ${st.field.weather ? 'weather-' + st.field.weather : ''}">
-          ${combatantHtml(foe, true, p)}
+        <div class="row" style="margin-bottom:8px"><b class="grow">${esc(st.sides[0].name)} vs ${esc(st.sides[1].name)}</b><span class="pill">${esc(label(m.mode, m.format))}</span><span class="pill">Turn ${st.turn}</span>${!st.ended && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>
+        <div class="arena ${st.field.weather ? 'weather-' + st.field.weather : ''} ${m.format}">
+          ${sideHtml(st.sides[1 - you], true, b)}
           <div class="fieldinfo">${fieldChips(st)}</div>
-          ${combatantHtml(mine, false, p)}
+          ${sideHtml(st.sides[you], false, b)}
         </div>
-        <div class="controls card">${controls}</div>
+        <div class="controls card">${battleControls(m)}</div>
       </section>
       <section>
-        <div class="log" id="blog">${renderLog(p)}</div>
+        <div class="log" id="blog">${b.log.map(l => `<div class="${l.cls === 'chat' ? 'chatline' : l.cls}">${esc(l.text)}</div>`).join('')}</div>
         <div class="row" style="margin-top:8px"><input id="bChat" class="grow" maxlength="300" placeholder="Chat…"><button id="bSend">Send</button></div>
       </section></div>`;
     const lg = $('#blog'); if (atBottom) lg.scrollTop = lg.scrollHeight;
-    const choose = c => socket.emit('choose', { id, choice: c }, res => { if (res && res.error) toast(res.error); });
-    document.querySelectorAll('[data-lead]').forEach(b => b.onclick = () => choose({ lead: +b.dataset.lead }));
-    document.querySelectorAll('[data-move]').forEach(b => b.onclick = () => choose({ type: 'move', index: +b.dataset.move }));
-    document.querySelectorAll('[data-switch]').forEach(b => b.onclick = () => choose(r.kind === 'switch' ? { index: +b.dataset.switch } : { type: 'switch', index: +b.dataset.switch }));
-    const u = $('#bUndo'); if (u) u.onclick = () => socket.emit('undo', { id });
-    const fo = $('#bForfeit'); if (fo) fo.onclick = () => { if (confirm('Forfeit this battle?')) socket.emit('forfeit', { id }); };
-    const bb = $('#bBack'); if (bb) bb.onclick = () => { S.tab = 'home'; render(); };
+    wireBattle(m);
+  }
+  function wireBattle(m) {
+    const id = m.id; const r = m.battle.request; const st = m.battle.state;
+    const fo = $('#mForfeit'); if (fo) fo.onclick = () => { if (confirm('Forfeit this match?')) act(id, { type: 'forfeit' }); };
+    const bb = $('#mBack'); if (bb) bb.onclick = () => { S.tab = 'home'; render(); };
     const send = () => { const v = $('#bChat').value.trim(); if (v) { socket.emit('chat', { room: id, text: v }); $('#bChat').value = ''; } };
     $('#bSend').onclick = send; $('#bChat').onkeydown = e => { if (e.key === 'Enter') send(); };
-  }
-  function switchBtns(r, disabledAll) {
-    return r.team.map(m => {
-      const dis = disabledAll || m.fainted || m.active;
-      return `<button class="sw-btn" data-switch="${m.index}" ${dis ? 'disabled' : ''} title="${esc(monTip(m))}">${badge(S.byId[m.id], 'sm' + (m.fainted ? ' fainted' : ''))}<span class="grow">${esc(m.name)}${m.status ? ` <span class="st st-${m.status}">${STATUSL[m.status]}</span>` : ''}<div class="mini-hp"><i style="width:${m.hpPct}%;background:${hpColor(m.hpPct)}"></i></div></span></button>`;
-    }).join('');
-  }
-  function moveTip(n) { const m = S.dex.moves[n]; return `${n} — ${m.type} ${m.cat}${m.power ? ', ' + m.power + ' BP' : ''}${m.acc === true ? '' : ', ' + m.acc + '% acc'}${m.prio ? ', priority ' + (m.prio > 0 ? '+' : '') + m.prio : ''}`; }
-  function monTip(m) { return `${m.name} — ${m.hp}/${m.maxhp} HP · ${m.ability}${m.item ? ' · ' + m.item : ''}\n${(m.moves || []).map(x => x.name + ` (${x.pp}/${x.maxpp})`).join(', ')}`; }
-  function renderLog(p) {
-    return p.log.map(l => l.cls === 'chat' ? `<div class="chatline">${esc(l.text)}</div>` : `<div class="${l.cls}">${esc(l.text)}</div>`).join('');
+    const u = $('#bUndo'); if (u) u.onclick = () => { delete S.turn[id]; act(id, { type: 'undo' }); };
+    if (!r || m.you === null) return;
+    const T = S.turn[id];
+    const rerender = () => renderBattle(id);
+    const back = $('#tBack');
+    if (r.kind === 'switch') {
+      if (back) back.onclick = () => { T.switches.pop(); rerender(); };
+      $$('[data-sw]').forEach(el => el.onclick = () => {
+        T.switches.push({ pos: r.slots[T.switches.length], index: +el.dataset.sw });
+        if (T.switches.length === r.slots.length) { const sw = T.switches; delete S.turn[id]; act(id, { type: 'choose', choice: { switches: sw } }); }
+        else rerender();
+      });
+      return;
+    }
+    if (r.kind !== 'move') return;
+    const slots = r.actives.filter(Boolean);
+    const cur = slots[T.step];
+    const finish = () => {
+      if (T.step + 1 < slots.length) { T.step++; T.targeting = null; rerender(); return; }
+      const actions = T.actions; delete S.turn[id];
+      act(id, { type: 'choose', choice: { actions } });
+    };
+    if (back) back.onclick = () => { if (T.targeting) T.targeting = null; else { T.step--; T.actions.pop(); } rerender(); };
+    $$('[data-tgt]').forEach(el => el.onclick = () => {
+      const [side, pos] = el.dataset.tgt.split(':').map(Number);
+      T.actions.push({ pos: cur.pos, type: 'move', index: T.targeting.index, target: { side, pos } });
+      finish();
+    });
+    $$('[data-move]').forEach(el => el.onclick = () => {
+      const i = +el.dataset.move;
+      const mv = cur.moves[i];
+      const needsTarget = !cur.locked && !cur.struggle && mv && mv.target === 'normal' && m.format === 'doubles' && st.sides.reduce((a, s) => a + s.active.filter(x => x && !x.fainted).length, 0) > 2;
+      if (needsTarget) { T.targeting = { index: i }; rerender(); return; }
+      const foe = st.sides[1 - m.you].active.findIndex(x => x && !x.fainted);
+      T.actions.push({ pos: cur.pos, type: 'move', index: i, target: foe >= 0 ? { side: 1 - m.you, pos: foe } : undefined });
+      finish();
+    });
+    $$('[data-sw]').forEach(el => el.onclick = () => { T.actions.push({ pos: cur.pos, type: 'switch', index: +el.dataset.sw }); finish(); });
   }
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {
     S.dex = d; S.byId = Object.fromEntries(d.fighters.map(f => [f.id, f]));
-    if (!S.teams.length) S.teams.push({ name: 'Starter team', mons: ['mario', 'link', 'pikachu', 'samus', 'kirby', 'fox'].map(id => newMon(S.byId[id])) }), save();
+    S.roster = S.roster.filter(r => S.byId[r.species]);
     render();
   });
 })();

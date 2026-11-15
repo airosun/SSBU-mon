@@ -1,38 +1,47 @@
-// Runs many CPU vs CPU battles to catch engine crashes and infinite loops.
-// Usage: node test/simulate.js [battles]
+// Fuzz test: full Standard matches (draft -> build -> lineup -> battle) between two CPU players,
+// in singles and doubles. Catches engine crashes, rejected choices and stuck battles.
+// Usage: node test/simulate.js [matches per format]
 const { Battle } = require('../server/engine/battle.js');
-const { chooseAction, randomTeam } = require('../server/engine/ai.js');
-const { validateTeam } = require('../server/engine/validate.js');
+const { rollPool } = require('../server/engine/roster.js');
+const { validateStandardBuild } = require('../server/engine/validate.js');
+const AI = require('../server/engine/ai.js');
 
-const N = +process.argv[2] || 500;
-let turns = 0, wins = [0, 0, 0], maxTurns = 0;
-for (let n = 0; n < N; n++) {
-  const teams = [randomTeam(), randomTeam()].map(t => { const v = validateTeam(t); if (!v.ok) throw new Error(v.errors.join('; ')); return v.team; });
-  const b = new Battle({ players: [{ name: 'P1', team: teams[0] }, { name: 'P2', team: teams[1] }] });
+const N = +process.argv[2] || 200;
+function runOne(format) {
+  const bring = format === 'doubles' ? 4 : 3;
+  const teams = [0, 1].map(() => {
+    const pool = rollPool(20);
+    const bases = AI.draftSix(pool).map(i => pool[i]);
+    const v = validateStandardBuild(bases, AI.buildTeam(bases, format === 'doubles'));
+    if (!v.ok) throw new Error('CPU build rejected: ' + v.errors.join('; '));
+    return v.team;
+  });
+  const lineups = [0, 1].map(n => AI.chooseLineup(teams[n], teams[1 - n], bring).map(i => teams[n][i]));
+  const b = new Battle({ format, players: [{ name: 'P1', team: lineups[0] }, { name: 'P2', team: lineups[1] }] });
   let steps = 0;
-  try {
-    while (!b.ended) {
-      if (++steps > 3000) throw new Error('stuck: too many steps');
-      if (b.turn > 400) { b.forfeit(0); break; }
-      let acted = false;
-      for (const s of [0, 1]) {
-        const req = b.getRequest(s);
-        if (['preview', 'move', 'switch'].includes(req.kind)) {
-          const c = chooseAction(b, s);
-          const err = b.choose(s, c);
-          if (err) throw new Error(`choice rejected (${req.kind}): ${err} ${JSON.stringify(c)}`);
-          acted = true;
-          break;
-        }
+  while (!b.ended) {
+    if (++steps > 4000) throw new Error('stuck');
+    if (b.turn > 300) { b.forfeit(0); break; }
+    let acted = false;
+    for (const s of [0, 1]) {
+      const req = b.getRequest(s);
+      if (req.kind === 'move' || req.kind === 'switch') {
+        const c = AI.chooseAction(b, s);
+        const err = b.choose(s, c);
+        if (err) throw new Error(`choice rejected (${req.kind}): ${err} ${JSON.stringify(c)}`);
+        acted = true; break;
       }
-      if (!acted && !b.ended) throw new Error('deadlock: nobody can act, phase=' + b.phase);
     }
-  } catch (e) {
-    console.error(`Battle ${n} failed at turn ${b.turn}:`, e.stack);
-    console.error(b.log.slice(-25).map(l => l.text).join('\n'));
-    process.exit(1);
+    if (!acted && !b.ended) throw new Error('deadlock in phase ' + b.phase);
   }
-  turns += b.turn; maxTurns = Math.max(maxTurns, b.turn);
-  wins[b.winner === null ? 2 : b.winner]++;
+  return b;
 }
-console.log(`${N} battles OK. avg turns ${(turns / N).toFixed(1)}, max ${maxTurns}, wins P1/P2/tie ${wins.join('/')}`);
+for (const format of ['singles', 'doubles']) {
+  let turns = 0, max = 0;
+  for (let i = 0; i < N; i++) {
+    let b;
+    try { b = runOne(format); } catch (e) { console.error(`${format} match ${i} failed:`, e.stack); process.exit(1); }
+    turns += b.turn; max = Math.max(max, b.turn);
+  }
+  console.log(`${format}: ${N} matches OK · avg ${(turns / N).toFixed(1)} turns · max ${max}`);
+}
