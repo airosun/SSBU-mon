@@ -159,5 +159,15 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
     assert.equal(v.team[0].ability, RENAMED_ABILITIES['Devil Gene']);
   });
 
+  await test('a flinch is logged with an animation event', () => {
+    const b = battle([mk('incineroar', 'Intimidate', ['Fake Out'])], [mk('mario', 'Super Mushroom', ['Fire Punch'])]);
+    const F = require('../shared/fighters.json'); b.sides[0].team[0].ability = F.find(f => f.id === 'incineroar').abilities[0].name;
+    // make the Fake Out user faster so the target flinches before moving
+    b.sides[0].team[0].stats.spe = 999;
+    b.choose(0, mv(0)); b.choose(1, mv(0));
+    const ev = b.log.find(l => l.a && l.a.k === 'flinch');
+    assert(ev, 'flinch event'); assert.match(ev.text, /flinched/);
+  });
+
   console.log(`${passed} passed`);
 })();

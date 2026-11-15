@@ -342,3 +342,94 @@ details.pw { margin-top: 10px; }
 details.pw summary { cursor: pointer; color: var(--muted); }
 details.pw .field input { width: 100%; }
 @media (max-width: 700px) { .sign-in-btn { padding: 6px 9px; font-size: 13px; } }
+
+/* v9: move animations (public/anim.js) */
+.fa { position: absolute; pointer-events: none; z-index: 5; transform: translate(-50%, -50%); }
+.fa.screen { inset: 0; left: 0 !important; top: 0 !important; transform: none; z-index: 6; mix-blend-mode: screen; }
+.fa.hub { width: 0; height: 0; transform: none; }
+.fa.hub > .fa { position: absolute; }
+.fa.shape { --c: #fff; }
+.fa.shape.p { border-radius: 50%; background: radial-gradient(circle, #fff 0%, var(--c) 60%, transparent 72%); }
+.fa.shape.flame { border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: radial-gradient(circle at 50% 70%, #fff6c0 0%, #ffd34d 30%, var(--c) 60%, transparent 75%); filter: blur(.3px); }
+.fa.shape.drop { border-radius: 50% 50% 50% 0; transform: translate(-50%, -50%) rotate(-45deg); background: radial-gradient(circle at 35% 35%, #fff, var(--c) 60%); }
+.fa.shape.spark { width: 3px !important; border-radius: 2px; background: var(--c); box-shadow: 0 0 6px var(--c), 0 0 2px #fff; }
+.fa.shape.leaf { border-radius: 0 100% 0 100%; background: linear-gradient(135deg, var(--c), #1f7a2a); box-shadow: inset 0 0 0 1px #ffffff33; }
+.fa.shape.petal { border-radius: 0 100% 0 100%; background: linear-gradient(135deg, #fff0f8, var(--c)); }
+.fa.shape.crystal { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); background: linear-gradient(135deg, #fff, var(--c)); }
+.fa.shape.icicle { clip-path: polygon(30% 0, 70% 0, 50% 100%); background: linear-gradient(180deg, #fff, var(--c)); height: auto !important; aspect-ratio: 1 / 2.2; }
+.fa.shape.star, .fa.shape.sparkle { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); background: var(--c); }
+.fa.shape.sparkle { clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); background: radial-gradient(circle, #fff 20%, var(--c)); }
+.fa.shape.bubble { border-radius: 50%; border: 2px solid var(--c); background: radial-gradient(circle at 30% 30%, #ffffff88, transparent 40%), color-mix(in srgb, var(--c) 35%, transparent); }
+.fa.shape.ring { border-radius: 50%; border: 2px solid var(--c); }
+.fa.shape.dust { border-radius: 50%; background: radial-gradient(circle, var(--c) 0%, color-mix(in srgb, var(--c) 50%, transparent) 50%, transparent 70%); }
+.fa.shape.rock, .fa.shape.meteor { clip-path: polygon(20% 5%, 70% 0, 100% 35%, 90% 85%, 45% 100%, 5% 75%, 0 30%); background: linear-gradient(135deg, #f2e6c4, var(--c) 45%, #5a4a2a); }
+.fa.shape.meteor { clip-path: none; border-radius: 50%; background: radial-gradient(circle, #fff6c0, #ffb020 40%, var(--c) 60%, transparent 72%); box-shadow: 0 0 16px 6px #ff7a1a88; }
+.fa.shape.feather { border-radius: 100% 0 100% 0; background: linear-gradient(135deg, #fff, var(--c)); height: auto !important; aspect-ratio: 1 / 1.8; }
+.fa.shape.wisp { border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 65%, #fff, var(--c) 45%, transparent 72%); filter: drop-shadow(0 0 6px var(--c)); }
+.fa.shape.shard { clip-path: polygon(50% 0, 100% 100%, 0 70%); background: var(--c); }
+.fa.shape.heart, .fa.shape.note, .fa.shape.zzz { width: auto !important; height: auto !important; color: var(--c); font-weight: 800; font-size: 20px; text-shadow: 0 0 6px #0008; line-height: 1; }
+.fa.shape.zzz { color: #fff; font-style: italic; }
+.fa.shape.sword { clip-path: polygon(46% 0, 54% 0, 56% 70%, 72% 72%, 72% 78%, 56% 78%, 56% 100%, 44% 100%, 44% 78%, 28% 78%, 28% 72%, 44% 70%); background: linear-gradient(90deg, #8a96aa, #ffffff, #8a96aa); filter: drop-shadow(0 0 6px #fff); }
+.fa.shape.gear { border-radius: 50%; border: 6px dashed var(--c); background: radial-gradient(circle, transparent 30%, var(--c) 32%, var(--c) 46%, transparent 48%); }
+.fa.shape.chain { border-radius: 50%; border: 3px solid var(--c); background: transparent; height: auto !important; aspect-ratio: 1.6 / 1; }
+.fa.shape.windline { width: 70px !important; height: 3px !important; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--c), transparent); }
+.fa.shape.root { background: #7a5a2a; }
+/* projectiles */
+.fa.proj { border-radius: 50%; background: radial-gradient(circle, #fff 0%, var(--c2) 30%, var(--c) 60%, transparent 74%); box-shadow: 0 0 16px 4px var(--c); }
+.fa.proj.flame { border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff6c0, #ffd34d 35%, var(--c) 62%, transparent 76%); box-shadow: none; filter: drop-shadow(0 0 8px var(--c)); }
+.fa.proj.drop { border-radius: 50% 50% 50% 0; background: radial-gradient(circle at 35% 35%, #fff, var(--c) 60%); box-shadow: none; }
+.fa.proj.shadow { background: radial-gradient(circle, #000 0%, var(--c) 45%, var(--c2) 62%, transparent 74%); box-shadow: 0 0 20px 6px #7a5cc9aa; }
+.fa.proj.blob { border-radius: 45% 55% 50% 50%; background: radial-gradient(circle at 35% 35%, var(--c2), var(--c) 55%); box-shadow: 0 0 10px var(--c); }
+.fa.proj.leaf { border-radius: 0 100% 0 100%; background: linear-gradient(135deg, var(--c), #1f7a2a); box-shadow: none; }
+.fa.proj.crystal { border-radius: 0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); background: linear-gradient(135deg, #fff, var(--c)); box-shadow: none; }
+.fa.proj.rock { border-radius: 0; clip-path: polygon(20% 5%, 70% 0, 100% 35%, 90% 85%, 45% 100%, 5% 75%, 0 30%); background: linear-gradient(135deg, #f2e6c4, var(--c) 45%, #5a4a2a); box-shadow: none; }
+.fa.proj.spike { border-radius: 0; clip-path: polygon(50% 0, 65% 100%, 35% 100%); background: linear-gradient(180deg, #fff, var(--c)); box-shadow: none; }
+.fa.proj.shuriken, .fa.proj.starproj { border-radius: 0; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); background: radial-gradient(circle, #fff, var(--c)); box-shadow: none; filter: drop-shadow(0 0 6px var(--c)); }
+.fa.proj.starproj { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.fa.proj.ringproj { background: transparent; border: 4px solid #fff; box-shadow: 0 0 10px #fff; }
+.fa.proj.ringproj.pink { border-color: #ff8ad8; box-shadow: 0 0 10px #ff5c9d; }
+.fa.proj.ringproj.dark { border-color: #6a3a8a; box-shadow: 0 0 12px #2a0f3a, inset 0 0 8px #2a0f3a; }
+.fa.proj.crescent { background: transparent; box-shadow: none; border-radius: 50%; border-right: 5px solid var(--c); filter: drop-shadow(0 0 6px #fff); }
+.fa.proj.anchor { border-radius: 4px; background: linear-gradient(#c9d3e6, #6a7488); clip-path: polygon(40% 0, 60% 0, 60% 60%, 90% 55%, 50% 100%, 10% 55%, 40% 60%); box-shadow: none; }
+.fa.proj.arrow { border-radius: 0; clip-path: polygon(0 45%, 70% 45%, 70% 25%, 100% 50%, 70% 75%, 70% 55%, 0 55%); background: var(--c); box-shadow: none; }
+.fa.trail { border-radius: 50%; filter: blur(3px); opacity: .6; }
+.fa.after { border-radius: 50%; filter: blur(8px); }
+/* beams, bolts, waves */
+.fa.beam { transform: none; border-radius: 20px; }
+.fa.beam.wavy { -webkit-mask: repeating-linear-gradient(90deg, #000 0 14px, #0008 14px 22px); mask: repeating-linear-gradient(90deg, #000 0 14px, #0008 14px 22px); }
+svg.fa.bolt { left: 0; top: 0; transform: none; z-index: 6; overflow: visible; }
+.fa.wave { transform: none; border-radius: 48% 52% 0 0 / 70% 70% 0 0; filter: drop-shadow(0 -4px 10px #ffffff66); z-index: 6; }
+.fa.wave.ltr { border-top-right-radius: 90% 100%; }
+.fa.wave.rtl { border-top-left-radius: 90% 100%; }
+.fa.crack { width: 120px; height: 10px; background: var(--c); clip-path: polygon(0 50%, 12% 10%, 24% 70%, 38% 20%, 52% 80%, 66% 15%, 80% 75%, 92% 25%, 100% 50%, 92% 60%, 80% 90%, 66% 40%, 52% 95%, 38% 45%, 24% 90%, 12% 40%); }
+.fa.pillar { width: 22px; height: 70px; transform-origin: 50% 100%; background: linear-gradient(90deg, #5a4a2a, var(--c) 40%, #f2e6c4 60%, var(--c)); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.fa.pillar.root { background: linear-gradient(90deg, #4a3618, #8a6a3a); clip-path: polygon(45% 0, 60% 0, 75% 100%, 25% 100%); }
+.fa.column { width: 60px; height: 150px; border-radius: 30px; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--c) 80%, #fff) 30%, var(--c) 70%, #ffffff); box-shadow: 0 0 20px var(--c); transform-origin: 50% 100%; }
+.fa.vine { height: 7px; transform: none; border-radius: 4px; background: linear-gradient(90deg, #1f7a2a, #4cc94c); box-shadow: 0 0 6px #4cc94c; }
+/* impacts */
+.fa.ringx { border-radius: 50%; border-style: solid; }
+.fa.glowball { border-radius: 50%; mix-blend-mode: screen; }
+.fa.impactstar { width: 90px; height: 90px; background: radial-gradient(circle, #fff 0 18%, var(--c) 40%, transparent 62%); clip-path: polygon(50% 0, 60% 30%, 92% 12%, 72% 42%, 100% 55%, 68% 62%, 82% 95%, 52% 72%, 22% 98%, 32% 64%, 0 58%, 28% 44%, 8% 14%, 40% 30%); }
+.fa.impactstar.kick { width: 80px; height: 80px; }
+.fa.slashx { height: 6px; border-radius: 4px; }
+.fa.jaw { width: 100px; height: 30px; background: linear-gradient(180deg, #ffffff, var(--c)); clip-path: polygon(0 0, 100% 0, 100% 28%, 93% 100%, 86% 28%, 79% 100%, 72% 28%, 65% 100%, 58% 28%, 50% 100%, 42% 28%, 35% 100%, 28% 28%, 21% 100%, 14% 28%, 7% 100%, 0 28%); filter: drop-shadow(0 0 4px #000) drop-shadow(0 0 6px var(--c)); }
+/* status / field */
+.fa.panel { width: 150px; height: 120px; border: 3px solid; border-radius: 8px; }
+.fa.rainline { width: 2px; height: 34px; background: linear-gradient(180deg, transparent, #9fd0ff); z-index: 6; }
+.fa.rainline.grav { background: linear-gradient(180deg, transparent, #c9b3ff); height: 50px; }
+.fa.sunglare { width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, #fff 0, #ffe14d 20%, #ffb02066 45%, transparent 70%); z-index: 6; }
+.fa.iceblock { width: 110px; height: 110px; border-radius: 12px; background: linear-gradient(135deg, #ffffffcc, #8fe3ff88 40%, #bfefffaa); border: 2px solid #ffffffaa; }
+.fa.hammer { width: 90px; height: 120px; background: linear-gradient(#c9d3e6, #6a7488) top / 100% 45% no-repeat, linear-gradient(#8a6a3a, #4a3618) 50% 100% / 16px 58% no-repeat; transform-origin: 50% 100%; filter: drop-shadow(0 0 8px #fff); }
+.fa.kshield { width: 110px; height: 130px; clip-path: polygon(50% 0, 100% 15%, 92% 65%, 50% 100%, 8% 65%, 0 15%); background: linear-gradient(135deg, #e8ecf3, #8a96aa 50%, #ffd34d); opacity: .85; }
+.fa.pbubble { width: 130px; height: 130px; border-radius: 50%; border: 3px solid #7fd8ff; background: radial-gradient(circle at 30% 30%, #ffffff66, #7fd8ff22 40%, #7fd8ff55); }
+.fa.eyeflash { width: 90px; height: 40px; border-radius: 50%; background: radial-gradient(ellipse, #fff 0 15%, #ff5c9d 30%, transparent 70%); }
+.fa.trickroom { width: 70%; height: 80%; border: 3px solid #ff8ad8; background: repeating-linear-gradient(0deg, #ff8ad822 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, #ff8ad822 0 1px, transparent 1px 24px); box-shadow: inset 0 0 40px #ff5c9d55, 0 0 20px #ff5c9d; }
+.fa.symbol { font-size: 30px; filter: drop-shadow(0 2px 3px #000a); }
+.fa.moon { width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #ffe0f5 50%, #ff8ad8); box-shadow: 0 0 30px 10px #ff8ad888; }
+.fa.tornado { width: 90px; height: 150px; background: repeating-linear-gradient(170deg, #ffffff00 0 10px, #ffffffaa 10px 14px, #ffffff00 14px 26px); clip-path: polygon(0 0, 100% 0, 62% 100%, 38% 100%); filter: drop-shadow(0 0 6px #fff); }
+.fa.dustcloud { width: 120px; height: 90px; border-radius: 50%; background: radial-gradient(circle at 30% 50%, #f0e6d8 0 25%, transparent 26%), radial-gradient(circle at 60% 40%, #e6d8c9 0 28%, transparent 29%), radial-gradient(circle at 50% 65%, #d8c9b8 0 30%, transparent 31%); }
+.fa.clap { width: 90px; height: 90px; border-radius: 50%; border: 6px double #fff; }
+.fa.shadowline { width: 90px; height: 18px; border-radius: 50%; background: radial-gradient(ellipse, #1a0f2a, transparent 70%); }
+.fa.web { width: 140px; height: 70px; border-radius: 50%; background: repeating-radial-gradient(ellipse, transparent 0 8px, #ffffffaa 8px 9px), repeating-conic-gradient(#ffffffaa 0 1deg, transparent 1deg 30deg); }
+.fa.jolt { width: 34px; height: 34px; background: #ff3b3b; clip-path: polygon(45% 0, 100% 0, 60% 42%, 90% 42%, 20% 100%, 40% 55%, 8% 55%); filter: drop-shadow(0 0 6px #ff3b3b) drop-shadow(0 0 1px #fff); z-index: 7; }
+.fx.pop.big.flinch { color: #ff8a5c; font-size: 22px; }
