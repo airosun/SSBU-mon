@@ -4,6 +4,7 @@
 const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
 const { NATURES, ITEMS } = require('../../shared/dex.js');
+const { FINAL_SMASHES } = require('../../shared/megas.js');
 const BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 
@@ -15,7 +16,9 @@ function buildSet(base, build, errors) {
   if (moves.length < 1 || moves.length > 4) errors.push(`${f.name}: choose 1 to 4 moves.`);
   for (const mv of moves) if (!MOVES[mv] || !f.learnset.includes(mv)) errors.push(`${f.name} can't learn ${mv}.`);
   const item = build.item || '';
-  if (item && !ITEMS[item]) errors.push(`${f.name}: unknown item ${item}.`);
+  const fs = FINAL_SMASHES[item];
+  if (item && !ITEMS[item] && !fs) errors.push(`${f.name}: unknown item ${item}.`);
+  if (fs && fs.base !== f.id) errors.push(`${item} only works for ${BY_ID[fs.base].name}.`);
   if (![...f.abilities.map(a => a.name), f.hidden.name].includes(base.ability)) errors.push(`${f.name}: invalid ability.`);
   if (!NATURES[base.nature]) errors.push(`${f.name}: invalid nature.`);
   const ivs = {};

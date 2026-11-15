@@ -3,6 +3,7 @@ const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
 const { effectiveness, calcStat, EVIOLITE_USERS } = require('../../shared/dex.js');
 const BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
+const { FINAL_SMASH_BY_BASE } = require('../../shared/megas.js');
 
 const ITEM_PREFS = ['Sitrus Berry', 'Life Orb', 'Leftovers', 'Focus Sash', 'Choice Scarf', 'Lum Berry', 'Assault Vest', 'Expert Belt', 'Choice Band', 'Choice Specs', 'Rocky Helmet', 'Heavy-Duty Boots'];
 
@@ -61,7 +62,9 @@ function buildTeam(bases, doubles, rng = Math.random) {
     let options = ITEM_PREFS.filter(i => !used.has(i));
     if (hasStatus) options = options.filter(i => !i.startsWith('Choice') && i !== 'Assault Vest');
     options = options.filter(i => !(i === 'Choice Band' && !physical) && !(i === 'Choice Specs' && physical));
-    let item = EVIOLITE_USERS.includes(f.id) && !used.has('Eviolite') ? 'Eviolite' : (options[Math.floor(rng() * Math.min(4, options.length))] || '');
+    const stones = (FINAL_SMASH_BY_BASE[f.id] || []).map(x => x.stone).filter(s => !used.has(s));
+    let item = stones.length && rng() < 0.85 ? stones[Math.floor(rng() * stones.length)]
+      : EVIOLITE_USERS.includes(f.id) && !used.has('Eviolite') ? 'Eviolite' : (options[Math.floor(rng() * Math.min(4, options.length))] || '');
     used.add(item);
     return { moves, item };
   });
@@ -101,7 +104,7 @@ function chooseAction(b, sideN, rng = Math.random) {
     return { switches: req.slots.map((pos, k) => ({ pos, index: options[k].teamIndex })) };
   }
   if (req.kind !== 'move') return null;
-  const actions = []; const switching = new Set();
+  const actions = []; const switching = new Set(); let megaUsed = false;
   for (const a of req.actives) {
     if (!a) continue;
     const mon = side.active[a.pos];
@@ -141,7 +144,9 @@ function chooseAction(b, sideN, rng = Math.random) {
       const alt = b.bench(side).filter(m => !switching.has(m.teamIndex)).map(m => ({ m, s: monScore(b, m, foes) })).sort((x, y) => y.s - x.s)[0];
       if (alt && alt.s > cur + 0.5) { switching.add(alt.m.teamIndex); actions.push({ pos: a.pos, type: 'switch', index: alt.m.teamIndex }); continue; }
     }
-    actions.push(Object.assign({ pos: a.pos, type: 'move' }, best || { index: a.moves.find(x => !x.disabled).index }));
+    const act = Object.assign({ pos: a.pos, type: 'move' }, best || { index: a.moves.find(x => !x.disabled).index });
+    if (a.finalSmash && !megaUsed) { act.mega = true; megaUsed = true; }
+    actions.push(act);
   }
   return { actions };
 }

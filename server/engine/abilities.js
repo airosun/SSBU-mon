@@ -181,4 +181,17 @@ def('Bonus Fruit', { berryRandomBoost: true });
 def('Orchard', { harvest: true });
 def('Treasure Hunter', { pickup: true });
 
+// ---- Final Smash (Mega) abilities ----
+def('Giga Might', { flagBoost: { flag: 'contact', mult: 1.3 }, noFlinch: true });
+def('Calamity Roar', { intimidate: true, flagBoost: { flag: 'contact', mult: 1.2 } });
+def('Chaos Power', { statusImmune: ['brn', 'par', 'psn', 'tox', 'slp', 'frz'], speedBoost: true });
+def('Tough Claws', { flagBoost: { flag: 'contact', mult: 1.3 } });
+def('Drought', { startWeather: 'sun' });
+def('Adaptability', { adaptability: true });
+def('Steadfast', { steadfast: true });
+def('Insomnia', { statusImmune: ['slp'] });
+def('Monster Maw', { flagBoost: { flag: 'bite', mult: 1.5 }, typeTaken: { Fire: 0.5, Ice: 0.5 } });
+def('Heartless Angel', { typeBoost: { Dark: 1.3, Flying: 1.3 } });
+def('Devil Within', { flagBoost: { flag: 'contact', mult: 1.3 }, clearBody: true });
+
 module.exports = A;

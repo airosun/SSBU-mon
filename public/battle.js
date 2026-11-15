@@ -206,6 +206,23 @@
         const s = sprEl(...a.m); if (s) fx(arena, 'pop ' + (a.up ? 'up' : 'down'), centerOf(s, arena), `${a.up ? '▲' : '▼'} ${BOOSTL[a.stat] || a.stat}`);
         return 380;
       }
+      case 'mega': {
+        const sp = SPEEDS[S.animSpeed] ?? 1;
+        if (mon) { mon.id = a.id; mon.name = a.name; mon.types = a.types; }
+        if (!animate) return 0;
+        const s = sprEl(...a.m); if (!s) { redrawField(id); return 0; }
+        const at = centerOf(s, arena);
+        fx(arena, 'fs-banner', { x: arena.clientWidth / 2, y: arena.clientHeight / 2 }, `<span>FINAL SMASH!</span>`);
+        fx(arena, 'fs-aura', at); fx(arena, 'fs-aura two', at);
+        s.animate([{ filter: 'brightness(1)', transform: 'scale(1)' }, { filter: 'brightness(4) saturate(0)', transform: 'scale(1.15) rotate(-6deg)', offset: .6 }, { filter: 'brightness(8) saturate(0)', transform: 'scale(.9)' }], { duration: 900 * sp, fill: 'forwards' });
+        setTimeout(() => {
+          redrawField(id);
+          const n = sprEl(...a.m); if (!n) return;
+          fx(arena, 'burst fs-burst', centerOf(n, arena));
+          n.animate([{ filter: 'brightness(8) saturate(0)', transform: 'scale(.6)' }, { filter: 'brightness(2)', transform: 'scale(1.25)', offset: .5 }, { filter: 'brightness(1)', transform: 'scale(1)' }], { duration: 700 * sp, easing: 'ease-out' });
+        }, 900 * sp);
+        return 1900;
+      }
       case 'types': { if (mon) mon.types = a.types; if (animate) redrawField(id); return animate ? 250 : 0; }
       case 'pop': {
         if (!animate) return 0;
@@ -363,6 +380,7 @@
       const tgtText = p.pick ? 'Tap a glowing fighter (or a button below) to choose who to hit.' : (p.flash.length ? `${p.note ? p.note + ': ' : 'Target: '}${p.flash.map(k => esc(nameAt(m, k))).join(', ')}` : esc(p.note || ''));
       return `<div class="confirm"><div class="row"><h2 class="grow" style="margin:0">${esc(cur.name)} → ${esc(mv.name)}</h2>${slots.length > 1 ? `<span class="pill">${T.step + 1}/${slots.length}</span>` : ''}</div>
         ${info ? `<div class="move-info">${moveInfoHtml(mv.name)}</div>` : ''}
+        ${T.megaPos === cur.pos && cur.finalSmash ? `<div class="fs-note">★ ${esc(cur.name)} will use its Final Smash and become ${esc(cur.finalSmash.name)} first.</div>` : ''}
         <div class="tgt-note">${tgtText}</div>
         ${p.pick ? `<div class="targets">${p.pick.map(k => `<button data-pickbtn="${k}" class="${k.startsWith((1 - m.you) + ':') ? 'primary' : ''}">${esc(nameAt(m, k))}</button>`).join('')}</div>` : ''}
         <div class="row" style="margin-top:10px">${p.pick ? '' : '<button class="primary" id="tConfirm">Confirm</button>'}<button id="tCancel">Back</button></div></div>`;
@@ -371,7 +389,10 @@
     const moveBtns = cur.locked ? `<button class="move-btn" data-move="-1" style="grid-column:span 2" data-tipmove="${esc(cur.locked)}"><span class="mn">Continue: ${esc(cur.locked)}</span></button>`
       : cur.struggle ? `<button class="move-btn" data-move="-2" style="grid-column:span 2"><span class="mn">Struggle</span></button>`
         : cur.moves.map(mv => `<button class="move-btn" data-move="${mv.index}" data-tipmove="${esc(mv.name)}" style="--tc:var(--t-${mv.type})" ${mv.disabled ? 'disabled' : ''}><span class="mn">${esc(mv.name)}</span><span class="mi">${mv.type} · ${mv.cat === 'Status' ? 'Status' : (mv.power || '—') + ' BP'} · ${mv.pp}/${mv.maxpp}${mv.target === 'allFoes' ? ' · spread' : mv.target === 'all' ? ' · hits all' : ''}</span></button>`).join('');
+    const fsTaken = T.actions.some(x => x.mega);
+    const fsBtn = cur.finalSmash && !fsTaken ? `<button class="fs-btn ${T.megaPos === cur.pos ? 'on' : ''}" id="tFS">${sprite(F(cur.finalSmash.id), 'sm')}<span><b>${T.megaPos === cur.pos ? '✓ Final Smash ready' : 'Use Final Smash'}</b><br><span class="small">${esc(cur.name)} becomes ${esc(cur.finalSmash.name)} before moving${T.megaPos === cur.pos ? ' — now pick a move' : ''}</span></span></button>` : '';
     return `<h2>What will ${esc(cur.name)} do?${slots.length > 1 ? ` <span class="pill">${T.step + 1}/${slots.length}</span>` : ''}</h2>
+      ${fsBtn}
       <div class="moves">${moveBtns}</div>
       <h2 style="margin-top:12px">Switch ${cur.canSwitch ? '' : '<span class="pill">can\'t switch</span>'}</h2>
       <div class="switches">${switchBtns(r.team, mm => !cur.canSwitch || mm.fainted || mm.pos >= 0 || taken.has(mm.index))}</div>
@@ -450,14 +471,15 @@
       const actions = T.actions; delete S.turn[id];
       act(id, { type: 'choose', choice: { actions } });
     };
-    if (back) back.onclick = () => { T.step--; T.actions.pop(); T.pending = null; rerender(); };
+    if (back) back.onclick = () => { T.step--; const p = T.actions.pop(); if (p && p.mega) T.megaPos = null; T.pending = null; rerender(); };
+    const fsb = $('#tFS'); if (fsb) fsb.onclick = () => { T.megaPos = T.megaPos === cur.pos ? null : cur.pos; rerender(); };
     wirePicks(id);
     const c = $('#tConfirm'); if (c) c.onclick = () => {
       const p = T.pending;
       const foeKey = p.flash.find(k => k.startsWith((1 - m.you) + ':'));
       let target = p.target;
       if (!target && foeKey) { const [side, pos] = foeKey.split(':').map(Number); target = { side, pos }; }
-      finish({ pos: cur.pos, type: 'move', index: Math.max(0, p.index), target });
+      finish({ pos: cur.pos, type: 'move', index: Math.max(0, p.index), target, mega: T.megaPos === cur.pos && !!cur.finalSmash });
     };
     const x = $('#tCancel'); if (x) x.onclick = () => { T.pending = null; rerender(); };
     $$('[data-move]').forEach(el => el.onclick = () => {
@@ -467,6 +489,6 @@
       T.pending = Object.assign({ index: i, flash: [], pick: null }, t);
       rerender();
     });
-    $$('[data-sw]').forEach(el => el.onclick = () => finish({ pos: cur.pos, type: 'switch', index: +el.dataset.sw }));
+    $$('[data-sw]').forEach(el => el.onclick = () => { if (T.megaPos === cur.pos) T.megaPos = null; finish({ pos: cur.pos, type: 'switch', index: +el.dataset.sw }); });
   }
 })();
