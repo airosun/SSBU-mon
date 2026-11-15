@@ -3,6 +3,7 @@ const FIGHTERS = require('../shared/fighters.json');
 const { FINAL_SMASHES } = require('../shared/megas.js');
 const GENDER = require('../shared/genders.js');
 const { isClean, mask } = require('./moderation.js');
+const { CARD_COLORS } = require('../shared/cardcolors.js');
 // avatars: any fighter or Final Smash form, plus "id~F" / "id~M" for the alternate-gender sprites
 const AVATARS = new Set([...FIGHTERS.map(f => f.id), ...Object.values(FINAL_SMASHES).map(x => x.id)]);
 for (const [id, g] of Object.entries(GENDER.GENDERS)) for (const sex of Object.keys(g.images || {})) AVATARS.add(`${id}~${sex}`);
@@ -12,7 +13,7 @@ const text = (v, n) => String(v == null ? '' : v).replace(/[<>]/g, '').replace(/
 // userData: the player's saved roster/teams (already signature-checked)
 function sanitizeProfile(input, userData) {
   input = input || {};
-  const out = { avatar: AVATARS.has(input.avatar) ? input.avatar : null, title: text(input.title, 32), bio: text(input.bio, 160), favoriteTeam: null };
+  const out = { color: CARD_COLORS[input.color] ? input.color : 'classic', avatar: AVATARS.has(input.avatar) ? input.avatar : null, title: text(input.title, 32), bio: text(input.bio, 160), favoriteTeam: null };
   const i = input.favoriteTeam;
   const teams = (userData && userData.elite) || [];
   if (Number.isInteger(i) && teams[i]) {
