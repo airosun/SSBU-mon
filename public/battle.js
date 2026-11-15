@@ -23,15 +23,57 @@
       <div class="tip-s">${m.cat === 'Status' ? '' : `Power ${m.power || '—'} · `}Accuracy ${m.acc === true ? '—' : m.acc + '%'}${m.prio ? ` · Priority ${m.prio > 0 ? '+' : ''}${m.prio}` : ''}</div>
       <div>${esc(d.text)}</div>${d.flags.length ? `<div class="tip-f">${d.flags.map(f => `<span class="chip">${f}</span>`).join(' ')}</div>` : ''}`;
   }
-  document.addEventListener('mouseover', e => {
-    const el = e.target.closest('[data-tipmove]');
-    if (!el) { tip.classList.add('hidden'); return; }
-    tip.innerHTML = moveInfoHtml(el.dataset.tipmove); tip.classList.remove('hidden');
+  const TIP_SEL = '[data-tipmove], [data-tiphtml], [data-tipmon]';
+  function tipContent(el) {
+    if (el.dataset.tipmove) return moveInfoHtml(el.dataset.tipmove);
+    if (el.dataset.tiphtml) return el.dataset.tiphtml;
+    if (el.dataset.tipmon) return monTipHtml(S.tab, el.dataset.tipmon);
+    return '';
+  }
+  function showTip(el) {
+    const html = tipContent(el);
+    if (!html) { tip.classList.add('hidden'); return; }
+    tip.innerHTML = html; tip.classList.remove('hidden');
     const r = el.getBoundingClientRect();
     const top = r.top - tip.offsetHeight - 8;
     tip.style.top = (top > 8 ? top : r.bottom + 8) + window.scrollY + 'px';
     tip.style.left = Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, r.left)) + 'px';
+  }
+  let tipHold = 0;
+  document.addEventListener('mouseover', e => {
+    if (Date.now() < tipHold) return;
+    const el = e.target.closest(TIP_SEL);
+    if (el) showTip(el); else tip.classList.add('hidden');
   });
+  // touch screens: tap a condition tag or your own fighter to see the same info
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-tiphtml], [data-tipmon]');
+    if (!el || e.target.closest('[data-pick]')) { if (!e.target.closest('.tip')) tip.classList.add('hidden'); return; }
+    showTip(el); tipHold = Date.now() + 600;
+  });
+
+  const STATN = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
+  const boostMult = s => s >= 0 ? (2 + s) / 2 : 2 / (2 - s);
+  function monTipHtml(matchId, monId) {
+    const m = S.matches[matchId]; if (!m || !m.battle || m.you === null) return '';
+    const st = m.battle.state; const side = st.sides[m.you];
+    const t = side.team.find(x => x.id === monId); if (!t) return '';
+    const act = side.active.find(a => a && a.id === monId);
+    const boosts = (act && act.boosts) || {};
+    const f = F(monId); const ab = [...f.abilities, f.hidden].find(a => a.name === t.ability) || { name: t.ability, desc: '' };
+    const rows = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'].map(k => {
+      if (k === 'hp') return `<span>HP</span><b>${t.hp}/${t.maxhp}</b><i></i>`;
+      const b = boosts[k] || 0; const eff = Math.floor(t.stats[k] * boostMult(b));
+      return `<span>${STATN[k]}</span><b>${t.stats[k]}</b><i class="${b > 0 ? 'up' : b < 0 ? 'down' : ''}">${b ? `→ ${eff} (${b > 0 ? '+' : ''}${b})` : ''}</i>`;
+    }).join('');
+    const extra = ['accuracy', 'evasion'].filter(k => boosts[k]).map(k => `${k === 'accuracy' ? 'Accuracy' : 'Evasion'} ${boosts[k] > 0 ? '+' : ''}${boosts[k]}`).join(' · ');
+    return `<div class="tip-h">${sprite(f, 'sm')} ${esc(t.name)} ${t.status ? `<span class="st st-${t.status}">${STATUSL[t.status]}</span>` : ''}</div>
+      <div class="tipstats">${rows}</div>${extra ? `<div class="tip-s">${extra}</div>` : ''}
+      <div><b>${esc(ab.name)}</b> <span class="muted">— ${esc(ab.desc)}</span></div>
+      <div style="margin-top:3px"><b>Item:</b> ${t.item ? `${esc(t.item)} <span class="muted">— ${esc(S.dex.items[t.item] || '')}</span>` : '<span class="muted">none</span>'}</div>
+      <div class="tip-f">${(t.moves || []).map(x => `<span class="chip">${esc(x.name)} ${x.pp}/${x.maxpp}</span>`).join('')}</div>
+      <div class="muted small" style="margin-top:4px">Level 50 stats${Object.keys(boosts).length ? ', with stat changes applied' : ''}.</div>`;
+  }
 
   // ---------- type chart ----------
   function showTypeChart(highlight) {
@@ -234,8 +276,8 @@
       const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
       const vols = (a.volatiles || []).map(v => `<span class="chip">${VOL[v] || v}</span>`).join('');
       return `<div class="combatant ${isFoe ? 'foe' : 'you'} ${flash ? 'flashing' : ''} ${pickable ? 'pickable' : ''} ${a.fainted ? 'down' : ''}" id="slot-${n}-${pos}" ${pickable ? `data-pick="${key}"` : ''}>
-        <div class="sprwrap"><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
-        <div class="hpcard"><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
+        <div class="sprwrap" ${!isFoe && !pickable ? `data-tipmon="${a.id}"` : ''}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
+        <div class="hpcard" ${!isFoe && !pickable ? `data-tipmon="${a.id}"` : ''}><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
           <div class="chips">${(a.types || []).map(typeChip).join('')}</div>
           <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
           <div class="hptext">${a.hp !== undefined && !(rec(m.id) || {}).playing ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</div>
@@ -243,17 +285,26 @@
     }).join('');
     return `<div class="sidewrap ${isFoe ? 'foe' : 'you'}"><div class="sidelabel">${esc(side.name)} <span class="pips">${pips}</span></div><div class="actives n${side.active.length}">${mons}</div></div>`;
   }
+  const turnsLeft = n => n ? `<b>${n} turn${n === 1 ? '' : 's'} left</b> (including this one)` : '';
+  const STAYS = '<b>Stays until removed</b> by Rapid Spin or Defog.';
   function fieldChips(st) {
-    const c = [];
-    if (st.field.weather) c.push({ rain: '🌧 Rain', sun: '☀ Harsh sun', snow: '❄ Snow' }[st.field.weather]);
-    if (st.field.trickroom) c.push(`Trick Room (${st.field.trickroom})`);
-    if (st.field.gravity) c.push(`Gravity (${st.field.gravity})`);
+    const c = []; // [label, tooltip html]
+    const f = st.field;
+    if (f.weather) c.push([{ rain: '🌧 Rain', sun: '☀ Harsh sun', snow: '❄ Snow' }[f.weather] + (f.weatherTurns ? ` · ${f.weatherTurns}` : ''),
+      `${{ rain: 'Rain', sun: 'Harsh sunlight', snow: 'Snow' }[f.weather]}: ${turnsLeft(f.weatherTurns)}<br>${{ rain: 'Water moves 1.5×, Fire moves 0.5×. Thunder and Hurricane never miss.', sun: 'Fire moves 1.5×, Water moves 0.5×. Solar Beam needs no charge; no one can be frozen.', snow: 'Ice types get 1.5× Defense. Blizzard never misses.' }[f.weather]}`]);
+    if (f.trickroom) c.push([`Trick Room · ${f.trickroom}`, `Trick Room: ${turnsLeft(f.trickroom)}<br>Slower fighters move first (priority still applies).`]);
+    if (f.gravity) c.push([`Gravity · ${f.gravity}`, `Gravity: ${turnsLeft(f.gravity)}<br>Everyone is grounded, moves are more accurate, and flying moves can't be used.`]);
     for (const s of st.sides) {
       const k = s.conditions || {}; const n = esc(s.name);
-      if (k.reflect) c.push(`${n}: Reflect`); if (k.lightscreen) c.push(`${n}: Light Screen`); if (k.tailwind) c.push(`${n}: Tailwind`);
-      if (k.stealthrock) c.push(`${n}: Stealth Rock`); if (k.spikes) c.push(`${n}: Spikes ×${k.spikes}`); if (k.toxicspikes) c.push(`${n}: Toxic Spikes ×${k.toxicspikes}`); if (k.stickyweb) c.push(`${n}: Sticky Web`);
+      if (k.reflect) c.push([`${n}: Reflect · ${k.reflect}`, `${n}'s Reflect: ${turnsLeft(k.reflect)}<br>Physical damage to this side is reduced.`]);
+      if (k.lightscreen) c.push([`${n}: Light Screen · ${k.lightscreen}`, `${n}'s Light Screen: ${turnsLeft(k.lightscreen)}<br>Special damage to this side is reduced.`]);
+      if (k.tailwind) c.push([`${n}: Tailwind · ${k.tailwind}`, `${n}'s Tailwind: ${turnsLeft(k.tailwind)}<br>This side's Speed is doubled.`]);
+      if (k.stealthrock) c.push([`${n}: Stealth Rock`, `Stealth Rock on ${n}'s side: fighters switching in take Rock-type damage.<br>${STAYS}`]);
+      if (k.spikes) c.push([`${n}: Spikes ×${k.spikes}`, `Spikes (${k.spikes} layer${k.spikes > 1 ? 's' : ''}) on ${n}'s side: grounded fighters switching in lose ${['', '1/8', '1/6', '1/4'][k.spikes]} of their HP.<br>${STAYS}`]);
+      if (k.toxicspikes) c.push([`${n}: Toxic Spikes ×${k.toxicspikes}`, `Toxic Spikes (${k.toxicspikes} layer${k.toxicspikes > 1 ? 's' : ''}) on ${n}'s side: grounded fighters switching in are ${k.toxicspikes > 1 ? 'badly poisoned' : 'poisoned'}. A grounded Poison type absorbs them.<br>${STAYS}`]);
+      if (k.stickyweb) c.push([`${n}: Sticky Web`, `Sticky Web on ${n}'s side: grounded fighters switching in lose 1 Speed stage.<br>${STAYS}`]);
     }
-    return c.map(x => `<span class="chip">${x}</span>`).join('');
+    return c.map(([l, t]) => `<span class="chip cond" data-tiphtml="${esc(t)}">${l}</span>`).join('');
   }
   function fieldHtml(id) {
     const m = S.matches[id]; const vs = view(id); const you = m.you === null ? 0 : m.you;
@@ -325,7 +376,7 @@
       ${T.step > 0 ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
   }
   function switchBtns(team, disabled) {
-    return team.map(mm => `<button class="sw-btn" data-sw="${mm.index}" ${disabled(mm) ? 'disabled' : ''} title="${esc(`${mm.name} — ${mm.hp}/${mm.maxhp} HP · ${mm.ability}${mm.item ? ' · ' + mm.item : ''}\n${(mm.moves || []).map(x => x.name).join(', ')}`)}">${sprite(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''), true)}<span class="grow">${esc(mm.name)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button>`).join('');
+    return team.map(mm => `<span class="sw-wrap" data-tipmon="${mm.id}"><button class="sw-btn" data-sw="${mm.index}" ${disabled(mm) ? 'disabled' : ''}>${sprite(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''), true)}<span class="grow">${esc(mm.name)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button></span>`).join('');
   }
 
   function renderBattle(id) {
