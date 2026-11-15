@@ -91,10 +91,10 @@
   // ---------- Battler Cards ----------
   const recordLine = r => { const w = r.wins, l = r.losses; return `${w}–${l}${r.ties ? '–' + r.ties : ''}${w + l ? ` <span class="muted">(${pct(w / (w + l))})</span>` : ''}`; };
   U.cardHtml = (p, opts = {}) => {
-    const av = p.avatar && S.byId[p.avatar];
+    const avHtml = U.avatarSprite(p.avatar, 'lg');
     const team = p.favoriteTeam;
     return `<div class="trainer-card">
-      <div class="tc-top"><div class="tc-avatar">${av ? sprite(av, 'lg') : `<div class="tc-blank">${esc(p.username[0].toUpperCase())}</div>`}</div>
+      <div class="tc-top"><div class="tc-avatar">${avHtml || `<div class="tc-blank">${esc(p.username[0].toUpperCase())}</div>`}</div>
         <div class="grow"><div class="tc-name">${esc(p.username)}</div>${p.title ? `<div class="tc-title">${esc(p.title)}</div>` : ''}
           <div class="muted small">${p.joined ? 'Joined ' + new Date(p.joined).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) + ' · ' : ''}${p.battles} battle${p.battles === 1 ? '' : 's'}</div></div>
         ${opts.edit ? '<button class="small" id="tcEdit">Edit card</button>' : ''}</div>
@@ -105,6 +105,8 @@
     </div>`;
   };
   U.editCard = editCard;
+  // avatar values: "pichu", or "pichu~F" for an alternate-gender sprite
+  U.avatarSprite = (avatar, cls) => { if (!avatar) return ''; const [id, g] = String(avatar).split('~'); return S.byId[id] ? sprite(S.byId[id], cls, false, g || null) : ''; };
   U.loadMyCard = async () => { const r = await fetch('/api/profile/' + encodeURIComponent(S.account.username), { credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not load your Battler Card.'); return j; };
   U.showProfile = async name => {
     modal('<div class="muted">Loading…</div>');
@@ -114,22 +116,26 @@
   };
   document.addEventListener('click', e => { const a = e.target.closest('[data-profile]'); if (a) { e.preventDefault(); U.showProfile(a.dataset.profile); } });
   function editCard(p, opts = {}) {
-    const allIds = [...S.dex.fighters.map(f => f.id), ...Object.values(S.dex.finalSmashes).map(x => x.id)];
+    // every fighter and Final Smash form, with alternate-gender sprites right after the default one
+    const alts = id => { const g = GENDER.info(id); return [...Object.keys(g.images || {}), ...Object.keys((GENDER.FORM_IMAGES || {})[id] || {})].map(sex => `${id}~${sex}`); };
+    const allIds = [...S.dex.fighters.map(f => f.id), ...Object.values(S.dex.finalSmashes).map(x => x.id)].flatMap(id => [id, ...alts(id)]);
+    const avName = a => { const [id, g] = a.split('~'); return S.byId[id].name + (g ? (g === 'F' ? ' (female)' : ' (male)') : ''); };
     let avatar = p.avatar;
     modal(`<h2>Edit your Battler Card</h2>
       <div class="field"><label>Title</label><input id="tcT" maxlength="32" value="${esc(p.title)}" placeholder="e.g. Final Smash Fanatic"></div>
       <div class="field"><label>About you</label><textarea id="tcB" maxlength="160" rows="2" class="paste" style="font-family:inherit">${esc(p.bio)}</textarea></div>
       <div class="field"><label>Showcase team</label><select id="tcF"><option value="">(none)</option>${S.elite.map((t, i) => `<option value="${i}" ${p.favoriteTeam && p.favoriteTeam.name === t.name ? 'selected' : ''}>${esc(t.name)} (${t.mons.length})</option>`).join('')}</select></div>
       <div class="field"><label>Avatar</label><input id="tcQ" placeholder="Search fighters…"><div class="avatar-grid" id="tcGrid"></div></div>
+      <div id="tcErr" class="err small"></div>
       <div class="row"><span class="grow"></span><button id="tcCancel">Cancel</button><button class="primary" id="tcSave">Save</button></div>`);
-    const grid = () => { const q = $('#tcQ').value.toLowerCase(); $('#tcGrid').innerHTML = allIds.filter(id => !q || S.byId[id].name.toLowerCase().includes(q)).map(id => `<button class="av ${id === avatar ? 'on' : ''}" data-av="${id}" title="${esc(S.byId[id].name)}">${sprite(S.byId[id], 'sm')}</button>`).join(''); $$('[data-av]').forEach(b => b.onclick = () => { avatar = b.dataset.av; grid(); }); };
+    const grid = () => { const q = $('#tcQ').value.toLowerCase(); $('#tcGrid').innerHTML = allIds.filter(a => !q || avName(a).toLowerCase().includes(q)).map(a => `<button class="av ${a === avatar ? 'on' : ''} ${a.includes('~') ? 'alt' : ''}" data-av="${a}" title="${esc(avName(a))}">${U.avatarSprite(a, 'sm')}${a.includes('~') ? `<span class="av-g g${a.split('~')[1]}">${GENDER.SYMBOL[a.split('~')[1]]}</span>` : ''}</button>`).join(''); $$('[data-av]').forEach(b => b.onclick = () => { avatar = b.dataset.av; grid(); }); };
     grid(); $('#tcQ').oninput = grid;
     $('#tcCancel').onclick = () => { closeModal(); if (opts.after) opts.after(); };
     $('#tcSave').onclick = async () => {
       const fav = $('#tcF').value;
       const r = await fetch('/api/account/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ avatar, title: $('#tcT').value, bio: $('#tcB').value, favoriteTeam: fav === '' ? null : +fav }) });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) return toast(j.error || 'Could not save your card.');
+      if (!r.ok) { $('#tcErr').textContent = j.error || 'Could not save your card.'; return; }
       closeModal(); toast('Battler Card saved.'); if (S.tab === 'stats') U.renderStats(); if (opts.after) opts.after();
     };
   }
