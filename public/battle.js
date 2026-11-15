@@ -159,8 +159,25 @@
   }
 
   // apply one log event to the view model (and animate when visible). Returns how long to wait.
+  // sound effect for each animated event
+  const SFX_FOR = a => {
+    switch (a.k) {
+      case 'in': return 'switch';
+      case 'move': return a.cat === 'Status' || a.charge ? null : 'attack';
+      case 'hp': return a.hit ? 'hit' : a.heal ? 'heal' : null;
+      case 'faint': return 'faint';
+      case 'status': return 'status';
+      case 'boost': return a.up ? 'up' : 'down';
+      case 'mega': return 'finalsmash';
+      case 'flinch': return 'flinch';
+      case 'protect': return 'protect';
+      case 'pop': return { se: 'super', crit: 'crit', miss: 'miss', nve: 'weak' }[a.tone] || null;
+    }
+    return null;
+  };
   function applyEvent(id, e, animate) {
     const m = S.matches[id]; const r = rec(id); const a = e.a;
+    if (animate && a && window.AUDIO) { const n = SFX_FOR(a); if (n) AUDIO.sfx(n); }
     const arena = document.getElementById('arena-' + id);
     if (!a) return e.cls === 'turn' ? 350 : e.text ? 160 : 0;
     const vm = r.vm;
@@ -440,6 +457,11 @@
   function renderBattle(id) {
     const m = S.matches[id]; const b = m.battle; const st = b.state;
     const r = rec(id) || { shown: b.log.length };
+    if (window.AUDIO) {
+      AUDIO.setBattle(!st.ended || !!r.playing);
+      // win/lose jingle once the last turn has finished playing
+      if (st.ended && !r.playing && rec(id) && !rec(id).jingled) { rec(id).jingled = true; AUDIO.jingle(m.you === null || st.winner === m.you ? 'win' : 'lose'); }
+    }
     const logEl = $('#blog'); const atBottom = !logEl || logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 80;
     const vs = view(id);
     $('#view').innerHTML = `<div class="battle">

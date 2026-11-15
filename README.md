@@ -80,6 +80,8 @@ Real Mega Pokémon use their official Mega stats. The other forms keep the base 
 
 **Battler Cards:** signed-in players get a card in one of 12 colors, with a fighter avatar (any fighter or Final Smash form, including the alternate-gender sprites), a title, a short bio, a showcase Elite team, their record and their favorite fighters. Edit yours from the account menu (click your name at the top) or the Stats tab. Titles, bios and showcase team names can't contain curse words or slurs. Disguised spellings are caught too (see `server/moderation.js`). Tap a signed-in player's name in the Online list to see theirs. Their avatar also shows next to their name.
 
+**Sound:** battle sound effects for hits, super effective and critical hits, misses, switching, stat changes, healing, fainting, flinches, Protect, Final Smashes, and a win or lose cue. They're synthesized in the browser, with no audio files. The 🔊 button at the top sets the volume or mutes, saved per browser. There's no background music yet (`public/audio.js`).
+
 **Calc tab:** a damage calculator that uses the battle engine. Set the attacker and defender (fighter, ability, nature, IVs, item, Final Smash, boosts, status, HP) and the field (weather, screens, crit, doubles spread), and it shows the damage range and how many hits it takes to KO. You can load a fighter straight from your roster.
 
 **Import / export:** in Elite Teams, **Export** gives a Showdown-style text version of a team. **Import** takes one and matches each fighter to the closest one in your roster (nature, ability, IVs). It skips moves the fighter can't learn and items it can't hold, and tells you what it changed.
