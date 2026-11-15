@@ -68,7 +68,7 @@
     const t = side.team.find(x => x.id === monId); if (!t) return '';
     const act = side.active.find(a => a && a.id === monId);
     const boosts = (act && act.boosts) || {};
-    const f = F(monId); const ab = [...f.abilities, f.hidden].find(a => a.name === t.ability) || { name: t.ability, desc: '' };
+    const f = F(monId); const abName = (S.dex.renamed || {})[t.ability] || t.ability; const ab = [...f.abilities, f.hidden].find(a => a.name === abName) || { name: abName, desc: '' };
     const rows = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'].map(k => {
       if (k === 'hp') return `<span>HP</span><b>${t.hp}/${t.maxhp}</b><i></i>`;
       const b = boosts[k] || 0; const eff = Math.floor(t.stats[k] * boostMult(b));

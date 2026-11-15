@@ -1013,7 +1013,7 @@
    }
   ],
   "hidden": {
-   "name": "Giga Bowser",
+   "name": "Bowser's Fury",
    "desc": "Once below half HP, Attack and Defense rise 1 stage."
   },
   "signature": [
@@ -1600,7 +1600,7 @@
    }
   ],
   "hidden": {
-   "name": "Fierce Deity",
+   "name": "Hero of Termina",
    "desc": "Once below 1/3 HP, Attack and Speed rise 1 stage."
   },
   "signature": [
@@ -1659,7 +1659,7 @@
   },
   "abilities": [
    {
-    "name": "Triforce of Power",
+    "name": "Demon King's Might",
     "desc": "Contact moves deal 1.3x damage (Tough Claws)."
    }
   ],
@@ -2053,7 +2053,7 @@
    }
   ],
   "hidden": {
-   "name": "Three Sacred Treasures",
+   "name": "Captain of the Guard",
    "desc": "Once below 1/3 HP, Attack, Defense and Sp. Def rise 1 stage."
   },
   "signature": [
@@ -2248,7 +2248,7 @@
    }
   ],
   "hidden": {
-   "name": "Garlic Gobbler",
+   "name": "Greedy Gobbler",
    "desc": "Eats held Berries at half HP and restores an extra 1/8 HP."
   },
   "signature": [
@@ -3814,7 +3814,7 @@
    }
   ],
   "hidden": {
-   "name": "Grima's Vessel",
+   "name": "Chosen Vessel",
    "desc": "Dark moves deal 1.5x damage while below 1/3 HP."
   },
   "signature": [
@@ -4526,7 +4526,7 @@
    }
   ],
   "hidden": {
-   "name": "Satsui no Hado",
+   "name": "Dark Hado",
    "desc": "Fighting moves deal 1.5x damage while below 1/3 HP."
   },
   "signature": [
@@ -4711,7 +4711,7 @@
   },
   "abilities": [
    {
-    "name": "Dragonstone",
+    "name": "Dragon Vein",
     "desc": "Once below half HP, Attack and Defense rise 1 stage."
    }
   ],
@@ -4909,7 +4909,7 @@
    }
   ],
   "hidden": {
-   "name": "Meta Ridley",
+   "name": "Space Pirate Commander",
    "desc": "Takes no recoil damage (Rock Head)."
   },
   "signature": [
@@ -5301,7 +5301,7 @@
    }
   ],
   "hidden": {
-   "name": "Petey Piranha",
+   "name": "Piranha Chomp",
    "desc": "Biting moves deal 1.5x damage (Strong Jaw)."
   },
   "signature": [
@@ -6248,11 +6248,11 @@
    "Steel"
   ],
   "stats": {
-   "hp": 90,
+   "hp": 85,
    "atk": 120,
-   "def": 85,
-   "spa": 95,
-   "spd": 80,
+   "def": 90,
+   "spa": 100,
+   "spd": 85,
    "spe": 70
   },
   "abilities": [
@@ -6310,12 +6310,12 @@
    "Fairy"
   ],
   "stats": {
-   "hp": 75,
-   "atk": 100,
+   "hp": 85,
+   "atk": 95,
    "def": 70,
-   "spa": 105,
-   "spd": 75,
-   "spe": 135
+   "spa": 100,
+   "spd": 70,
+   "spe": 130
   },
   "abilities": [
    {
@@ -6384,7 +6384,7 @@
   },
   "abilities": [
    {
-    "name": "Devil Gene",
+    "name": "King of Iron Fist",
     "desc": "Once below 1/3 HP, Attack sharply rises."
    }
   ],

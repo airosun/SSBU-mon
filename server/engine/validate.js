@@ -3,7 +3,7 @@
 // one of each item.
 const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
-const { NATURES, ITEMS } = require('../../shared/dex.js');
+const { NATURES, ITEMS, RENAMED_ABILITIES } = require('../../shared/dex.js');
 const { FINAL_SMASHES } = require('../../shared/megas.js');
 const BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
@@ -18,12 +18,13 @@ function buildSet(base, build, errors) {
   const item = build.item || '';
   const fs = FINAL_SMASHES[item];
   if (item && !ITEMS[item] && !fs) errors.push(`${f.name}: unknown item ${item}.`);
-  if (fs && fs.base !== f.id) errors.push(`${item} only works for ${BY_ID[fs.base].name}.`);
-  if (![...f.abilities.map(a => a.name), f.hidden.name].includes(base.ability)) errors.push(`${f.name}: invalid ability.`);
+  if (fs && !fs.bases.includes(f.id)) errors.push(`${item} only works for ${fs.bases.map(b => BY_ID[b].name).join(' or ')}.`);
+  const ability = RENAMED_ABILITIES[base.ability] || base.ability; // saved before a rename: use the new name
+  if (![...f.abilities.map(a => a.name), f.hidden.name].includes(ability)) errors.push(`${f.name}: invalid ability.`);
   if (!NATURES[base.nature]) errors.push(`${f.name}: invalid nature.`);
   const ivs = {};
   for (const s of STATS) { const v = base.ivs ? base.ivs[s] : 31; if (!Number.isInteger(v) || v < 0 || v > 31) errors.push(`${f.name}: invalid IVs.`); ivs[s] = v; }
-  return { uid: base.uid, species: f.id, nature: base.nature, ivs, ability: base.ability, item, moves };
+  return { uid: base.uid, species: f.id, nature: base.nature, ivs, ability, item, moves };
 }
 
 function checkClauses(sets, errors) {
