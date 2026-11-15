@@ -23,11 +23,13 @@
       <div class="tip-s">${m.cat === 'Status' ? '' : `Power ${m.power || '—'} · `}Accuracy ${m.acc === true ? '—' : m.acc + '%'}${m.prio ? ` · Priority ${m.prio > 0 ? '+' : ''}${m.prio}` : ''}</div>
       <div>${esc(d.text)}</div>${d.flags.length ? `<div class="tip-f">${d.flags.map(f => `<span class="chip">${f}</span>`).join(' ')}</div>` : ''}`;
   }
-  const TIP_SEL = '[data-tipmove], [data-tiphtml], [data-tipmon]';
+  const TIP_SEL = '[data-tipmove], [data-tiphtml], [data-tipmon], [data-tipdex], [data-tipfoe]';
   function tipContent(el) {
     if (el.dataset.tipmove) return moveInfoHtml(el.dataset.tipmove);
     if (el.dataset.tiphtml) return el.dataset.tiphtml;
     if (el.dataset.tipmon) return monTipHtml(S.tab, el.dataset.tipmon);
+    if (el.dataset.tipdex) return U.dexTipHtml(el.dataset.tipdex);
+    if (el.dataset.tipfoe) return foeTipHtml(S.tab, el.dataset.tipfoe);
     return '';
   }
   function showTip(el) {
@@ -55,13 +57,22 @@
   });
   // touch screens: tap a condition tag or your own fighter to see the same info
   document.addEventListener('click', e => {
-    const el = e.target.closest('[data-tiphtml], [data-tipmon], .pool [data-tipmove]');
+    const el = e.target.closest('[data-tiphtml], [data-tipmon], [data-tipdex], [data-tipfoe], .pool [data-tipmove]');
     if (!el || e.target.closest('[data-pick]')) { if (!e.target.closest('.tip')) tip.classList.add('hidden'); return; }
     showTip(el); tipHold = Date.now() + 600;
   });
 
   const STATN = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
   const boostMult = s => s >= 0 ? (2 + s) / 2 : 2 / (2 - s);
+  // what you know about an opposing fighter: its dex info plus what it has shown this battle
+  function foeTipHtml(matchId, key) {
+    const m = S.matches[matchId]; if (!m || !m.battle) return '';
+    const [n, idx] = key.split(':').map(Number);
+    const vs = view(matchId); const t = (vs.sides[n].team || []).find(x => x.index === idx) || (vs.sides[n].active || []).find(x => x && x.index === idx);
+    if (!t) return '';
+    const seen = t.seen || { moves: [] };
+    return U.dexTipHtml(t.id, { seen, name: t.name, hpPct: t.hpPct, status: t.status });
+  }
   function monTipHtml(matchId, monId) {
     const m = S.matches[matchId]; if (!m || !m.battle || m.you === null) return '';
     const st = m.battle.state; const side = st.sides[m.you];
@@ -294,8 +305,8 @@
       const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
       const vols = (a.volatiles || []).map(v => `<span class="chip">${VOL[v] || v}</span>`).join('');
       return `<div class="combatant ${isFoe ? 'foe' : 'you'} ${flash ? 'flashing' : ''} ${pickable ? 'pickable' : ''} ${a.fainted ? 'down' : ''}" id="slot-${n}-${pos}" ${pickable ? `data-pick="${key}"` : ''}>
-        <div class="sprwrap" ${!isFoe && !pickable ? `data-tipmon="${a.id}"` : ''}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
-        <div class="hpcard" ${!isFoe && !pickable ? `data-tipmon="${a.id}"` : ''}><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
+        <div class="sprwrap" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
+        <div class="hpcard" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
           <div class="chips">${(a.types || []).map(typeChip).join('')}</div>
           <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
           <div class="hptext">${a.hp !== undefined && !(rec(m.id) || {}).playing ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</div>
@@ -362,7 +373,14 @@
     const b = m.battle; const r = b.request; const st = b.state; const you = m.you;
     const pr = rec(m.id);
     if (pr && pr.playing) return `<div class="row"><span class="muted grow">▶ Playing turn…</span><button class="small" id="bSkip">Skip</button></div>`;
-    if (st.ended) { const won = st.winner === you; return `<div class="banner ${you !== null && !won ? 'lose' : ''}"><span>${st.winner === null ? 'Tie game!' : esc(st.sides[st.winner].name) + ' won!'}</span><button id="mBack">Back to lobby</button></div>`; }
+    if (st.ended) {
+      const won = st.winner === you;
+      const rm = m.rematch || [false, false];
+      const rematch = m.replay ? `<button id="rpAgain">Watch again</button>` : you === null ? '' : rm[you] ? '<span class="muted small">Waiting for your opponent to accept the rematch…</span>' : `<button class="primary" id="mRematch">${rm[1 - you] ? 'Accept rematch' : 'Rematch'}</button>`;
+      const note = !m.replay && you !== null && rm[1 - you] && !rm[you] ? `<div class="small" style="margin-top:6px">${esc(st.sides[1 - you].name)} wants a rematch!</div>` : '';
+      return `<div class="banner ${you !== null && !won ? 'lose' : ''}"><span>${st.winner === null ? 'Tie game!' : esc(st.sides[st.winner].name) + ' won!'}</span><div class="row" style="justify-content:center;gap:8px;margin-top:8px">${rematch}<button id="mReplay">${m.replay ? 'Copy replay link' : 'Replay link'}</button><button id="mBack">${m.replay ? 'Close' : 'Back to lobby'}</button></div>${note}</div>`;
+    }
+    if (m.replay) return '<div class="muted">Replay</div>';
     if (you === null) return '<div class="muted">You are spectating.</div>';
     if (r.kind === 'wait') return `<div class="row"><span class="muted grow">Waiting for ${esc(st.sides[1 - you].name)}…</span>${r.canUndo ? '<button class="small" id="bUndo">Undo</button>' : ''}</div>`;
     const T = S.turn[m.id] = S.turn[m.id] || { step: 0, actions: [], switches: [], pending: null };
@@ -401,6 +419,24 @@
     return team.map(mm => `<span class="sw-wrap" data-tipmon="${mm.id}"><button class="sw-btn" data-sw="${mm.index}" ${disabled(mm) ? 'disabled' : ''}>${sprite(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''), true)}<span class="grow">${esc(mm.name)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button></span>`).join('');
   }
 
+  const QUICK = ['Good luck!', 'GG', 'Well played!', 'Nice!', 'Oops'];
+  // Champions-style clocks: your time bank, this turn's limit, and the game clock (PvP only)
+  const mmss = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+  function clocksHtml(m) {
+    const c = m.clock; if (!c || m.battle.state.ended || m.replay) return '';
+    const now = Date.now();
+    const chip = (label, ms, running, title) => `<span class="pill clock ${running ? 'run' : ''}" ${running ? `data-clock-end="${now + ms}"` : ''} title="${title}">${label} <b>${mmss(ms)}</b></span>`;
+    const you = m.you; const parts = [];
+    if (you !== null) {
+      const me = c.players[you];
+      parts.push(chip('Your time', me.bank, me.waiting, 'Your total time for the battle. If it runs out, you lose.'));
+      if (me.waiting) parts.push(chip('This turn', Math.min(me.turn, me.bank), true, 'Time to choose this turn. If it runs out, a move is chosen for you.'));
+    }
+    const foe = c.players[you === null ? 1 : 1 - you];
+    parts.push(chip(you === null ? `${esc(m.players[1].name)}` : 'Opponent', foe.bank, foe.waiting, "Opponent's total time for the battle."));
+    parts.push(chip('Game', c.game, true, 'When the game clock runs out, the player with more fighters left wins (then more HP left).'));
+    return `<div class="clocks">${parts.join('')}</div>`;
+  }
   function renderBattle(id) {
     const m = S.matches[id]; const b = m.battle; const st = b.state;
     const r = rec(id) || { shown: b.log.length };
@@ -411,18 +447,28 @@
         <div class="row" style="margin-bottom:8px"><b class="grow">${esc(st.sides[0].name)} vs ${esc(st.sides[1].name)}</b><span class="pill">${esc(label(m.mode, m.format))}</span><span class="pill">Turn ${st.turn}</span>
           <button class="small" id="bTypes">Type chart</button>
           <select id="bSpeed" class="small" title="Animation speed"><option value="normal">Anim: normal</option><option value="fast">Anim: fast</option><option value="off">Anim: off</option></select>
-          ${!st.ended && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>
+          ${!st.ended && m.you !== null && !m.replay ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>
+        ${clocksHtml(m)}
         <div class="arena ${vs.field.weather ? 'weather-' + vs.field.weather : ''} ${m.format}" id="arena-${id}">${fieldHtml(id)}</div>
         <div class="controls card">${controlsHtml(m)}</div>
       </section>
       <section>
         <div class="log" id="blog">${b.log.slice(0, r.shown).filter(l => l.text || l.cls === 'turn').map(l => `<div class="${l.cls === 'chat' ? 'chatline' : l.cls}">${esc(l.text)}</div>`).join('')}</div>
-        <div class="row" style="margin-top:8px"><input id="bChat" class="grow" maxlength="300" placeholder="Chat…"><button id="bSend">Send</button></div>
+        ${m.replay ? `<div class="muted small" style="margin-top:8px">Replay of ${esc(label(m.mode, m.format))} · ${new Date(m.created).toLocaleString()}</div>` : `<div class="quickchat">${QUICK.map(q => `<button class="small" data-quick="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+        <div class="row" style="margin-top:6px"><input id="bChat" class="grow" maxlength="300" placeholder="Chat…"><button id="bSend">Send</button></div>`}
       </section></div>`;
     const lg = $('#blog'); if (atBottom) lg.scrollTop = lg.scrollHeight;
     wire(m);
   }
   U.renderBattle = renderBattle;
+  // count every visible clock down between server updates
+  setInterval(() => {
+    const now = Date.now();
+    for (const el of document.querySelectorAll('[data-clock-end]')) {
+      const left = +el.dataset.clockEnd - now; const b = el.querySelector('b'); if (b) b.textContent = mmss(left);
+      el.classList.toggle('low', left < 10000);
+    }
+  }, 250);
 
   function wirePicks(id) {
     const m = S.matches[id]; const T = S.turn[id];
@@ -438,7 +484,11 @@
   function wire(m) {
     const id = m.id; const b = m.battle; const r = b.request; const st = b.state;
     const fo = $('#mForfeit'); if (fo) fo.onclick = () => { if (confirm('Forfeit this match?')) act(id, { type: 'forfeit' }); };
-    const bb = $('#mBack'); if (bb) bb.onclick = () => { S.tab = 'home'; U.render(); };
+    const bb = $('#mBack'); if (bb) bb.onclick = () => { if (m.replay) { S.open = S.open.filter(x => x !== id); delete S.matches[id]; delete S.bat[id]; history.replaceState(null, '', '/'); } S.tab = 'home'; U.render(); };
+    const rm = $('#mRematch'); if (rm) rm.onclick = () => socket.emit('rematch', { id }, r => { if (r && r.error) toast(r.error); else if (r && r.waiting) toast('Rematch requested. Waiting for your opponent…'); });
+    const rl = $('#mReplay'); if (rl) rl.onclick = () => { const url = location.origin + '/replay/' + (m.replay ? m.replayId : id); (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Replay link copied: ' + url, 4000), () => prompt('Replay link:', url)); };
+    const ra = $('#rpAgain'); if (ra) ra.onclick = () => U.openReplay(m.replayId, true);
+    $$('[data-quick]').forEach(q => q.onclick = () => socket.emit('chat', { room: id, text: q.dataset.quick }));
     const sk = $('#bSkip'); if (sk) sk.onclick = () => { rec(id).skip = true; };
     const sp = $('#bSpeed'); sp.value = S.animSpeed; sp.onchange = () => { S.animSpeed = sp.value; U.store('ssbu-anim', sp.value); };
     $('#bTypes').onclick = () => {
@@ -447,7 +497,7 @@
       showTypeChart(foeTypes);
     };
     const send = () => { const v = $('#bChat').value.trim(); if (v) { socket.emit('chat', { room: id, text: v }); $('#bChat').value = ''; } };
-    $('#bSend').onclick = send; $('#bChat').onkeydown = e => { if (e.key === 'Enter') send(); };
+    if ($('#bSend')) { $('#bSend').onclick = send; $('#bChat').onkeydown = e => { if (e.key === 'Enter') send(); }; }
     const u = $('#bUndo'); if (u) u.onclick = () => { delete S.turn[id]; act(id, { type: 'undo' }); };
     if (!r || m.you === null || (rec(id) && rec(id).playing)) return;
     const T = S.turn[id]; if (!T) return;

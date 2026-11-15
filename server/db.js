@@ -28,7 +28,23 @@ CREATE TABLE IF NOT EXISTS user_data (
 CREATE TABLE IF NOT EXISTS pass_state (
   key TEXT PRIMARY KEY,
   data JSONB NOT NULL
-);`;
+);
+CREATE TABLE IF NOT EXISTS battles (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  mode TEXT NOT NULL, format TEXT NOT NULL,
+  p1_name TEXT NOT NULL, p2_name TEXT NOT NULL,
+  p1_user INTEGER, p2_user INTEGER,
+  p1_cpu BOOLEAN NOT NULL DEFAULT false, p2_cpu BOOLEAN NOT NULL DEFAULT false,
+  winner SMALLINT, turns INTEGER NOT NULL DEFAULT 0,
+  p1_team TEXT[] NOT NULL, p2_team TEXT[] NOT NULL,
+  replay JSONB
+);
+CREATE INDEX IF NOT EXISTS battles_created ON battles(created_at DESC);
+CREATE INDEX IF NOT EXISTS battles_p1 ON battles(p1_user);
+CREATE INDEX IF NOT EXISTS battles_p2 ON battles(p2_user);`;
+const KEEP_REPLAYS = 5000;   // older battles keep their result but drop the replay data
+const summary = r => ({ id: r.id, created: r.created_at, mode: r.mode, format: r.format, players: [r.p1_name, r.p2_name], cpu: [r.p1_cpu, r.p2_cpu], users: [r.p1_user, r.p2_user], winner: r.winner, turns: r.turns, teams: [r.p1_team, r.p2_team], hasReplay: r.has_replay !== undefined ? r.has_replay : !!r.replay });
 
 function postgresStore(url) {
   const { Pool } = require('pg');
@@ -60,12 +76,34 @@ function postgresStore(url) {
     },
     async getPass(key) { const r = await one('SELECT data FROM pass_state WHERE key = $1', [key]); return r ? r.data : null; },
     async setPass(key, data) { await q('INSERT INTO pass_state (key, data) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data', [key, data]); },
+    async saveBattle(b) {
+      await q(`INSERT INTO battles (id, mode, format, p1_name, p2_name, p1_user, p2_user, p1_cpu, p2_cpu, winner, turns, p1_team, p2_team, replay)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (id) DO NOTHING`,
+        [b.id, b.mode, b.format, b.players[0], b.players[1], b.users[0], b.users[1], b.cpu[0], b.cpu[1], b.winner, b.turns, b.teams[0], b.teams[1], b.replay]);
+      if (Math.random() < 0.02) await q(`UPDATE battles SET replay = NULL WHERE replay IS NOT NULL AND id NOT IN (SELECT id FROM battles WHERE replay IS NOT NULL ORDER BY created_at DESC LIMIT ${KEEP_REPLAYS})`);
+    },
+    async getBattle(id) { const r = await one('SELECT * FROM battles WHERE id = $1', [id]); return r && Object.assign(summary(r), { replay: r.replay }); },
+    async recentBattles({ userId = null, limit = 20 } = {}) {
+      const where = userId == null ? 'WHERE NOT (p1_cpu OR p2_cpu)' : 'WHERE p1_user = $2 OR p2_user = $2';
+      const rows = (await q(`SELECT id, created_at, mode, format, p1_name, p2_name, p1_user, p2_user, p1_cpu, p2_cpu, winner, turns, p1_team, p2_team, (replay IS NOT NULL) AS has_replay FROM battles ${where} ORDER BY created_at DESC LIMIT $1`, userId == null ? [limit] : [limit, userId])).rows;
+      return rows.map(summary);
+    },
+    async userSides(userId) {
+      const rows = (await q(`SELECT mode, format, p2_cpu AS vs_cpu, winner, 0 AS me, p1_team AS team FROM battles WHERE p1_user = $1
+        UNION ALL SELECT mode, format, p1_cpu, winner, 1, p2_team FROM battles WHERE p2_user = $1`, [userId])).rows;
+      return rows.map(r => ({ mode: r.mode, format: r.format, vsCpu: r.vs_cpu, result: r.winner === null ? 'T' : r.winner === r.me ? 'W' : 'L', team: r.team }));
+    },
+    async usageSides({ days = 30, format = null } = {}) {
+      const rows = (await q(`SELECT p1_team AS team, winner = 0 AS won, format FROM battles WHERE NOT p1_cpu AND created_at > now() - make_interval(days => $1) AND ($2::text IS NULL OR format = $2)
+        UNION ALL SELECT p2_team, winner = 1, format FROM battles WHERE NOT p2_cpu AND created_at > now() - make_interval(days => $1) AND ($2::text IS NULL OR format = $2)`, [days, format])).rows;
+      return rows.map(r => ({ team: r.team, won: !!r.won }));
+    },
     async close() { await pool.end(); },
   };
 }
 
 function memoryStore(file) {
-  let s = { users: [], sessions: {}, data: {}, pass: {}, nextId: 1 };
+  let s = { users: [], sessions: {}, data: {}, pass: {}, battles: [], nextId: 1 };
   if (file) { try { s = Object.assign(s, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch {} }
   let timer = null;
   const save = () => {
@@ -102,6 +140,29 @@ function memoryStore(file) {
     },
     async getPass(key) { return clone(s.pass[key] || null); },
     async setPass(key, data) { s.pass[key] = clone(data); save(); },
+    async saveBattle(b) {
+      if (s.battles.some(x => x.id === b.id)) return;
+      s.battles.push(Object.assign(clone(b), { created: new Date().toISOString() }));
+      const withReplay = s.battles.filter(x => x.replay);
+      if (withReplay.length > KEEP_REPLAYS) withReplay.slice(0, withReplay.length - KEEP_REPLAYS).forEach(x => { x.replay = null; });
+      if (s.battles.length > 20000) s.battles.splice(0, s.battles.length - 20000);
+      save();
+    },
+    async getBattle(id) { const b = s.battles.find(x => x.id === id); return b ? Object.assign(clone(b), { hasReplay: !!b.replay }) : null; },
+    async recentBattles({ userId = null, limit = 20 } = {}) {
+      const list = s.battles.filter(b => userId == null ? !b.cpu[0] && !b.cpu[1] : b.users[0] === userId || b.users[1] === userId);
+      return list.slice(-limit).reverse().map(b => { const { replay, ...rest } = b; return Object.assign(clone(rest), { hasReplay: !!replay }); });
+    },
+    async userSides(userId) {
+      const out = [];
+      for (const b of s.battles) for (const me of [0, 1]) if (b.users[me] === userId) out.push({ mode: b.mode, format: b.format, vsCpu: b.cpu[1 - me], result: b.winner === null ? 'T' : b.winner === me ? 'W' : 'L', team: b.teams[me] });
+      return out;
+    },
+    async usageSides({ days = 30, format = null } = {}) {
+      const since = Date.now() - days * 864e5; const out = [];
+      for (const b of s.battles) if (Date.parse(b.created) > since && (!format || b.format === format)) for (const n of [0, 1]) if (!b.cpu[n]) out.push({ team: b.teams[n], won: b.winner === n });
+      return out;
+    },
     async close() {},
   };
 }

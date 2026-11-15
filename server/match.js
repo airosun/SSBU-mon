@@ -10,19 +10,24 @@ const FIGHTERS = require('../shared/fighters.json');
 const BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
 
 const BRING = { singles: 3, doubles: 4 };
+// Champions-style clocks for player-vs-player matches (seconds)
+const CLOCK = { turn: 45, bank: 7 * 60, game: 20 * 60, draft: 90, build: 240, preview: 90 };
 
 class Match {
-  constructor({ id, mode, format, players, onUpdate }) {
+  constructor({ id, mode, format, players, onUpdate, timed }) {
     this.id = id; this.mode = mode === 'elite' ? 'elite' : 'standard';
     this.format = format === 'doubles' ? 'doubles' : 'singles';
     this.bring = BRING[this.format];
     this.onUpdate = onUpdate || (() => {});
     this.players = players.map(p => ({ id: p.id, name: p.name, cpu: !!p.cpu, team: p.team || null, pool: null, picks: null, lineup: null, ready: false }));
     this.battle = null; this.result = null; this.created = Date.now(); this.log = [];
+    this.timed = !!timed;
+    if (this.timed) { this.clock = { game: CLOCK.game * 1000, phase: 0, players: this.players.map(() => ({ bank: CLOCK.bank * 1000, turn: CLOCK.turn * 1000, waiting: false })) }; this.lastTick = Date.now(); }
     if (this.mode === 'standard') {
       this.phase = 'draft';
       for (const p of this.players) p.pool = rollPool(20);
     } else this.phase = 'preview';
+    this.resetPhaseClock();
     this.cpuAct();
   }
 
@@ -62,8 +67,54 @@ class Match {
     if (this.phase === 'draft') this.phase = 'build';
     else if (this.phase === 'build') this.phase = 'preview';
     else if (this.phase === 'preview') { this.startBattle(); return; }
+    this.resetPhaseClock();
     this.cpuAct();
     this.emit();
+  }
+
+  resetPhaseClock() { if (this.timed && CLOCK[this.phase]) this.clock.phase = CLOCK[this.phase] * 1000; }
+
+  // Called about once a second for timed matches. Before the battle each phase has a limit (an unready
+  // player gets automatic picks). In battle each decision has a turn limit (an automatic move is chosen)
+  // drawn from a per-player bank (running out loses), and the whole battle has a game clock.
+  tick(now = Date.now()) {
+    if (!this.timed || this.ended) return;
+    const dt = now - this.lastTick; this.lastTick = now;
+    const c = this.clock;
+    if (this.phase !== 'battle') {
+      c.phase -= dt;
+      if (c.phase > 0) return;
+      this.players.forEach((p, n) => {
+        if (p.ready || this.ended) return;
+        this.log.push({ cls: 'info', text: `${p.name} ran out of time, so their choices were made automatically.` });
+        if (this.phase === 'draft') this.act(n, { type: 'draft', picks: AI.draftSix(p.pool) });
+        else if (this.phase === 'build') this.act(n, { type: 'build', builds: AI.buildTeam(p.picks.map(i => p.pool[i]), this.format === 'doubles') });
+        else if (this.phase === 'preview') this.act(n, { type: 'lineup', order: AI.chooseLineup(p.team, this.players[1 - n].team, this.bring) });
+      });
+      return;
+    }
+    if (!this.battle || this.battle.ended) return;
+    c.game -= dt;
+    if (c.game <= 0) { c.game = 0; this.battle.endByTimer(); return; }
+    let changed = false;
+    this.players.forEach((p, n) => {
+      const pc = c.players[n];
+      const kind = this.battle.getRequest(n).kind;
+      const waiting = kind === 'move' || kind === 'switch';
+      const key = waiting ? `${this.battle.turn}:${kind}` : '';
+      if (waiting !== pc.waiting || key !== pc.key) { pc.waiting = waiting; pc.key = key; pc.turn = CLOCK.turn * 1000; changed = true; }
+      if (!waiting) return;
+      pc.bank -= dt; pc.turn -= dt;
+      if (pc.bank <= 0) { pc.bank = 0; this.battle.timeoutLoss(n); return; }
+      if (pc.turn <= 0) {
+        pc.turn = CLOCK.turn * 1000;
+        const choice = AI.chooseAction(this.battle, n);
+        this.battle.add('info', `${p.name} ran out of turn time, so a move was chosen for them.`);
+        if (choice) this.battle.choose(n, choice);
+        changed = true;
+      }
+    });
+    if (changed) this.emit();
   }
 
   startBattle() {
@@ -73,8 +124,22 @@ class Match {
       players: this.players.map(p => ({ name: p.name, team: p.lineup.map(i => p.team[i]) })),
       onUpdate: () => { if (this.battle && this.battle.ended && this.phase !== 'ended') { this.phase = 'ended'; this.result = this.battle.winner; } this.cpuAct(); this.emit(); },
     });
+    this.startState = JSON.parse(JSON.stringify(this.battle.publicState(0)));   // for replays
     this.cpuAct();
     this.emit();
+  }
+
+  // what gets saved when a battle finishes (results, stats, replay)
+  record(users) {
+    if (!this.battle || !this.battle.ended) return null;
+    const final = this.battle.publicState(0);
+    return {
+      id: this.id, mode: this.mode, format: this.format,
+      players: this.players.map(p => p.name), cpu: this.players.map(p => p.cpu), users,
+      winner: this.battle.winner === undefined ? null : this.battle.winner, turns: this.battle.turn,
+      teams: this.players.map(p => (p.lineup || []).map(i => p.team[i].species)),
+      replay: { start: this.startState, log: this.battle.log, final },
+    };
   }
 
   forfeit(n) {
@@ -112,7 +177,9 @@ class Match {
     const out = {
       id: this.id, mode: this.mode, format: this.format, bring: this.bring, phase: this.phase, you: n,
       players: this.players.map(p => ({ name: p.name, cpu: p.cpu, ready: p.ready })), result: this.result,
+      rematch: this.rematch || null,
     };
+    if (this.timed) out.clock = { game: Math.max(0, Math.round(this.clock.game)), phase: Math.max(0, Math.round(this.clock.phase)), players: this.clock.players.map(x => ({ bank: Math.max(0, Math.round(x.bank)), turn: Math.max(0, Math.round(x.turn)), waiting: x.waiting })) };
     if (me) {
       if (this.phase === 'draft') out.pool = me.pool;
       if (this.phase === 'build') out.picks = me.picks.map(i => me.pool[i]);
@@ -130,4 +197,4 @@ class Match {
   }
 }
 
-module.exports = { Match, BRING };
+module.exports = { Match, BRING, CLOCK };

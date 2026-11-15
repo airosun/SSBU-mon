@@ -11,6 +11,8 @@ const Pass = require('./pass.js');
 const { createStore } = require('./db.js');
 const { setupAuth, userFromCookie } = require('./auth.js');
 const UserData = require('./userdata.js');
+const Stats = require('./stats.js');
+const { calc } = require('./calc.js');
 const MOVES = require('../shared/moves.js');
 const FIGHTERS = require('../shared/fighters.json');
 const DEX = require('../shared/dex.js');
@@ -30,6 +32,29 @@ for (const f of ['dex.js', 'movetext.js', 'megas.js']) app.get('/shared/' + f, (
 const dexPayload = JSON.stringify({ fighters: FIGHTERS, moves: MOVES, items: DEX.ITEMS, natures: DEX.NATURES, types: DEX.TYPES, chart: DEX.CHART, eviolite: DEX.EVIOLITE_USERS, renamed: DEX.RENAMED_ABILITIES, finalSmashes: MEGAS.FINAL_SMASHES, pass: { perDay: Pass.ROLLS_PER_DAY, keep: Pass.KEEP_PER_ROLL } });
 app.get('/api/dex', (req, res) => res.type('json').send(dexPayload));
 app.get('/healthz', (req, res) => res.send('ok'));
+
+// ---------- replays, stats, damage calc ----------
+const api = fn => (req, res) => Promise.resolve(fn(req, res)).catch(e => { console.error(req.path, e.message); res.status(500).json({ error: 'Something went wrong.' }); });
+app.get('/replay/:id', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
+app.get('/api/replay/:id', api(async (req, res) => {
+  const b = await store.getBattle(String(req.params.id).slice(0, 20));
+  if (!b) return res.status(404).json({ error: 'That replay does not exist.' });
+  if (!b.replay) return res.status(410).json({ error: 'That replay has expired. Only the most recent battles keep their replays.' });
+  res.json(b);
+}));
+app.get('/api/replays/recent', api(async (req, res) => res.json({ battles: await store.recentBattles({ limit: 25 }) })));
+app.get('/api/stats/me', api(async (req, res) => {
+  const user = await userFromCookie(store, req.headers.cookie);
+  if (!user) return res.status(401).json({ error: 'Sign in to see your record.' });
+  const sides = await store.userSides(user.id);
+  res.json({ username: user.username, record: Stats.record(sides), fighters: Stats.fighterTable(sides).slice(0, 15), recent: await store.recentBattles({ userId: user.id, limit: 20 }) });
+}));
+app.get('/api/stats/usage', api(async (req, res) => {
+  const format = ['singles', 'doubles'].includes(req.query.format) ? req.query.format : null;
+  const days = [7, 30, 90].includes(+req.query.days) ? +req.query.days : 30;
+  res.json(Object.assign({ days, format }, Stats.usage(await store.usageSides({ days, format }))));
+}));
+app.post('/api/calc', express.json({ limit: '10kb' }), (req, res) => { try { res.json(calc(req.body)); } catch (e) { console.error('calc', e.message); res.status(400).json({ error: 'Could not calculate that.' }); } });
 
 // ---------------- state ----------------
 const users = new Map();     // clientId -> { id, name, sockets:Set, matches:Set, searching:null|{key, team}, lastSeen }
@@ -54,6 +79,7 @@ function prepTeam(mode, team) {
 
 // ---------------- matches ----------------
 function startMatch(mode, format, players) {
+  const timed = players.every(p => p.clientId !== 'cpu');
   const id = Math.random().toString(36).slice(2, 10);
   const entry = { players: players.map(p => p.clientId), spectators: new Set(), endedAt: null };
   matches.set(id, entry);
@@ -61,7 +87,7 @@ function startMatch(mode, format, players) {
   entry.match = new Match({
     id, mode, format,
     players: players.map(p => ({ id: p.clientId, name: p.name, cpu: p.clientId === 'cpu', team: p.team })),
-    onUpdate: () => onMatchUpdate(id),
+    onUpdate: () => onMatchUpdate(id), timed,
   });
   onMatchUpdate(id);
   broadcastLobby();
@@ -71,13 +97,20 @@ function onMatchUpdate(id) {
   const e = matches.get(id); if (!e || !e.match) return;
   e.players.forEach((cid, i) => { if (cid !== 'cpu') emitTo(cid, 'match', e.match.view(i)); });
   for (const sid of e.spectators) io.to(sid).emit('match', e.match.view(null));
-  if (e.match.ended && !e.endedAt) { e.endedAt = Date.now(); broadcastLobby(); }
+  if (e.match.ended && !e.endedAt) {
+    e.endedAt = Date.now(); broadcastLobby();
+    const userIds = e.players.map(cid => /^u:\d+$/.test(cid) ? +cid.slice(2) : null);
+    const rec = e.match.record(userIds);
+    if (rec) store.saveBattle(rec).catch(err => console.error('could not save battle', err.message));
+  }
 }
 function cpuEliteTeam(format) {
   const pool = FIGHTERS.slice().sort(() => Math.random() - 0.5).slice(0, 6).map(f => genFighter(f));
   const builds = AI.buildTeam(pool, format === 'doubles');
   return pool.map((b, i) => Object.assign({}, b, builds[i]));
 }
+
+setInterval(() => { const now = Date.now(); for (const e of matches.values()) if (e.match && e.match.timed && !e.match.ended) e.match.tick(now); }, 1000);
 
 setInterval(() => {
   const now = Date.now();
@@ -235,6 +268,23 @@ io.on('connection', socket => {
     else { e.spectators.add(socket.id); socket.emit('match', e.match.view(null)); }
     reply(ack, { ok: true });
   }));
+  // rematch: vs CPU starts right away; vs a player both have to ask. Same mode, format and Elite teams.
+  socket.on('rematch', need(({ id } = {}, ack) => {
+    const e = matches.get(id); if (!e || !e.match.ended) return reply(ack, { error: 'That match is not over.' });
+    const n = e.players.indexOf(me.id); if (n < 0) return reply(ack, { error: 'You were not in that match.' });
+    if (e.rematchId) return reply(ack, { id: e.rematchId });
+    const m = e.match;
+    const seat = i => ({ clientId: e.players[i], name: m.players[i].name, team: m.mode === 'elite' ? (e.players[i] === 'cpu' ? cpuEliteTeam(m.format) : m.players[i].team) : null });
+    const begin = () => { e.rematchId = startMatch(m.mode, m.format, [seat(0), seat(1)]); m.rematch = null; for (const cid of e.players) if (cid !== 'cpu') emitTo(cid, 'rematchStart', { from: id, id: e.rematchId }); return e.rematchId; };
+    if (e.players.includes('cpu')) return reply(ack, { id: begin() });
+    const other = e.players[1 - n]; const ou = users.get(other);
+    if (!ou || !ou.sockets.size) return reply(ack, { error: 'Your opponent has left.' });
+    m.rematch = m.rematch || [false, false]; m.rematch[n] = true;
+    if (m.rematch[0] && m.rematch[1]) return reply(ack, { id: begin() });
+    onMatchUpdate(id);
+    reply(ack, { waiting: true });
+  }));
+
   socket.on('leave', need(({ id }) => {
     const e = matches.get(id); if (!e) return;
     e.spectators.delete(socket.id);

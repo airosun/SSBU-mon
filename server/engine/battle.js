@@ -71,7 +71,32 @@ class Battle {
   }
 
   // ---------------- utilities ----------------
-  add(cls, text, a) { const e = a ? { cls, text, a } : { cls, text }; this.log.push(e); return e; }
+  add(cls, text, a) {
+    const e = a ? { cls, text, a } : { cls, text }; this.log.push(e);
+    // what the opponent has learned: an ability or item named next to its fighter in a message
+    if (text && (cls === 'ability' || cls === 'effect' || cls === 'heal' || cls === 'damage' || cls === 'item' || cls === 'info')) {
+      for (const side of this.sides || []) for (const m of side.team) {
+        if (!m.revealed || !m.label || !text.includes(m.label)) continue;
+        if (m.ability && text.includes(m.ability)) m.shownAbility = m.ability;
+        if (m.item && text.includes(m.item)) m.shownItem = m.item;
+      }
+    }
+    return e;
+  }
+  // the battle clock ran out: most fighters left wins, then most HP left
+  endByTimer() {
+    if (this.ended) return;
+    const score = s => [s.team.filter(m => !m.fainted).length, s.team.reduce((a, m) => a + (m.fainted ? 0 : m.hp / m.maxhp), 0)];
+    const [a, b] = this.sides.map(score);
+    this.add('info', "Time's up! The battle is decided by fighters left, then HP left.");
+    const w = a[0] !== b[0] ? (a[0] > b[0] ? 0 : 1) : Math.abs(a[1] - b[1]) > 1e-9 ? (a[1] > b[1] ? 0 : 1) : null;
+    if (w === null) { this.add('win', 'The battle ended in a tie!'); this.end(null); } else this.win(w);
+  }
+  timeoutLoss(n) {
+    if (this.ended) return;
+    this.add('info', `${this.sides[n].name} ran out of time.`);
+    this.win(1 - n);
+  }
   P(mon) { return [mon.side.n, mon.pos]; }
   pct(mon) { return Math.ceil(mon.hp / mon.maxhp * 100); }
   inMeta(mon) { return { k: 'in', m: this.P(mon), id: mon.displaySpecies.id, name: mon.displaySpecies.name, types: mon.v.illusion ? mon.displaySpecies.types : mon.types, hp: this.pct(mon), status: mon.status }; }
@@ -127,7 +152,7 @@ class Battle {
     mon.types = fs.types.slice();
     mon.ability = mon.baseAbility = fs.ability.name;
     mon.displaySpecies = mon.species; mon.v.illusion = false;
-    mon.mega = true; mon.side.megaUsed = true; mon.switchFlags.protean = false;
+    mon.mega = true; mon.side.megaUsed = true; mon.switchFlags.protean = false; mon.shownItem = mon.item; mon.shownAbility = mon.ability;
     this.add('mega', `${mon.side.name}'s ${oldName} is using its Final Smash!`, { k: 'mega', m: this.P(mon), id: fs.id, name: fs.name, types: mon.types, from: base.id });
     this.add('mega', `${oldName} became ${fs.name}!`, { k: 'types', m: this.P(mon), types: mon.types });
     this.abilityOnStart(mon);
@@ -579,6 +604,7 @@ class Battle {
 
   // ---------------- moves ----------------
   useMove(mon, moveName, action) {
+    if (moveName && MOVES[moveName]) { mon.shownMoves = mon.shownMoves || []; if (!mon.shownMoves.includes(moveName)) mon.shownMoves.push(moveName); }
     if (mon.v.flinch) { this.add('effect', `${mon.label} flinched and couldn't move!`, { k: 'flinch', m: this.P(mon) }); if (mon.spec.steadfast) this.boost(mon, { spe: 1 }, mon); return this.afterFail(mon); }
     if (mon.status === 'slp') {
       mon.statusTurns--;
@@ -1185,6 +1211,7 @@ class Battle {
     const sp = own ? m.species : m.displaySpecies;
     const base = { index: m.teamIndex, id: sp.id, name: sp.name, types: own || !m.v.illusion ? m.types : m.displaySpecies.types, hpPct: Math.ceil(m.hp / m.maxhp * 100), status: m.status, fainted: m.fainted, pos: m.pos };
     if (own) Object.assign(base, { hp: m.hp, maxhp: m.maxhp, ability: m.ability, item: m.item, stats: m.stats, moves: m.moves.map(x => ({ name: x.name, pp: x.pp, maxpp: x.maxpp, type: MOVES[x.name].type })) });
+    else base.seen = { moves: (m.shownMoves || []).slice(), ability: m.shownAbility || null, item: m.shownItem || null, itemNow: m.shownItem ? m.item === m.shownItem : null, mega: !!m.mega };
     return base;
   }
   publicState(perspective) {

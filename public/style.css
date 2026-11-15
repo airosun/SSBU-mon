@@ -433,3 +433,50 @@ svg.fa.bolt { left: 0; top: 0; transform: none; z-index: 6; overflow: visible; }
 .fa.web { width: 140px; height: 70px; border-radius: 50%; background: repeating-radial-gradient(ellipse, transparent 0 8px, #ffffffaa 8px 9px), repeating-conic-gradient(#ffffffaa 0 1deg, transparent 1deg 30deg); }
 .fa.jolt { width: 34px; height: 34px; background: #ff3b3b; clip-path: polygon(45% 0, 100% 0, 60% 42%, 90% 42%, 20% 100%, 40% 55%, 8% 55%); filter: drop-shadow(0 0 6px #ff3b3b) drop-shadow(0 0 1px #fff); z-index: 7; }
 .fx.pop.big.flinch { color: #ff8a5c; font-size: 22px; }
+
+/* v10: clocks, rematch/quick chat, stats, replays, calc, import/export */
+.sprite.xs { width: 26px; height: 26px; display: inline-block; vertical-align: middle; }
+.pill.clock { font-variant-numeric: tabular-nums; }
+.pill.clock b { font-family: var(--mono); }
+.pill.clock.run { border-color: #4a5a78; }
+.pill.clock.low { border-color: var(--bad); color: var(--bad); animation: clockpulse 1s ease-in-out infinite; }
+@keyframes clockpulse { 50% { background: #ff5c5c22; } }
+.clocks { display: flex; gap: 6px; flex-wrap: wrap; margin: -2px 0 8px; }
+.quickchat { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.quickchat button { padding: 4px 9px; font-size: 12.5px; }
+.pill.win { background: #1e3a2a; border-color: var(--good); color: var(--good); }
+.pill.loss { background: #3a1e22; border-color: var(--bad); color: var(--bad); }
+.stats-page { display: grid; gap: 14px; }
+.stats-page h3 { margin: 16px 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.record-big { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.record-big > div { background: #0d1016aa; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 88px; text-align: center; }
+.record-big b { display: block; font-size: 22px; }
+.record-big span { font-size: 12px; color: var(--muted); }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 6px 8px; border-bottom: 1px solid #ffffff0d; vertical-align: middle; }
+.tbl.usage .bar { position: relative; height: 18px; background: #0d1016; border-radius: 4px; min-width: 120px; overflow: hidden; }
+.tbl.usage .bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); opacity: .55; }
+.tbl.usage .bar span { position: relative; padding-left: 6px; font-family: var(--mono); font-size: 12px; }
+.fighter-usage { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; }
+.replay-row { margin-bottom: 6px; align-items: center; }
+.mini-team { display: inline-flex; gap: 1px; }
+.calc .calc-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+.calc-side { background: #0d1016aa; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.calc-grid label, .calc-ivs label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.calc-grid select, .calc-grid input { width: 100%; }
+.calc-ivs { display: flex; gap: 6px; align-items: flex-end; margin-top: 10px; flex-wrap: wrap; }
+.calc-ivs input { width: 48px; }
+.calc-ivs select { width: 52px; }
+label.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 8px; cursor: pointer; }
+.calc-field { margin-top: 12px; gap: 14px; flex-wrap: wrap; align-items: center; }
+.calc-field label { font-size: 13px; }
+.calc-result { background: #0d1016; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 10px; min-height: 64px; }
+.calc-big { font-size: 26px; font-weight: 800; margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
+.calc-bar { position: relative; height: 10px; background: #2a3242; border-radius: 6px; overflow: hidden; margin-bottom: 6px; max-width: 520px; }
+.calc-bar i { position: absolute; inset: 0 auto 0 0; }
+.calc-bar i.max { background: #ff5c5c88; }
+.calc-bar i.min { background: var(--bad); }
+textarea.paste { width: 100%; font-family: var(--mono); font-size: 13px; background: #0d1016; color: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+@media (max-width: 760px) { .calc .calc-sides { grid-template-columns: 1fr; } .tbl.usage .bar { min-width: 70px; } }
