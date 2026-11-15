@@ -211,11 +211,11 @@
 
   // ---------- tabs ----------
   function renderTabs() {
-    const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['dex', 'Fighterdex']];
+    const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['dex', 'Fighterdex'], ['calc', 'Calc'], ['stats', 'Stats']];
     let h = tabs.map(([k, n]) => `<button class="tab ${S.tab === k ? 'active' : ''}" data-tab="${k}">${n}</button>`).join('');
     for (const id of S.open) {
       const m = S.matches[id]; if (!m) continue;
-      h += `<button class="tab ${S.tab === id ? 'active' : ''}" data-tab="${id}">${S.unread[id] ? '<span class="dot"></span>' : ''}${esc(m.players[0].name)} vs ${esc(m.players[1].name)}<span class="x" data-close="${id}">✕</span></button>`;
+      h += `<button class="tab ${S.tab === id ? 'active' : ''}" data-tab="${id}">${S.unread[id] ? '<span class="dot"></span>' : ''}${m.replay ? '▶ ' : ''}${esc(m.players[0].name)} vs ${esc(m.players[1].name)}<span class="x" data-close="${id}">✕</span></button>`;
     }
     $('#tabs').innerHTML = h;
   }
@@ -224,11 +224,12 @@
     if (c) {
       e.stopPropagation();
       const id = c.dataset.close; const m = S.matches[id];
-      const live = m && m.phase !== 'ended' && m.you !== null;
+      const live = m && !m.replay && m.phase !== 'ended' && m.you !== null;
       if (live && !confirm('Leave this match? You will forfeit.')) return;
       if (live) act(id, { type: 'forfeit' });
-      socket.emit('leave', { id });
+      if (!m || !m.replay) socket.emit('leave', { id });
       S.open = S.open.filter(x => x !== id); delete S.matches[id];
+      if (m && m.replay) { history.replaceState(null, '', '/'); delete S.bat[id]; }
       if (S.tab === id) S.tab = 'home';
       render(); return;
     }
@@ -241,6 +242,8 @@
     else if (S.tab === 'pass') renderPass();
     else if (S.tab === 'elite') renderElite();
     else if (S.tab === 'dex') renderDex();
+    else if (S.tab === 'calc') SSBU.renderCalc();
+    else if (S.tab === 'stats') SSBU.renderStats();
     else if (S.matches[S.tab]) renderMatch(S.tab);
     else { S.tab = 'home'; renderHome(); }
   }
@@ -438,11 +441,12 @@
     $('#view').innerHTML = `<div class="tb">
       <section class="card">
         <h2>Elite Smash teams</h2>
-        <button class="primary" id="eNew" ${S.roster.length ? '' : 'disabled'}>New team</button>
+        <button class="primary" id="eNew" ${S.roster.length ? '' : 'disabled'}>New team</button> <button id="eImport" ${S.roster.length ? '' : 'disabled'}>Import</button>
         ${S.roster.length ? '' : '<p class="muted small">Roll the Fighter Pass first — teams are built from your roster.</p>'}
         <div class="list" style="max-height:none;margin-top:10px">${S.elite.map((t, i) => `<div class="team-row ${i === S.editElite ? 'sel' : ''}" data-et="${i}"><div class="row"><b class="grow">${esc(t.name)}</b><span class="pill">${eliteReady(t) ? 'Ready' : t.mons.length + '/6'}</span></div><div class="mini">${t.mons.map(m => rosterById(m.uid) ? badge(F(rosterById(m.uid).species), 'sm') : '').join('')}</div></div>`).join('') || '<div class="muted">No teams yet.</div>'}</div>
       </section>
       <section class="card" id="eEditor">${S.editElite === null ? '<div class="muted">Pick a team or make a new one. Each team has 6 fighters from your roster; you choose their moves and items.</div>' : ''}</section></div>`;
+    $('#eImport').onclick = () => SSBU.importTeam();
     $('#eNew').onclick = () => { S.elite.push({ name: 'Elite team ' + (S.elite.length + 1), mons: [] }); S.editElite = S.elite.length - 1; S.eliteSlot = 0; saveRoster(); renderElite(); };
     $$('[data-et]').forEach(el => el.onclick = () => { S.editElite = +el.dataset.et; S.eliteSlot = 0; renderElite(); });
     if (S.editElite !== null) renderEliteEditor();
@@ -460,11 +464,12 @@
     }).join('');
     const m = t.mons[S.eliteSlot];
     $('#eEditor').innerHTML = `
-      <div class="row"><input id="eName" class="grow" value="${esc(t.name)}" maxlength="40"><button class="small" id="eDup">Duplicate</button><button class="small" id="eDel">Delete</button></div>
+      <div class="row"><input id="eName" class="grow" value="${esc(t.name)}" maxlength="40"><button class="small" id="eExport">Export</button><button class="small" id="eDup">Duplicate</button><button class="small" id="eDel">Delete</button></div>
       <div class="slots">${slots}</div>
       ${[...counts.values()].some(c => c > 1) ? '<p class="small" style="color:var(--bad)">Item clause: each item can only be used once per team.</p>' : ''}
       ${m ? `<div class="editor"><div>${fighterCard(rosterById(m.uid))}<div class="row" style="margin-top:8px"><button class="small" id="eSwap">Swap fighter</button><button class="small" id="eRemove">Remove</button></div></div><div id="eSet">${setEditor(rosterById(m.uid), m, 'elite', counts)}</div></div>` : ''}`;
     $('#eName').oninput = e => { t.name = e.target.value; saveRoster(); };
+    $('#eExport').onclick = () => SSBU.exportTeam(t);
     $('#eDup').onclick = () => { S.elite.push(JSON.parse(JSON.stringify(Object.assign({}, t, { name: t.name + ' (copy)' })))); S.editElite = S.elite.length - 1; saveRoster(); renderElite(); };
     $('#eDel').onclick = () => { if (!confirm(`Delete "${t.name}"?`)) return; S.elite.splice(S.editElite, 1); S.editElite = null; S.selElite = 0; saveRoster(); renderElite(); };
     $$('[data-eslot]').forEach(el => el.onclick = () => { if (el.dataset.eslot === 'add') { S.eliteSlot = t.mons.length; pickFromRoster(t, null); } else { S.eliteSlot = +el.dataset.eslot; renderEliteEditor(); } });
@@ -513,7 +518,8 @@
 
   // ---------- match screens ----------
   function matchHeader(m) {
-    return `<div class="row" style="margin-bottom:10px"><b class="grow">${esc(m.players[0].name)} vs ${esc(m.players[1].name)}</b><span class="pill">${esc(label(m.mode, m.format))}</span>${m.phase !== 'ended' && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>`;
+    const clock = m.clock && m.phase !== 'ended' && m.you !== null && !m.players[m.you].ready ? `<span class="pill clock" data-clock-end="${Date.now() + m.clock.phase}" title="Time left for this step. When it runs out, your choices are made automatically.">⏱ <b>--:--</b></span>` : '';
+    return `<div class="row" style="margin-bottom:10px"><b class="grow">${esc(m.players[0].name)} vs ${esc(m.players[1].name)}</b>${clock}<span class="pill">${esc(label(m.mode, m.format))}</span>${m.phase !== 'ended' && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>`;
   }
   function steps(m) {
     const list = m.mode === 'standard' ? [['draft', 'Draft 6'], ['build', 'Moves & items'], ['preview', `Pick ${m.bring}`], ['battle', 'Battle']] : [['preview', `Pick ${m.bring}`], ['battle', 'Battle']];
@@ -590,11 +596,11 @@
         const k = order.indexOf(i);
         return fighterCard(s, { sel: k >= 0, order: k >= 0 ? (k < lead ? 'Lead ' + (k + 1) : k + 1) : null, attr: `data-line="${i}"`, extra: `<div class="small">${s.moves.map(x => `<span class="chip">${esc(x)}</span>`).join(' ')}${s.item ? ` <span class="chip up">${esc(s.item)}</span>` : ''}</div>` });
       }).join('')}</div></div>
-      <div><h2>${esc(m.players[1 - m.you].name)}'s team</h2>${m.foeTeam.map(s => `<div class="list-item" style="margin-bottom:6px">${badge(F(s.species), 'sm')}<span class="grow">${esc(s.name)}</span>${s.types.map(typeChip).join(' ')}</div>`).join('')}</div></div>`;
+      <div><h2>${esc(m.players[1 - m.you].name)}'s team</h2><p class="muted small" style="margin-top:-6px">Hover (or tap) a fighter for its stats, possible abilities and Final Smash.</p>${m.foeTeam.map(s => `<div class="list-item" style="margin-bottom:6px" data-tipdex="${esc(s.species)}">${badge(F(s.species), 'sm')}<span class="grow">${esc(s.name)}</span>${s.types.map(typeChip).join(' ')}</div>`).join('')}</div></div>`;
   }
 
   // ---------- shared with battle.js ----------
-  window.SSBU = { $, $$, esc, S, F, typeChip, badge, sprite, act, socket, label, toast, modal, closeModal, load, store, render: () => render() };
+  window.SSBU = { $, $$, esc, S, F, typeChip, badge, sprite, act, socket, label, toast, modal, closeModal, load, store, render: () => render(), renderTabs: () => renderTabs(), fighterCard, statsOf, rosterById: u => rosterById(u), saveRoster: () => saveRoster(), renderElite: () => renderElite(), abilityInfo };
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {
@@ -606,5 +612,6 @@
     }
     S.roster = S.roster.filter(r => S.byId[r.species]);
     render();
+    const rp = location.pathname.match(/^\/replay\/([a-z0-9]+)/i); if (rp) SSBU.openReplay(rp[1]);
   });
 })();

@@ -66,6 +66,20 @@ Real Mega Pokémon use their official Mega stats. The other forms keep the base 
 
 **Battle screen:** animated turn playback (attacks, hits, faints, switches, stat changes) with a speed setting (normal, fast or off). Hover a move to see what it does. Tap a fighter's image to target it, and every fighter a move will hit flashes before you confirm. A **Type chart** button highlights the opposing fighters' types.
 
+**Battle clock (player vs player):** each decision has a 45-second turn limit. When it runs out, a move is picked for you. That time comes out of a 7-minute **Your Time** bank, and running the bank out loses the battle. The whole battle has a 20-minute game clock. When it ends, the side with more fighters left wins (then more HP left). Before the battle, drafting, building and picking your lineup each have a time limit (90s / 4 min / 90s), with automatic picks when time runs out. Battles against the CPU are not timed.
+
+**Scouting:** in team preview and in battle, hover (or tap) an opposing fighter to see its base stats, its level 50 Speed range, its possible abilities and its Final Smash. In battle you also see the moves it has used and any ability or item it has revealed.
+
+**After a battle:** **Rematch** (vs the CPU it starts right away; vs a player both have to accept, with the same Elite teams), a **replay link**, and quick-chat buttons (GG, Good luck!, …).
+
+**Replays:** every finished battle is saved, and `/replay/<id>` plays it back with the animations. The newest 5,000 battles keep their replays.
+
+**Stats tab:** your win/loss record by mode and opponent, your most-used fighters, your recent battles with replays, site-wide **fighter usage** (how often each fighter is brought and its win rate, by format, over the last 7/30/90 days), and recent player battles.
+
+**Calc tab:** a damage calculator that uses the battle engine. Set the attacker and defender (fighter, ability, nature, IVs, item, Final Smash, boosts, status, HP) and the field (weather, screens, crit, doubles spread), and it shows the damage range and how many hits it takes to KO. You can load a fighter straight from your roster.
+
+**Import / export:** in Elite Teams, **Export** gives a Showdown-style text version of a team. **Import** takes one and matches each fighter to the closest one in your roster (nature, ability, IVs). It skips moves the fighter can't learn and items it can't hold, and tells you what it changed.
+
 You can battle the CPU, find a random opponent (queues are separate for each mode and format), challenge an online player, or watch live matches. There's lobby chat and battle chat.
 
 ## Run it locally
@@ -113,6 +127,10 @@ Locally, run with `DATABASE_URL=postgres://… npm start`, or with no `DATABASE_
 | `server/auth.js` | Accounts: sign up, sign in, sessions, password changes |
 | `server/db.js` | Storage: Postgres when `DATABASE_URL` is set, otherwise memory |
 | `server/userdata.js` | Saved rosters and Elite teams (signature checks, guest import) |
+| `server/stats.js` | Win/loss records, most-used fighters, usage stats |
+| `server/calc.js` | Damage calculator (runs the battle engine) |
+| `public/anim.js` | Move animations |
+| `public/extras.js` | Stats, replays, calculator, team import/export, opponent info |
 | `server/index.js` | Express + Socket.IO server (lobby, queues, challenges, spectating) |
 | `public/` | Browser client |
 

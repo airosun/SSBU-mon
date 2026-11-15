@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node test/mechanics.js && node test/accounts.js && node test/simulate.js 200",
+    "test": "node test/mechanics.js && node test/accounts.js && node test/features.js && node test/simulate.js 200",
     "build:fighters": "python3 tools/build_fighters.py"
   },
   "engines": {
