@@ -88,7 +88,7 @@
     }).catch(() => { H.loading = false; });
   };
 
-  // ---------- trainer cards ----------
+  // ---------- Battler Cards ----------
   const recordLine = r => { const w = r.wins, l = r.losses; return `${w}–${l}${r.ties ? '–' + r.ties : ''}${w + l ? ` <span class="muted">(${pct(w / (w + l))})</span>` : ''}`; };
   U.cardHtml = (p, opts = {}) => {
     const av = p.avatar && S.byId[p.avatar];
@@ -104,6 +104,8 @@
       ${team ? `<div class="tc-team"><div class="muted small">Showcase team · <b>${esc(team.name)}</b></div><div class="tc-mons">${team.mons.map(m => `<div class="tc-mon" data-tiphtml="${esc(`<div class='tip-h'>${esc(F(m.species).name)}${m.item ? ' @ ' + esc(m.item) : ''}</div><div class='small'>${esc(renamed(m.ability))} · ${esc(m.nature)}</div><div>${m.moves.map(x => `<span class='chip'>${esc(x)}</span>`).join(' ')}</div>`)}">${sprite(F(m.species), 'sm', false, m.gender)}${m.item ? `<span class="tc-item">${esc(m.item)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
     </div>`;
   };
+  U.editCard = editCard;
+  U.loadMyCard = async () => { const r = await fetch('/api/profile/' + encodeURIComponent(S.account.username), { credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not load your Battler Card.'); return j; };
   U.showProfile = async name => {
     modal('<div class="muted">Loading…</div>');
     try { const r = await fetch('/api/profile/' + encodeURIComponent(name)); const p = await r.json(); if (!r.ok) throw new Error(p.error);
@@ -111,10 +113,10 @@
     } catch (e) { modal(`<p>${esc(e.message || 'Could not load that card.')}</p><button id="pfClose">Close</button>`); $('#pfClose').onclick = closeModal; }
   };
   document.addEventListener('click', e => { const a = e.target.closest('[data-profile]'); if (a) { e.preventDefault(); U.showProfile(a.dataset.profile); } });
-  function editCard(p) {
+  function editCard(p, opts = {}) {
     const allIds = [...S.dex.fighters.map(f => f.id), ...Object.values(S.dex.finalSmashes).map(x => x.id)];
     let avatar = p.avatar;
-    modal(`<h2>Edit your trainer card</h2>
+    modal(`<h2>Edit your Battler Card</h2>
       <div class="field"><label>Title</label><input id="tcT" maxlength="32" value="${esc(p.title)}" placeholder="e.g. Final Smash Fanatic"></div>
       <div class="field"><label>About you</label><textarea id="tcB" maxlength="160" rows="2" class="paste" style="font-family:inherit">${esc(p.bio)}</textarea></div>
       <div class="field"><label>Showcase team</label><select id="tcF"><option value="">(none)</option>${S.elite.map((t, i) => `<option value="${i}" ${p.favoriteTeam && p.favoriteTeam.name === t.name ? 'selected' : ''}>${esc(t.name)} (${t.mons.length})</option>`).join('')}</select></div>
@@ -122,13 +124,13 @@
       <div class="row"><span class="grow"></span><button id="tcCancel">Cancel</button><button class="primary" id="tcSave">Save</button></div>`);
     const grid = () => { const q = $('#tcQ').value.toLowerCase(); $('#tcGrid').innerHTML = allIds.filter(id => !q || S.byId[id].name.toLowerCase().includes(q)).map(id => `<button class="av ${id === avatar ? 'on' : ''}" data-av="${id}" title="${esc(S.byId[id].name)}">${sprite(S.byId[id], 'sm')}</button>`).join(''); $$('[data-av]').forEach(b => b.onclick = () => { avatar = b.dataset.av; grid(); }); };
     grid(); $('#tcQ').oninput = grid;
-    $('#tcCancel').onclick = closeModal;
+    $('#tcCancel').onclick = () => { closeModal(); if (opts.after) opts.after(); };
     $('#tcSave').onclick = async () => {
       const fav = $('#tcF').value;
       const r = await fetch('/api/account/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ avatar, title: $('#tcT').value, bio: $('#tcB').value, favoriteTeam: fav === '' ? null : +fav }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) return toast(j.error || 'Could not save your card.');
-      closeModal(); toast('Trainer card saved.'); if (S.tab === 'stats') U.renderStats();
+      closeModal(); toast('Battler Card saved.'); if (S.tab === 'stats') U.renderStats(); if (opts.after) opts.after();
     };
   }
 
@@ -136,7 +138,7 @@
   S.statsView = S.statsView || { format: '', days: 30 };
   U.renderStats = async () => {
     const v = S.statsView;
-    $('#view').innerHTML = `<div class="stats-page">${S.account ? '<section class="card" id="stCard"><div class="muted">Loading your trainer card…</div></section>' : ''}<section class="card" id="stMe"><h2>Your record</h2><div class="muted">Loading…</div></section>
+    $('#view').innerHTML = `<div class="stats-page">${S.account ? '<section class="card" id="stCard"><div class="muted">Loading your Battler Card…</div></section>' : ''}<section class="card" id="stMe"><h2>Your record</h2><div class="muted">Loading…</div></section>
       <section class="card"><div class="row"><h2 class="grow" style="margin:0">Fighter usage</h2>
         <select id="stFmt"><option value="">All formats</option><option value="singles">Singles</option><option value="doubles">Doubles</option></select>
         <select id="stDays"><option value="today">Today</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select></div>
@@ -151,7 +153,7 @@
     if (S.account && $('#stCard')) {
       const c = await get('/api/profile/' + encodeURIComponent(S.account.username));
       if (S.tab !== 'stats') return;
-      $('#stCard').innerHTML = c.ok ? `<h2>Your trainer card</h2>${U.cardHtml(c.data, { edit: true })}<p class="muted small">Other players see this when they tap your name in the Online list.</p>` : '<div class="muted">Could not load your card.</div>';
+      $('#stCard').innerHTML = c.ok ? `<h2>Your Battler Card</h2>${U.cardHtml(c.data, { edit: true })}<p class="muted small">Other players see this when they tap your name in the Online list.</p>` : '<div class="muted">Could not load your card.</div>';
       const ed = $('#tcEdit'); if (ed) ed.onclick = () => editCard(c.data);
     }
     const meEl = $('#stMe');

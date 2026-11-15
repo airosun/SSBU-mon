@@ -67,7 +67,7 @@ app.get('/api/stats/usage', api(async (req, res) => {
   usageCache.set(key, { t: Date.now(), v });
   res.json(v);
 }));
-// ---------- trainer cards ----------
+// ---------- Battler Cards ----------
 async function publicProfile(user) {
   const [prof, sides] = await Promise.all([store.getProfile(user.id), store.userSides(user.id)]);
   const p = prof || {};
