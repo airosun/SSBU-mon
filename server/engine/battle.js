@@ -579,7 +579,7 @@ class Battle {
 
   // ---------------- moves ----------------
   useMove(mon, moveName, action) {
-    if (mon.v.flinch) { this.add('effect', `${mon.label} flinched and couldn't move!`); if (mon.spec.steadfast) this.boost(mon, { spe: 1 }, mon); return this.afterFail(mon); }
+    if (mon.v.flinch) { this.add('effect', `${mon.label} flinched and couldn't move!`, { k: 'flinch', m: this.P(mon) }); if (mon.spec.steadfast) this.boost(mon, { spe: 1 }, mon); return this.afterFail(mon); }
     if (mon.status === 'slp') {
       mon.statusTurns--;
       if (mon.statusTurns > 0) { this.add('effect', `${mon.label} is fast asleep.`); return this.afterFail(mon); }

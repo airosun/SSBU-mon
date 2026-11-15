@@ -232,6 +232,13 @@
         return 1900;
       }
       case 'types': { if (mon) mon.types = a.types; if (animate) redrawField(id); return animate ? 250 : 0; }
+      case 'flinch': {
+        if (!animate) return 0;
+        const s = sprEl(...a.m); if (!s) return 0;
+        const at = centerOf(s, arena);
+        fx(arena, 'pop big flinch', { x: at.x, y: at.y - 10 }, 'Flinched!');
+        return window.MOVEFX.flinch({ arena, sp: SPEEDS[S.animSpeed] ?? 1, sprite: s, at, left: at.x < arena.clientWidth / 2 });
+      }
       case 'pop': {
         if (!animate) return 0;
         const s = sprEl(...a.m); if (s) fx(arena, 'pop big ' + a.tone, centerOf(s, arena), esc(a.text));
@@ -250,31 +257,15 @@
 
   function animateMove(id, arena, a) {
     const user = a.u ? sprEl(...a.u) : null;
-    const color = typeColor(a.type);
-    const targets = (a.t || []).map(t => sprEl(...t)).filter(Boolean);
-    if (user) user.parentElement.classList.add('acting');
-    setTimeout(() => user && user.parentElement.classList.remove('acting'), 700);
-    if (a.charge) {
-      if (user) { const ring = fx(arena, 'ring', centerOf(user, arena)); ring.style.borderColor = color; }
-      return 500;
-    }
-    if (a.cat === 'Status') {
-      if (user) { const ring = fx(arena, 'ring big', centerOf(user, arena)); ring.style.borderColor = color; }
-      for (const t of targets) if (t !== user && user) orb(arena, centerOf(user, arena), centerOf(t, arena), color, 'small');
-      return 560;
-    }
-    if (a.cat === 'Physical' && user && targets.length) {
-      const from = centerOf(user, arena); const to = centerOf(targets[0], arena);
-      const dx = (to.x - from.x) * 0.55, dy = (to.y - from.y) * 0.55;
-      user.animate([{ transform: 'translate(0,0)' }, { transform: `translate(${dx}px,${dy}px) scale(1.08)`, offset: 0.45 }, { transform: 'translate(0,0)' }], { duration: 520, easing: 'cubic-bezier(.3,.7,.4,1)' });
-      setTimeout(() => { for (const t of targets) { const s = fx(arena, 'slash', centerOf(t, arena)); s.style.background = color; } }, 230);
-      return 600;
-    }
-    // special (or physical with no visible user, e.g. Future Sight)
-    const from = user ? centerOf(user, arena) : null;
-    for (const t of targets) { const to = centerOf(t, arena); if (from) orb(arena, from, to, color); else { const s = fx(arena, 'burst', to); s.style.background = color; } }
-    if (user) user.animate([{ filter: 'none' }, { filter: `drop-shadow(0 0 14px ${color}) brightness(1.4)` }, { filter: 'none' }], { duration: 560 });
-    return 620;
+    if (user) { user.parentElement.classList.add('acting'); setTimeout(() => user.parentElement.classList.remove('acting'), 700); }
+    const md = (S.dex.moves && S.dex.moves[a.name]) || {};
+    const W = arena.clientWidth, H = arena.clientHeight;
+    const from = user ? centerOf(user, arena) : { x: W / 2, y: H / 2 };
+    const targets = (a.t || []).map(t => { const el = sprEl(...t); if (!el) return null; const p = centerOf(el, arena); return { x: p.x, y: p.y, el }; }).filter(Boolean);
+    const foeSide = a.u ? 1 - a.u[0] : 1;
+    const foeSideCenters = [0, 1].map(pos => sprEl(foeSide, pos)).filter(Boolean).map(el => centerOf(el, arena));
+    if (!foeSideCenters.length) foeSideCenters.push({ x: W - from.x, y: H - from.y });
+    return window.MOVEFX.play({ arena, sp: SPEEDS[S.animSpeed] ?? 1, user, from, targets, foeSideCenters, name: a.name, type: a.type, cat: a.cat, charge: !!a.charge, flags: md, contact: !!md.contact, userLeft: from.x < W / 2 });
   }
   function orb(arena, from, to, color, size) {
     const o = fx(arena, 'orb ' + (size || ''), from); o.style.background = color; o.style.boxShadow = `0 0 18px 6px ${color}`;
