@@ -622,7 +622,7 @@ class Battle {
   confusionDamage(mon) { return Math.floor(Math.floor(Math.floor(2 * LEVEL / 5 + 2) * 40 * this.getStat(mon, 'atk') / this.getStat(mon, 'def')) / 50) + 2; }
 
   accuracyCheck(mon, target, md, moveName) {
-    if (target.v.charging && target.v.charging.semi && !(md.hitsSemi && md.hitsSemi.includes(target.v.charging.semi))) { this.add('effect', `${target.label} avoided the attack!`); return false; }
+    if (target.v.charging && target.v.charging.semi && !(md.hitsSemi && md.hitsSemi.includes(target.v.charging.semi))) { this.add('effect', `${target.label} avoided the attack!`, { k: 'pop', m: this.P(target), text: 'Missed!', tone: 'miss' }); return false; }
     if (md.acc === true) return true;
     if (md.poisonNeverMiss && mon.types.includes('Poison')) return true;
     if (moveName === 'Bounce' && mon.spec.bounceBoost) return true;
@@ -640,7 +640,7 @@ class Battle {
   checkProtect(mon, target, md) {
     if (!target.v.protect) return false;
     if (md.breaksProtect) { delete target.v.protect; this.add('effect', `${mon.label} broke through the protection!`); return false; }
-    this.add('effect', `${target.label} protected itself!`, { k: 'protect', m: this.P(target) });
+    this.add('effect', `${target.label} protected itself!`, { k: 'protect', m: this.P(target), blocked: true });
     if (target.v.protect === 'kings' && this.makesContact(mon, md)) this.boost(mon, { atk: -1 }, target);
     const ts = target.spec;
     if (ts.protectFoeBoost) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(mon, ts.protectFoeBoost, target); }
@@ -892,7 +892,7 @@ class Battle {
       let power = this.basePower(mon, target, md, h);
       if (pBond && h === 1) power = Math.floor(power / 4);
       const { dmg, crit } = this.calcDamage(mon, target, md, power, eff, false, spread);
-      if (crit) this.add('effect', `A critical hit on ${target.label}!`, { k: 'pop', m: this.P(target), text: 'Critical hit!', tone: 'crit' });
+      if (crit) this.add('effect', `A critical hit on ${target.label}!`, { k: 'pop', m: this.P(target), text: 'Crit!', tone: 'crit' });
       if (h === 0 && !target.v.substitute) { if (eff > 1) this.add('eff', "It's super effective!", { k: 'pop', m: this.P(target), text: 'Super effective!', tone: 'se' }); else if (eff < 1) this.add('eff', "It's not very effective...", { k: 'pop', m: this.P(target), text: 'Not very effective', tone: 'nve' }); }
       dealt += this.applyDamage(mon, target, md, dmg, { eff, crit }); count++;
     }
