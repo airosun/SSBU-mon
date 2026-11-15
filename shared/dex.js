@@ -53,10 +53,11 @@ const ITEMS = {
   'Heavy-Duty Boots': 'Immune to entry hazards.',
   'Expert Belt': 'Super-effective attacks deal 1.2x damage.',
   'Light Clay': 'Reflect and Light Screen last 8 turns.',
-  'Eviolite': 'Defense and Sp. Def 1.5x (only Pichu, Squirtle and Ivysaur can use it).',
+  'Eviolite': 'Defense and Sp. Def 1.5x, but only for fighters that can still evolve (Pichu, Pikachu, Squirtle, Ivysaur). No effect on anyone else.',
   'Air Balloon': 'Immune to Ground moves until hit by any attack.',
 };
-const EVIOLITE_USERS = ['pichu', 'squirtle', 'ivysaur'];
+// not-fully-evolved fighters: the only ones Eviolite boosts (anyone can hold it)
+const EVIOLITE_USERS = ['pichu', 'pikachu', 'squirtle', 'ivysaur'];
 
 const STAT_NAMES = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
 

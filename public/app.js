@@ -280,7 +280,7 @@
     const f = F(b.species);
     const sig = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
     const learn = f.learnset.slice().sort((x, y) => ((y in sig) - (x in sig)) || S.dex.moves[x].type.localeCompare(S.dex.moves[y].type) || x.localeCompare(y));
-    const items = Object.keys(S.dex.items).filter(i => i !== 'Eviolite' || S.dex.eviolite.includes(f.id));
+    const items = Object.keys(S.dex.items);
     const opt = sel => `<option value="">—</option>` + learn.map(n => { const m = S.dex.moves[n]; return `<option value="${esc(n)}" ${n === sel ? 'selected' : ''}>${esc(n)}${n in sig ? ' ★' : ''} · ${m.type} ${m.cat === 'Status' ? 'Status' : (m.power || '—')}</option>`; }).join('');
     return `<div class="set-ed" data-set="${idPrefix}">
       <div class="field"><label>Moves</label>${[0, 1, 2, 3].map(i => `<select data-mv="${i}">${opt(build.moves[i])}</select>`).join('')}</div>
