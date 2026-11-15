@@ -293,3 +293,9 @@ details.pool .move-table { max-height: 220px; }
 .tipstats span { color: var(--muted); } .tipstats b { font-family: var(--mono); text-align: right; }
 .tipstats i { font-style: normal; font-family: var(--mono); font-size: 12px; } .tipstats i.up { color: #8ff0b6; } .tipstats i.down { color: #ffa3a3; }
 .tip .sprite.sm { width: 26px; height: 26px; }
+/* ---- v5: Missed! / Crit! / Blocked! popups ---- */
+.fx.pop.big { font-size: 24px; letter-spacing: .02em; -webkit-text-stroke: 1px #000; animation-duration: 1.1s; z-index: 6; }
+.fx.pop.big.miss { color: #e8ecf3; }
+.fx.pop.big.crit { color: #ff9a3c; font-size: 26px; }
+.fx.pop.big.block { color: #7fd8ff; }
+.fx.pop.big.se { font-size: 20px; } .fx.pop.big.nve { font-size: 18px; }

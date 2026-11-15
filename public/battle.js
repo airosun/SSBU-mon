@@ -209,13 +209,15 @@
       case 'types': { if (mon) mon.types = a.types; if (animate) redrawField(id); return animate ? 250 : 0; }
       case 'pop': {
         if (!animate) return 0;
-        const s = sprEl(...a.m); if (s) fx(arena, 'pop ' + a.tone, centerOf(s, arena), esc(a.text));
-        return 300;
+        const s = sprEl(...a.m); if (s) fx(arena, 'pop big ' + a.tone, centerOf(s, arena), esc(a.text));
+        return a.tone === 'crit' || a.tone === 'miss' ? 650 : 450;
       }
       case 'protect': {
         if (!animate) return 0;
-        const s = sprEl(...a.m); if (s) fx(arena, 'shield', centerOf(s, arena));
-        return 450;
+        const s = sprEl(...a.m); if (!s) return 0;
+        fx(arena, 'shield', centerOf(s, arena));
+        if (a.blocked) fx(arena, 'pop big block', centerOf(s, arena), 'Blocked!');
+        return a.blocked ? 700 : 450;
       }
     }
     return 120;
