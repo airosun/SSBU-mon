@@ -217,6 +217,7 @@
     };
   }
   $('#nameBtn').onclick = () => accountModal();
+  $('#audioBtn').onclick = () => AUDIO.settings();
   $('#signInBtn').onclick = () => accountModal('in');
   document.addEventListener('click', e => { const a = e.target.closest('[data-signin]'); if (a) { e.preventDefault(); accountModal(a.dataset.signin === 'new' ? 'new' : 'in'); } });
 
@@ -248,6 +249,7 @@
   });
   function render() {
     renderTabs();
+    const cur = S.matches[S.tab]; if (window.AUDIO) AUDIO.setBattle(!!(cur && cur.battle && !(cur.battle.state && cur.battle.state.ended)));
     if (!S.dex) { $('#view').innerHTML = '<div class="card">Loading…</div>'; return; }
     if (S.tab === 'home') renderHome();
     else if (S.tab === 'pass') renderPass();

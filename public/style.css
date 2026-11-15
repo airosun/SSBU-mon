@@ -530,3 +530,10 @@ textarea.paste { width: 100%; font-family: var(--mono); font-size: 13px; backgro
 .swatch span { position: absolute; top: 6px; left: 8px; width: 12px; height: 12px; border-radius: 50%; }
 .swatch em { font-style: normal; font-size: 11px; padding-bottom: 4px; color: #fff; text-shadow: 0 1px 2px #000; }
 .swatch.on { box-shadow: 0 0 0 3px #fff8; transform: translateY(-1px); }
+
+/* v15: sound */
+.audio-btn { margin-left: 8px; padding: 6px 10px; font-size: 16px; line-height: 1; }
+.au-sliders { display: grid; gap: 10px; margin: 12px 0; }
+.au-sliders label { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: 10px; font-size: 14px; }
+.au-sliders input[type=range] { width: 100%; accent-color: var(--accent); }
+@media (max-width: 700px) { .audio-btn { padding: 6px 8px; } .au-sliders label { grid-template-columns: 96px 1fr 40px; } }
