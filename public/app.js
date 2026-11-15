@@ -513,13 +513,65 @@
   }
 
   // ---------- Fighterdex ----------
+  // Fighterdex: search, type / type-combination filter (Final Smash forms included), and sorting
+  const TYPE_ORDER = ['Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy'];
+  const DEX_SORTS = [['num', 'Fighterdex #'], ['bst', 'BST'], ['hp', 'HP'], ['atk', 'Attack'], ['def', 'Defense'], ['spa', 'Sp. Atk'], ['spd', 'Sp. Def'], ['spe', 'Speed'], ['name', 'Name']];
+  S.dexOpt = S.dexOpt || { t1: '', t2: '', fs: true, sort: 'num', dir: 'asc' };
+  function dexEntries() {
+    const out = S.dex.fighters.map(f => ({ f, num: f.num, sub: 0 }));
+    if (S.dexOpt.fs) for (const fs of Object.values(S.dex.finalSmashes || {})) {
+      const bases = fs.bases.map(b => S.byId[b]).filter(Boolean); if (!bases.length) continue;
+      const first = bases.reduce((a, b) => (b.num < a.num ? b : a));
+      out.push({ f: S.byId[fs.id], fs, bases, num: first.num, sub: 1 + Object.values(S.dex.finalSmashes).filter(x => x.bases[0] === fs.bases[0]).indexOf(fs) });
+    }
+    return out;
+  }
   function renderDex() {
-    const q = S.dexFilter.toLowerCase();
-    const list = S.dex.fighters.filter(f => !q || f.name.toLowerCase().includes(q) || f.series.toLowerCase().includes(q) || f.types.some(x => x.toLowerCase() === q) || f.learnset.some(x => x.toLowerCase() === q));
-    $('#view').innerHTML = `<section class="card"><div class="row" style="margin-bottom:12px"><h2 class="grow" style="margin:0">Fighterdex · ${list.length}</h2><input id="dexQ" placeholder="Search name, series, type or move" value="${esc(S.dexFilter)}"></div>
-      <div class="dex-grid">${list.map(f => `<div class="dex-card" data-dex="${f.id}" style="flex-direction:column"><div class="row">${badge(f)}<div class="grow"><div class="nm">#${f.num} ${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')}</div></div><span class="pill">BST ${STATS.reduce((a, s) => a + f.stats[s], 0)}</span></div>
-        <div class="statbars">${STATS.map(s => `<span class="muted">${SL[s]}</span><span style="font-family:var(--mono)">${f.stats[s]}</span><div class="statbar"><i style="width:${Math.min(100, f.stats[s] / 1.6)}%;background:${f.stats[s] >= 110 ? 'var(--good)' : f.stats[s] >= 80 ? 'var(--warn)' : 'var(--bad)'}"></i></div>`).join('')}</div></div>`).join('')}</div></section>`;
+    const o = S.dexOpt;
+    const q = S.dexFilter.toLowerCase().trim();
+    const bst = f => STATS.reduce((a, k) => a + f.stats[k], 0);
+    const matchType = types => {
+      if (o.t1 && !types.includes(o.t1)) return false;
+      if (o.t2 === 'none') return types.length === 1;
+      if (o.t2 && !types.includes(o.t2)) return false;
+      return true;
+    };
+    const matchText = e => {
+      if (!q) return true;
+      const base = e.bases ? e.bases[0] : e.f;
+      return e.f.name.toLowerCase().includes(q) || (e.bases || []).some(b => b.name.toLowerCase().includes(q)) || (base.series || '').toLowerCase().includes(q)
+        || e.f.types.some(x => x.toLowerCase() === q) || base.learnset.some(x => x.toLowerCase() === q) || (e.fs && e.fs.stone.toLowerCase().includes(q));
+    };
+    const key = e => o.sort === 'num' ? e.num * 10 + e.sub : o.sort === 'bst' ? bst(e.f) : o.sort === 'name' ? e.f.name.toLowerCase() : e.f.stats[o.sort];
+    const list = dexEntries().filter(e => matchType(e.f.types) && matchText(e)).sort((a, b) => {
+      const ka = key(a), kb = key(b);
+      const c = typeof ka === 'string' ? ka.localeCompare(kb) : ka - kb;
+      return (o.dir === 'desc' ? -c : c) || (a.num * 10 + a.sub) - (b.num * 10 + b.sub);
+    });
+    const nForms = list.filter(e => e.fs).length;
+    const typeOpts = sel => TYPE_ORDER.map(t => `<option value="${t}" ${sel === t ? 'selected' : ''}>${t}</option>`).join('');
+    const filtered = o.t1 || o.t2 || q || !o.fs || o.sort !== 'num' || o.dir !== 'asc';
+    const highlight = k => (o.sort === k ? ' hl' : '');
+    $('#view').innerHTML = `<section class="card"><div class="row" style="margin-bottom:10px"><h2 class="grow" style="margin:0">Fighterdex · ${list.length - nForms}${nForms ? ` <span class="muted small">+ ${nForms} Final Smash form${nForms === 1 ? '' : 's'}</span>` : ''}</h2><input id="dexQ" placeholder="Search name, series, type or move" value="${esc(S.dexFilter)}"></div>
+      <div class="dex-tools">
+        <label>Type <select id="dexT1"><option value="">Any</option>${typeOpts(o.t1)}</select></label>
+        <label>${o.t1 ? 'and' : 'Second type'} <select id="dexT2"><option value="">Any</option><option value="none" ${o.t2 === 'none' ? 'selected' : ''}>None (single type)</option>${typeOpts(o.t2)}</select></label>
+        <label class="check"><input type="checkbox" id="dexFS" ${o.fs ? 'checked' : ''}> Include Final Smash forms</label>
+        <span class="grow"></span>
+        <label>Sort by <select id="dexSort">${DEX_SORTS.map(([k, n]) => `<option value="${k}" ${o.sort === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <button class="small" id="dexDir" title="${o.dir === 'asc' ? 'Ascending' : 'Descending'}">${o.dir === 'asc' ? '↑ Low to high' : '↓ High to low'}</button>
+        ${filtered ? '<button class="small ghost" id="dexReset">Reset</button>' : ''}
+      </div>
+      ${list.length ? '' : '<p class="muted">No fighters match. Try another type combination or turn on Final Smash forms.</p>'}
+      <div class="dex-grid">${list.map(e => { const f = e.f; return `<div class="dex-card ${e.fs ? 'fs-entry' : ''}" data-dex="${e.fs ? e.bases[0].id : f.id}" style="flex-direction:column"><div class="row">${badge(f)}<div class="grow"><div class="nm">#${e.num}${e.fs ? '<span class="fs-star">★</span>' : ''} ${esc(f.name)}</div>${e.fs ? `<div class="small muted">Final Smash of ${esc(e.bases.map(b => b.name).join(' / '))} · ${esc(e.fs.stone)}</div>` : ''}<div>${f.types.map(typeChip).join(' ')}</div></div><span class="pill${highlight('bst')}">BST ${bst(f)}</span></div>
+        <div class="statbars">${STATS.map(s => `<span class="muted${highlight(s)}">${SL[s]}</span><span style="font-family:var(--mono)" class="${highlight(s).trim()}">${f.stats[s]}</span><div class="statbar"><i style="width:${Math.min(100, f.stats[s] / 1.6)}%;background:${f.stats[s] >= 110 ? 'var(--good)' : f.stats[s] >= 80 ? 'var(--warn)' : 'var(--bad)'}"></i></div>`).join('')}</div></div>`; }).join('')}</div></section>`;
     const inp = $('#dexQ'); inp.oninput = e => { S.dexFilter = e.target.value; const pos = inp.selectionStart; renderDex(); const n = $('#dexQ'); n.focus(); n.setSelectionRange(pos, pos); };
+    $('#dexT1').onchange = e => { o.t1 = e.target.value; if (o.t2 && o.t2 === o.t1) o.t2 = ''; renderDex(); };
+    $('#dexT2').onchange = e => { o.t2 = e.target.value; renderDex(); };
+    $('#dexFS').onchange = e => { o.fs = e.target.checked; renderDex(); };
+    $('#dexSort').onchange = e => { o.sort = e.target.value; o.dir = ['num', 'name'].includes(o.sort) ? 'asc' : 'desc'; renderDex(); };
+    $('#dexDir').onclick = () => { o.dir = o.dir === 'asc' ? 'desc' : 'asc'; renderDex(); };
+    const rs = $('#dexReset'); if (rs) rs.onclick = () => { Object.assign(o, { t1: '', t2: '', fs: true, sort: 'num', dir: 'asc' }); S.dexFilter = ''; renderDex(); };
     $$('[data-dex]').forEach(el => el.onclick = () => showFighter(F(el.dataset.dex)));
   }
   function showFighter(f) {
