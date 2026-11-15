@@ -2,7 +2,7 @@
 // A battle receives only the fighters each player brought (3 in singles, 4 in doubles), in lead order.
 const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
-const { effectiveness, calcStat } = require('../../shared/dex.js');
+const { effectiveness, calcStat, EVIOLITE_USERS } = require('../../shared/dex.js');
 const ABIL = require('./abilities.js');
 
 const FIGHTER_BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
@@ -389,7 +389,7 @@ class Battle {
     if (opts.ignoreNegative && stage < 0) stage = 0;
     let v = Math.floor(mon.stats[stat] * boostMult(stage));
     const s = mon.spec; const item = mon.item;
-    const evio = item === 'Eviolite';
+    const evio = item === 'Eviolite' && EVIOLITE_USERS.includes(mon.species.id);
     if (stat === 'atk') {
       if (item === 'Choice Band') v *= 1.5;
       if (s.guts && mon.status) v *= 1.5;
