@@ -281,26 +281,55 @@
   socket.on('connect', () => socket.emit('pass:status', {}, st => { S.pass = st; if (S.tab === 'pass') renderPass(); }));
 
   // ---------- moves / item editor (shared by Standard build and Elite teams) ----------
+  const MV_MENUS = {}; let MV_SEQ = 0; let MV_OPEN = null; const POOL_OPEN = new Set(); // {set, i, scroll}: keeps an open move list open across redraws
   function setEditor(b, build, idPrefix, usedItems) {
     const f = F(b.species);
     const sig = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
     const learn = f.learnset.slice().sort((x, y) => ((y in sig) - (x in sig)) || S.dex.moves[x].type.localeCompare(S.dex.moves[y].type) || x.localeCompare(y));
     const stones = Object.values(S.dex.finalSmashes || {});
     const items = Object.keys(S.dex.items).filter(i => !S.dex.finalSmashes[i]).concat(stones.filter(x => x.base === f.id).map(x => x.stone));
-    const opt = sel => `<option value="">—</option>` + learn.map(n => { const m = S.dex.moves[n]; return `<option value="${esc(n)}" ${n === sel ? 'selected' : ''}>${esc(n)}${n in sig ? ' ★' : ''} · ${m.type} ${m.cat === 'Status' ? 'Status' : (m.power || '—')}</option>`; }).join('');
-    return `<div class="set-ed" data-set="${idPrefix}">
-      <div class="field"><label>Moves</label>${[0, 1, 2, 3].map(i => `<select data-mv="${i}">${opt(build.moves[i])}</select>`).join('')}</div>
+    const mvLabel = n => { const m = S.dex.moves[n]; return `<span class="mvp-n">${esc(n)}${n in sig ? ' <span class="sig">★</span>' : ''}</span><span class="mvp-i">${typeChip(m.type)} ${m.cat === 'Status' ? 'Status' : (m.power || '—') + ' BP'}</span>`; };
+    const picker = i => { const cur = build.moves[i]; return `<div class="mvp" data-mvp="${i}"><button type="button" class="mvp-btn" data-mvbtn="${i}" ${cur ? `data-tipmove="${esc(cur)}"` : ''}>${cur ? mvLabel(cur) : '<span class="muted">— choose a move —</span>'}<span class="mvp-caret">▾</span></button></div>`; };
+    const menu = i => `<div class="mvp-menu"><button type="button" class="mvp-opt" data-mvopt=""><span class="muted">— none —</span></button>${learn.map(n => `<button type="button" class="mvp-opt ${n === build.moves[i] ? 'on' : ''} ${build.moves.includes(n) && n !== build.moves[i] ? 'taken' : ''}" data-mvopt="${esc(n)}" data-tipmove="${esc(n)}">${mvLabel(n)}</button>`).join('')}</div>`;
+    const mkey = 'm' + (++MV_SEQ); MV_MENUS[mkey] = menu;
+    return `<div class="set-ed" data-set="${idPrefix}" data-mvkey="${mkey}">
+      <div class="field"><label>Moves <span class="muted small">· hover a move to see what it does</span></label>${[0, 1, 2, 3].map(picker).join('')}</div>
       <div class="field"><label>Item ${usedItems && build.item && usedItems.get(build.item) > 1 ? '<b style="color:var(--bad)">· duplicate (item clause)</b>' : ''}</label><select data-item><option value="">(none)</option>${items.map(i => `<option ${i === build.item ? 'selected' : ''}>${esc(i)}</option>`).join('')}</select>
         <div class="desc">${esc(S.dex.items[build.item] || '')}</div></div>
-      <details class="pool"><summary>Move pool (${f.learnset.length})</summary><div class="move-table"><table>${learn.map(n => { const m = S.dex.moves[n]; return `<tr><td>${esc(n)}${n in sig ? ` <span class="sig">★ ${esc(sig[n])}</span>` : ''}</td><td>${typeChip(m.type)}</td><td><span class="cat">${m.cat}</span></td><td>${m.power || '—'}</td><td>${m.acc === true ? '—' : m.acc}</td><td class="muted small">${m.target === 'allFoes' ? 'Both foes' : m.target === 'all' ? 'All others' : ''}</td></tr>`; }).join('')}</table></div></details>
+      <details class="pool" ${POOL_OPEN.has(idPrefix) ? 'open' : ''}><summary>Move pool (${f.learnset.length})</summary><div class="move-table"><table>${learn.map(n => { const m = S.dex.moves[n]; return `<tr data-tipmove="${esc(n)}"><td>${esc(n)}${n in sig ? ` <span class="sig">★ ${esc(sig[n])}</span>` : ''}</td><td>${typeChip(m.type)}</td><td><span class="cat">${m.cat}</span></td><td>${m.power || '—'}</td><td>${m.acc === true ? '—' : m.acc}</td><td class="muted small">${m.target === 'allFoes' ? 'Both foes' : m.target === 'all' ? 'All others' : ''}</td></tr>`; }).join('')}</table></div></details>
     </div>`;
   }
   function wireSetEditor(root, build, onChange) {
-    root.querySelectorAll('[data-mv]').forEach(el => el.onchange = () => {
-      const i = +el.dataset.mv; const v = el.value;
-      if (v && build.moves.includes(v) && build.moves[i] !== v) { toast('Already has that move.'); el.value = build.moves[i] || ''; return; }
-      build.moves[i] = v; onChange();
+    const closeMenus = () => { MV_OPEN = null; document.querySelectorAll('.mvp-menu').forEach(m => m.remove()); };
+    const openMenu = (btn, scroll) => {
+      const wrap = btn.parentElement; const ed = btn.closest('.set-ed'); const i = +btn.dataset.mvbtn;
+      wrap.insertAdjacentHTML('beforeend', MV_MENUS[ed.dataset.mvkey](i));
+      const m = wrap.querySelector('.mvp-menu'); const on = m.querySelector('.on');
+      m.scrollTop = scroll != null ? scroll : on ? on.offsetTop - 60 : 0;
+      MV_OPEN = { set: ed.dataset.set, i, scroll: m.scrollTop };
+      m.onscroll = () => { if (MV_OPEN) MV_OPEN.scroll = m.scrollTop; };
+      m.onclick = ev => {
+        const o = ev.target.closest('[data-mvopt]'); if (!o) return; ev.stopPropagation();
+        const v = o.dataset.mvopt;
+        if (v && build.moves.includes(v) && build.moves[i] !== v) { toast('Already has that move.'); return; }
+        closeMenus(); document.querySelector('.tip')?.classList.add('hidden');
+        build.moves[i] = v; onChange();
+      };
+    };
+    root.querySelectorAll('[data-mvbtn]').forEach(btn => btn.onclick = e => {
+      e.stopPropagation();
+      const wasOpen = btn.parentElement.querySelector('.mvp-menu');
+      closeMenus(); if (!wasOpen) openMenu(btn);
     });
+    const pool = root.querySelector('.pool'); const setId = (root.querySelector('.set-ed') || root.closest('.set-ed'))?.dataset.set;
+    if (pool) pool.ontoggle = () => { if (pool.open) POOL_OPEN.add(setId); else POOL_OPEN.delete(setId); };
+    if (MV_OPEN) { // a redraw happened while a list was open: reopen it where it was
+      const ed = root.querySelector('.set-ed') || root.closest('.set-ed');
+      if (ed && ed.dataset.set === MV_OPEN.set) { const btn = ed.querySelector(`[data-mvbtn="${MV_OPEN.i}"]`); if (btn) openMenu(btn, MV_OPEN.scroll); }
+    }
+    if (!wireSetEditor._bound) { wireSetEditor._bound = true;
+      document.addEventListener('click', e => { if (!e.target.closest('.mvp-menu')) closeMenus(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); }); }
     root.querySelector('[data-item]').onchange = e => { build.item = e.target.value; onChange(); };
   }
   function itemCounts(builds) { const m = new Map(); for (const b of builds) if (b.item) m.set(b.item, (m.get(b.item) || 0) + 1); return m; }
