@@ -223,13 +223,15 @@
 
   // ---------- tabs ----------
   function renderTabs() {
-    const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['dex', 'Fighterdex'], ['calc', 'Calc'], ['stats', 'Stats']];
+    const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['dex', 'Fighterdex'], ['calc', 'Calc'], ['stats', 'Stats'], ['about', 'What is SSBU-mon?']];
     let h = tabs.map(([k, n]) => `<button class="tab ${S.tab === k ? 'active' : ''}" data-tab="${k}">${n}</button>`).join('');
     for (const id of S.open) {
       const m = S.matches[id]; if (!m) continue;
       h += `<button class="tab ${S.tab === id ? 'active' : ''}" data-tab="${id}">${S.unread[id] ? '<span class="dot"></span>' : ''}${m.replay ? '▶ ' : ''}${esc(m.players[0].name)} vs ${esc(m.players[1].name)}<span class="x" data-close="${id}">✕</span></button>`;
     }
     $('#tabs').innerHTML = h;
+    // on narrow screens the tab bar scrolls sideways: keep the selected tab in view
+    const act = $('#tabs .tab.active'); if (act && act.offsetLeft + act.offsetWidth > $('#tabs').clientWidth + $('#tabs').scrollLeft || (act && act.offsetLeft < $('#tabs').scrollLeft)) act.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
   $('#tabs').addEventListener('click', e => {
     const c = e.target.closest('[data-close]');
@@ -257,6 +259,7 @@
     else if (S.tab === 'dex') renderDex();
     else if (S.tab === 'calc') SSBU.renderCalc();
     else if (S.tab === 'stats') SSBU.renderStats();
+    else if (S.tab === 'about') SSBU.renderAbout();
     else if (S.matches[S.tab]) renderMatch(S.tab);
     else { S.tab = 'home'; renderHome(); }
   }
@@ -287,7 +290,7 @@
     $('#view').innerHTML = `
     <div class="grid-home">
       <section class="card hero span2">
-        <h1>Battle with Smash Ultimate fighters</h1>
+        <h1>Battle with Smash Ultimate fighters</h1><p class="muted small" style="margin:-6px 0 10px">New here? <a href="#" data-goto-about>Read <b>What is SSBU-mon?</b></a> for how everything works.</p>
         <div class="seg" id="segMode">
           <button data-mode="standard" class="${S.mode === 'standard' ? 'on' : ''}"><b>Standard Battle</b><span>Draft 6 of 20 random fighters, then set moves and items</span></button>
           <button data-mode="elite" class="${S.mode === 'elite' ? 'on' : ''}"><b>Elite Smash Battle</b><span>Bring a pre-built team from your Fighter Pass roster</span></button>
@@ -317,6 +320,7 @@
       <section class="card span2" id="homeUsage">${SSBU.homeUsageHtml()}</section>
     </div>`;
     SSBU.loadHomeUsage();
+    const ab = $('[data-goto-about]'); if (ab) ab.onclick = e => { e.preventDefault(); S.tab = 'about'; render(); window.scrollTo(0, 0); };
     $$('[data-goto]').forEach(a => a.onclick = e => { e.preventDefault(); S.tab = a.dataset.goto; render(); });
     $$('[data-mode]').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; store('ssbu-mode', S.mode); renderHome(); });
     $$('[data-format]').forEach(b => b.onclick = () => { S.format = b.dataset.format; store('ssbu-format', S.format); renderHome(); });

@@ -86,6 +86,8 @@ Real Mega Pokémon use their official Mega stats. The other forms keep the base 
 
 **Import / export:** in Elite Teams, **Export** gives a Showdown-style text version of a team. **Import** takes one and matches each fighter to the closest one in your roster (nature, ability, IVs). It skips moves the fighter can't learn and items it can't hold, and tells you what it changed.
 
+The **What is SSBU-mon?** tab (`public/about.js`) is an in-site guide to everything below.
+
 You can battle the CPU, find a random opponent (queues are separate for each mode and format), challenge an online player, or watch live matches. The home page shows the **most used fighters** today and all time. Each battle has its own chat.
 
 ## Run it locally
