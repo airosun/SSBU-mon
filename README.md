@@ -13,20 +13,40 @@ A Pokémon VGC-style battle site where every Super Smash Bros. Ultimate fighter 
 
 | Fighter | Stone | Final Smash form | Types |
 |---|---|---|---|
-| Bowser | Bowserite | Giga Bowser | Fire/Dragon |
-| Ganondorf | Ganonite | Beast Ganon | Dark/Fighting |
+| Bowser | Giga Mushroom | Giga Bowser | Fire/Dragon |
+| Ganondorf | Triforce of Power | Beast Ganon | Dark/Fighting |
 | Sonic | Chaos Emerald | Super Sonic | Electric/Fighting |
 | Greninja | Greninjite | Mega Greninja | Water/Dark |
-| Charizard | Charizardite X / Y | Mega Charizard X / Y | Fire/Dragon · Fire/Flying |
-| Lucario | Lucarionite / Lucarionite Z | Mega Lucario / Mega Lucario Z | Fighting/Steel |
-| Mewtwo | Mewtwonite X / Y | Mega Mewtwo X / Y | Psychic/Fighting · Psychic |
-| Piranha Plant | Plantite | Petey Piranha | Grass/Poison |
-| Sephiroth | Sephirite | Safer Sephiroth | Dark/Flying |
+| Charizard | Charizardite X / Charizardite Y | Mega Charizard X / Mega Charizard Y | Fire/Dragon · Fire/Flying |
+| Lucario | Lucarionite / Lucarionite Z | Mega Lucario / Mega Lucario Z | Fighting/Steel · Fighting/Steel |
+| Mewtwo | Mewtwonite X / Mewtwonite Y | Mega Mewtwo X / Mega Mewtwo Y | Psychic/Fighting · Psychic |
+| Piranha Plant | Super Fertilizer | Petey Piranha | Grass/Poison |
+| Sephiroth | Black Materia | Safer Sephiroth | Dark/Flying |
 | Kazuya | Devil Gene | Devil Kazuya | Fighting/Dark |
-| Corrin | Corrinite | Corrin (Dragon Form) | Dragon/Water |
-| Bayonetta | Bayonettite | Gomorrah | Dark/Dragon |
+| Corrin | Dragonstone | Corrin (Dragon Form) | Dragon/Water |
+| Bayonetta | Infernal Contract | Gomorrah | Dark/Dragon |
+| Mario | Mega Mushroom | Mega Mario | Normal/Ground |
+| Donkey Kong | Banandium Gem | Kong Bananza | Fighting/Ground |
+| Young Link | Fierce Deity's Mask | Fierce Deity Link | Fighting/Psychic |
+| Zelda | Secret Stone | Light Dragon | Dragon/Fairy |
+| King Dedede | Dedede Mask | Masked Dedede | Normal/Steel |
+| Kirby | Miracle Fruit | Hypernova Kirby | Normal/Psychic |
+| Pit | Three Sacred Treasures | Sacred Treasures Pit | Flying/Steel |
+| Samus | Metroid DNA | Metroid Samus | Electric/Dark |
+| Ridley | Phazon Core | Meta Ridley | Dragon/Steel |
+| Wario | Garlic | Wario-Man | Poison/Fighting |
+| Little Mac | Giga Charge | Giga Mac | Fighting/Dark |
+| Ryu | Satsui no Hado | Evil Ryu | Fighting/Dark |
+| Ken | Psycho Power | Violent Ken | Fighting/Psychic |
+| Joker | Satanael's Mask | Satanael | Dark/Psychic |
+| Robin | Fell Dragon's Blood | Grima | Dark/Dragon |
+| Pyra / Mythra | Aegis Core Crystal | Pneuma | Fire/Fairy |
+| Sora | Drive Orb | Sora - Ultimate Form | Fairy/Flying |
+| Byleth | Crest of Flames | Enlightened One | Dragon/Fairy |
+| Mega Man | Rush Adapter | Super Mega Man | Steel/Flying |
+| Steve | Netherite Ingot | Netherite Steve | Steel/Ground |
 
-Real Mega Pokémon use their official Mega stats. The other forms keep the base fighter's HP and add 100 to its base stat total. All forms are defined in `shared/megas.js`, and each form's image is `public/images/<form id>.png`.
+Real Mega Pokémon use their official Mega stats. The other forms keep the base fighter's HP and add 100 to its base stat total. Pyra and Mythra share the Aegis Core Crystal and both become the same Pneuma, so they have the same HP and base stat total (550). No fighter ability shares a name with a Final Smash or its stone. Fighters saved before an ability was renamed keep working and show the new name. All forms are defined in `shared/megas.js`, and each form's image is `public/images/<form id>.png`.
 
 **Standard Battle**
 1. Each player gets 20 random fighters with random natures, random IVs (0–31) and either their standard or hidden ability. Pick 6.

@@ -50,12 +50,12 @@
   const label = (mode, format) => `${mode === 'elite' ? 'Elite Smash' : 'Standard'} ${format === 'doubles' ? 'Doubles' : 'Singles'}`;
   function statsOf(b) { const f = F(b.species); const o = {}; for (const s of STATS) o[s] = DEX.calcStat(s, f.stats[s], b.ivs[s], 0, LEVEL, b.nature); return o; }
   function natureTag(n) { const x = S.dex.natures[n] || {}; return x.plus ? `${n} <span class="muted">(+${SL[x.plus]} −${SL[x.minus]})</span>` : `${n} <span class="muted">(neutral)</span>`; }
-  function abilityInfo(f, name) { const a = [...f.abilities, f.hidden].find(x => x.name === name) || { name, desc: '' }; return { ...a, hidden: f.hidden.name === name }; }
+  function abilityInfo(f, name) { name = (S.dex.renamed || {})[name] || name; const a = [...f.abilities, f.hidden].find(x => x.name === name) || { name, desc: '' }; return { ...a, hidden: f.hidden.name === name }; }
   function ivTotal(b) { return STATS.reduce((a, s) => a + b.ivs[s], 0); }
   function ivGrade(b) { const t = ivTotal(b); return t >= 160 ? 'S' : t >= 130 ? 'A' : t >= 100 ? 'B' : t >= 70 ? 'C' : 'D'; }
 
   function finalSmashChip(f) {
-    const list = Object.values(S.dex.finalSmashes || {}).filter(x => x.base === f.id);
+    const list = Object.values(S.dex.finalSmashes || {}).filter(x => x.bases.includes(f.id));
     return list.length ? `<div class="fs-chip" title="Hold ${list.map(x => x.stone).join(' or ')} to use it">★ Final Smash: ${list.map(x => esc(x.name)).join(' / ')}</div>` : '';
   }
   // A compact card for a randomized fighter (draft pool, pass roll, roster)
@@ -287,7 +287,7 @@
     const sig = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
     const learn = f.learnset.slice().sort((x, y) => ((y in sig) - (x in sig)) || S.dex.moves[x].type.localeCompare(S.dex.moves[y].type) || x.localeCompare(y));
     const stones = Object.values(S.dex.finalSmashes || {});
-    const items = Object.keys(S.dex.items).filter(i => !S.dex.finalSmashes[i]).concat(stones.filter(x => x.base === f.id).map(x => x.stone));
+    const items = Object.keys(S.dex.items).filter(i => !S.dex.finalSmashes[i]).concat(stones.filter(x => x.bases.includes(f.id)).map(x => x.stone));
     const mvLabel = n => { const m = S.dex.moves[n]; return `<span class="mvp-n">${esc(n)}${n in sig ? ' <span class="sig">★</span>' : ''}</span><span class="mvp-i">${typeChip(m.type)} ${m.cat === 'Status' ? 'Status' : (m.power || '—') + ' BP'}</span>`; };
     const picker = i => { const cur = build.moves[i]; return `<div class="mvp" data-mvp="${i}"><button type="button" class="mvp-btn" data-mvbtn="${i}" ${cur ? `data-tipmove="${esc(cur)}"` : ''}>${cur ? mvLabel(cur) : '<span class="muted">— choose a move —</span>'}<span class="mvp-caret">▾</span></button></div>`; };
     const menu = i => `<div class="mvp-menu"><button type="button" class="mvp-opt" data-mvopt=""><span class="muted">— none —</span></button>${learn.map(n => `<button type="button" class="mvp-opt ${n === build.moves[i] ? 'on' : ''} ${build.moves.includes(n) && n !== build.moves[i] ? 'taken' : ''}" data-mvopt="${esc(n)}" data-tipmove="${esc(n)}">${mvLabel(n)}</button>`).join('')}</div>`;
@@ -406,7 +406,7 @@
     modal(`<div class="row" style="margin-bottom:10px">${badge(f, 'lg')}<div class="grow"><div style="font-size:22px;font-weight:800">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')} <span class="muted">· ${esc(f.series)}</span></div></div><button id="fx">Close</button></div>
       <h2>Abilities</h2>${f.abilities.map(a => `<div><b>${esc(a.name)}</b> — <span class="muted">${esc(a.desc)}</span></div>`).join('')}
       <div><b>${esc(f.hidden.name)}</b> <span class="pill">Hidden</span> — <span class="muted">${esc(f.hidden.desc)}</span></div>
-      ${Object.values(S.dex.finalSmashes || {}).filter(x => x.base === f.id).map(x => `<div class="fs-box"><div class="row">${sprite(S.byId[x.id], 'lg')}<div class="grow"><div style="font-weight:800;font-size:17px">Final Smash: ${esc(x.name)}</div><div>${x.types.map(typeChip).join(' ')} <span class="muted">· hold <b>${esc(x.stone)}</b> · BST ${Object.values(x.stats).reduce((a, c) => a + c, 0)}</span></div><div class="small"><b>${esc(x.ability.name)}</b> — <span class="muted">${esc(x.ability.desc)}</span></div></div></div>
+      ${Object.values(S.dex.finalSmashes || {}).filter(x => x.bases.includes(f.id)).map(x => `<div class="fs-box"><div class="row">${sprite(S.byId[x.id], 'lg')}<div class="grow"><div style="font-weight:800;font-size:17px">Final Smash: ${esc(x.name)}</div><div>${x.types.map(typeChip).join(' ')} <span class="muted">· hold <b>${esc(x.stone)}</b> · BST ${Object.values(x.stats).reduce((a, c) => a + c, 0)}</span></div><div class="small"><b>${esc(x.ability.name)}</b> — <span class="muted">${esc(x.ability.desc)}</span></div></div></div>
         <div class="statbars" style="max-width:420px">${STATS.map(s => `<span class="muted">${SL[s]}</span><span style="font-family:var(--mono)">${x.stats[s]}${x.stats[s] !== f.stats[s] ? ` <span style="color:${x.stats[s] > f.stats[s] ? 'var(--good)' : 'var(--bad)'}">(${x.stats[s] > f.stats[s] ? '+' : ''}${x.stats[s] - f.stats[s]})</span>` : ''}</span><div class="statbar"><i style="width:${Math.min(100, x.stats[s] / 2)}%;background:var(--accent2)"></i></div>`).join('')}</div></div>`).join('')}
       <h2 style="margin-top:14px">Move pool</h2>
       <div class="move-table"><table><tr><th>Move</th><th>Type</th><th>Cat</th><th>Pow</th><th>Acc</th></tr>${f.learnset.map(n => { const mv = S.dex.moves[n]; return `<tr><td>${esc(n)}${n in sig ? ` <span class="sig">★ ${esc(sig[n])}</span>` : ''}</td><td>${typeChip(mv.type)}</td><td><span class="cat">${mv.cat}</span></td><td>${mv.power || '—'}</td><td>${mv.acc === true ? '—' : mv.acc}</td></tr>`; }).join('')}</table></div>`);
@@ -504,7 +504,7 @@
     for (const [stone, fs] of Object.entries(d.finalSmashes || {})) {
       const ab = { name: fs.ability.name, desc: fs.ability.desc };
       S.byId[fs.id] = { id: fs.id, name: fs.name, types: fs.types, stats: fs.stats, image: fs.image, abilities: [ab], hidden: ab, learnset: S.byId[fs.base].learnset, signature: S.byId[fs.base].signature, form: true };
-      d.items[stone] = `Lets ${S.byId[fs.base].name} use its Final Smash and become ${fs.name} (once per battle; only one fighter per team can Final Smash).`;
+      d.items[stone] = `Lets ${fs.bases.map(b => S.byId[b].name).join(' or ')} use its Final Smash and become ${fs.name} (once per battle; only one fighter per team can Final Smash).`;
     }
     S.roster = S.roster.filter(r => S.byId[r.species]);
     render();

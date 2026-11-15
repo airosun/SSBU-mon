@@ -113,7 +113,7 @@ class Battle {
   }
   canFinalSmash(mon) {
     const fs = FINAL_SMASHES[mon.item];
-    return !!fs && !mon.mega && !mon.side.megaUsed && fs.base === mon.baseSpecies.id;
+    return !!fs && !mon.mega && !mon.side.megaUsed && fs.bases.includes(mon.baseSpecies.id);
   }
   // a Final Smash stone can't be knocked off, stolen, swapped or flung
   canLoseItem(mon) { return !FINAL_SMASHES[mon.item]; }

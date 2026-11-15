@@ -104,7 +104,7 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
 
   await test('Final Smash: transforms once per team, keeps HP, stone stays put', () => {
     const b = battle(
-      [mk('bowser', 'Spiked Shell', ['Flamethrower', 'Protect'], { item: 'Bowserite' }), mk('charizard', 'Blaze', ['Flamethrower'], { item: 'Charizardite Y' })],
+      [mk('bowser', 'Spiked Shell', ['Flamethrower', 'Protect'], { item: 'Giga Mushroom' }), mk('charizard', 'Blaze', ['Flamethrower'], { item: 'Charizardite Y' })],
       [mk('wario', 'Treasure Greed', ['Knock Off'])], 'singles');
     const req = b.getRequest(0);
     assert.equal(req.actives[0].finalSmash.name, 'Giga Bowser');
@@ -112,7 +112,7 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
     b.choose(0, { actions: [{ pos: 0, type: 'move', index: 1, mega: true }] }); b.choose(1, mv(0));
     const bw = b.sides[0].team[0];
     assert.equal(bw.species.id, 'giga-bowser'); assert.equal(bw.ability, 'Giga Might'); assert.equal(bw.hp <= hp, true);
-    assert.equal(bw.item, 'Bowserite');
+    assert.equal(bw.item, 'Giga Mushroom');
     assert.match(text(b), /is using its Final Smash/);
     // Charizard can't Final Smash now: the team already used it
     if (!b.ended) { b.sides[0].team[0].hp = 1; }
@@ -120,9 +120,43 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
   });
 
   await test('Final Smash stone must match its fighter', () => {
-    const v = validateStandardBuild([genFighter('mario')], [{ moves: ['Fire Punch'], item: 'Bowserite' }]);
+    const v = validateStandardBuild([genFighter('mario')], [{ moves: ['Fire Punch'], item: 'Giga Mushroom' }]);
     assert(!v.ok && v.errors.some(e => /only works for Bowser/.test(e)));
     assert(validateStandardBuild([genFighter('mewtwo')], [{ moves: ['Psychic'], item: 'Mewtwonite Y' }]).ok);
+  });
+
+  await test('Pneuma: Pyra and Mythra share the Aegis Core Crystal and become the same Pneuma', () => {
+    const F = require('../shared/fighters.json');
+    const pyra = F.find(f => f.id === 'pyra'), mythra = F.find(f => f.id === 'mythra');
+    const sum = f => Object.values(f.stats).reduce((a, c) => a + c, 0);
+    assert.equal(sum(pyra), 550); assert.equal(sum(mythra), 550); assert.equal(pyra.stats.hp, mythra.stats.hp);
+    const stats = [];
+    for (const f of [pyra, mythra]) {
+      const b = battle([mk(f.id, f.abilities[0].name, [f.learnset[0]], { item: 'Aegis Core Crystal' })], [mk('mario', 'Super Mushroom', ['Protect'])]);
+      b.choose(0, { actions: [{ pos: 0, type: 'move', index: 0, mega: true }] }); b.choose(1, mv(0));
+      const m = b.sides[0].team[0]; assert.equal(m.species.id, 'pneuma'); assert.equal(m.ability, 'Trinity Aegis');
+      stats.push(JSON.stringify(m.stats));
+    }
+    assert.equal(stats[0], stats[1]);
+    assert(validateStandardBuild([genFighter('pyra')], [{ moves: [pyra.learnset[0]], item: 'Aegis Core Crystal' }]).ok);
+    assert(validateStandardBuild([genFighter('mythra')], [{ moves: [mythra.learnset[0]], item: 'Aegis Core Crystal' }]).ok);
+    const bad = validateStandardBuild([genFighter('mario')], [{ moves: ['Fire Punch'], item: 'Aegis Core Crystal' }]);
+    assert(bad.errors.some(e => /only works for Pyra or Mythra/.test(e)));
+  });
+
+  await test('no ability shares a name with a Final Smash or its stone; old saved names still work', () => {
+    const F = require('../shared/fighters.json');
+    const { FINAL_SMASHES } = require('../shared/megas.js');
+    const { RENAMED_ABILITIES } = require('../shared/dex.js');
+    const A = require('../server/engine/abilities.js');
+    const taken = new Set(Object.entries(FINAL_SMASHES).flatMap(([st, x]) => [st, x.name]).map(n => n.toLowerCase()));
+    for (const f of F) for (const a of [...f.abilities, f.hidden]) assert(!taken.has(a.name.toLowerCase()), `${f.name}: ${a.name}`);
+    for (const x of Object.values(FINAL_SMASHES)) assert(A[x.ability.name], `missing spec for ${x.ability.name}`);
+    // a fighter signed with an old ability name is still valid and gets the new name
+    const f = sign(Object.assign(genFighter('kazuya'), { ability: 'Devil Gene' }));
+    const team = [f, ...['mario', 'link', 'samus', 'kirby', 'fox'].map(id => sign(genFighter(id)))].map(t => Object.assign(t, { moves: [F.find(x => x.id === t.species).learnset[0]], item: '' }));
+    const v = validateEliteTeam(team, verify); assert(v.ok, v.errors && v.errors.join());
+    assert.equal(v.team[0].ability, RENAMED_ABILITIES['Devil Gene']);
   });
 
   console.log(`${passed} passed`);

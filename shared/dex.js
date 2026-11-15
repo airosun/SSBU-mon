@@ -70,6 +70,10 @@ function calcStat(stat, base, iv, ev, level, nature) {
   return v;
 }
 
-const exported = { TYPES, CHART, effectiveness, NATURES, ITEMS, EVIOLITE_USERS, STAT_NAMES, calcStat };
+// Abilities renamed so they don't share a name with a Final Smash or its stone. Old names still
+// appear on fighters saved before the rename (their signature covers the old name).
+const RENAMED_ABILITIES = {"Giga Bowser": "Bowser's Fury", "Fierce Deity": "Hero of Termina", "Triforce of Power": "Demon King's Might", "Three Sacred Treasures": "Captain of the Guard", "Garlic Gobbler": "Greedy Gobbler", "Grima's Vessel": "Chosen Vessel", "Satsui no Hado": "Dark Hado", "Dragonstone": "Dragon Vein", "Meta Ridley": "Space Pirate Commander", "Petey Piranha": "Piranha Chomp", "Devil Gene": "King of Iron Fist"};
+
+const exported = { RENAMED_ABILITIES, TYPES, CHART, effectiveness, NATURES, ITEMS, EVIOLITE_USERS, STAT_NAMES, calcStat };
 if (typeof module !== 'undefined') module.exports = exported;
 if (typeof window !== 'undefined') window.DEX = exported;

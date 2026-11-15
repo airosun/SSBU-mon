@@ -8,22 +8,22 @@ def('Super Mushroom', { threshold: { below: 0.5, heal: 0.25 } });
 def(["Mom's Cooking", 'Doc Louis', 'Munchie'], { threshold: { below: 0.5, heal: 1 / 3 } });
 def('Power of Friends', { threshold: { below: 0.25, heal: 1 / 3 } });
 def('Triforce of Courage', { threshold: { below: 1 / 3, boosts: { atk: 1 } } });
-def('Giga Bowser', { threshold: { below: 0.5, boosts: { atk: 1, def: 1 } } });
-def('Fierce Deity', { threshold: { below: 1 / 3, boosts: { atk: 1, spe: 1 } } });
-def('Three Sacred Treasures', { threshold: { below: 1 / 3, boosts: { atk: 1, def: 1, spd: 1 } } });
+def("Bowser's Fury", { threshold: { below: 0.5, boosts: { atk: 1, def: 1 } } });
+def('Hero of Termina', { threshold: { below: 1 / 3, boosts: { atk: 1, spe: 1 } } });
+def('Captain of the Guard', { threshold: { below: 1 / 3, boosts: { atk: 1, def: 1, spd: 1 } } });
 def('Awakening', { threshold: { below: 0.5, boosts: { spe: 1 } } });
-def('Dragonstone', { threshold: { below: 0.5, boosts: { atk: 1, def: 1 } } });
+def('Dragon Vein', { threshold: { below: 0.5, boosts: { atk: 1, def: 1 } } });
 def(['Rebellion', 'Pep Up'], { threshold: { below: 0.5, boosts: { atk: 1, spa: 1 } } });
 def('Go!', { threshold: { below: 0.35, boosts: { atk: 1, spe: 1 } } });
 def('One-Winged Angel', { threshold: { below: 0.5, boosts: { atk: 1, spe: 1 } } });
-def('Devil Gene', { threshold: { below: 1 / 3, boosts: { atk: 2 } } });
+def('King of Iron Fist', { threshold: { below: 1 / 3, boosts: { atk: 2 } } });
 
 // ---- Damage dealt modifiers ----
 def('Giant Punch', { flagBoost: { flag: 'punch', mult: 1.2 } });
 def('Galaxia', { flagBoost: { flag: 'slicing', mult: 1.5 } });
 def('Ring Toss', { flagBoost: { flag: 'pulse', mult: 1.5 } });
-def(['Chomp Wrangler', 'Petey Piranha', 'Krocodile Jaw'], { flagBoost: { flag: 'bite', mult: 1.5 } });
-def(['Triforce of Power', 'Wicked Weave'], { flagBoost: { flag: 'contact', mult: 1.3 } });
+def(['Chomp Wrangler', 'Piranha Chomp', 'Krocodile Jaw'], { flagBoost: { flag: 'bite', mult: 1.5 } });
+def(["Demon King's Might", 'Wicked Weave'], { flagBoost: { flag: 'contact', mult: 1.3 } });
 def('Symphony', { flagBoost: { flag: 'sound', mult: 1.3 }, flagTaken: { flag: 'sound', mult: 0.5 } });
 def(['Ace Pilot', 'Blessing of Palutena'], { typeBoost: { Flying: 1.2 } });
 def('Goddess of Light', { typeBoost: { Fairy: 1.3 } });
@@ -34,8 +34,8 @@ def('Vampire Killer', { vsType: { Dark: 1.5, Ghost: 1.5 } });
 def('Torrent', { pinch: { type: 'Water' } });
 def('Blaze', { pinch: { type: 'Fire' } });
 def('Overgrow', { pinch: { type: 'Grass' } });
-def("Grima's Vessel", { pinch: { type: 'Dark' } });
-def('Satsui no Hado', { pinch: { type: 'Fighting' } });
+def('Chosen Vessel', { pinch: { type: 'Dark' } });
+def('Dark Hado', { pinch: { type: 'Fighting' } });
 def('Calamity', { lowHpStat: { below: 0.5, stat: 'atk', mult: 2, strict: true } });
 def('Fight for My Friends', { lowHpStat: { below: 1 / 3, stat: 'atk', mult: 1.5 } });
 def('Tough Guy', { guts: true });
@@ -130,7 +130,7 @@ def(['Monkey Business', 'Wand Trickster'], { prankster: true });
 def('Sheikah Stealth', { firstMovePrio: true });
 
 // ---- Recoil / switching ----
-def(['Hotshot', 'Meta Ridley', 'Gold Feathers'], { rockHead: true });
+def(['Hotshot', 'Space Pirate Commander', 'Gold Feathers'], { rockHead: true });
 def(['Undying Pirate', 'Jenova Cells'], { regenerator: true });
 def('Harp of the Sheikah', { naturalCure: true });
 def('Cardboard Box', { cheapSub: true });
@@ -175,7 +175,7 @@ def('Deep Breathing', { statusMoveHeal: 1 / 8 });
 def('Witch Time', { protectFoeBoost: { spe: -2 } });
 def('Foresight', { protectSelfBoost: { spe: 2 } });
 def('Banana Hoard', { berryTwice: true });
-def(['Gobble', 'Garlic Gobbler'], { berryBonusHeal: 1 / 8 });
+def(['Gobble', 'Greedy Gobbler'], { berryBonusHeal: 1 / 8 });
 def('Juice Maker', { ripen: true });
 def('Bonus Fruit', { berryRandomBoost: true });
 def('Orchard', { harvest: true });
@@ -195,5 +195,30 @@ def('Heartless Angel', { typeBoost: { Dark: 1.3, Flying: 1.3 } });
 def('Dragon Blood', { typeBoost: { Dragon: 1.3, Water: 1.3 }, typeTaken: { Fire: 0.5 } });
 def('Infernal Demon', { intimidate: true, flagBoost: { flag: 'bite', mult: 1.5 } });
 def('Devil Within', { flagBoost: { flag: 'contact', mult: 1.3 }, clearBody: true });
+
+// ---- Final Smash forms (third batch) ----
+def('Mega Stomp', { typeBoost: { Normal: 1.3, Ground: 1.3 } });
+def('Bananza Power', { flagBoost: { flag: 'punch', mult: 1.5 } });
+def("Oni's Blade", { flagBoost: { flag: 'slicing', mult: 1.5 } });
+def('Radiant Scales', { fullHpTaken: 0.5 });
+def('Masked Might', { flagBoost: { flag: 'contact', mult: 1.3 }, clearBody: true });
+def('Hypernova Inhale', { moldBreaker: true, typeBoost: { Normal: 1.2, Psychic: 1.2 } });
+def("Palutena's Arsenal", { typeBoost: { Flying: 1.3, Steel: 1.3 } });
+def('Metroid Drain', { drainAll: 1 / 3 });
+def('Cyborg Overdrive', { sheerForce: true });
+def('Mighty Waft', { guts: true });
+def('Giga Punch', { flagBoost: { flag: 'punch', mult: 1.3 }, noFlinch: true });
+def('Raging Demon', { typeBoost: { Fighting: 1.2, Dark: 1.2 } });
+def('Psycho Drive', { speedBoost: true });
+def('Sinful Shell', { typeBoost: { Dark: 1.3, Psychic: 1.3 } });
+def('Fell Dragonskin', { intimidate: true, filter: 0.75 });
+def('Trinity Aegis', { typeBoost: { Fire: 1.2, Electric: 1.2, Fairy: 1.2 } });
+def('Ultimate Drive', { typeBoost: { Fairy: 1.2 }, speedBoost: true });
+def("Progenitor's Blessing", { typeBoost: { Dragon: 1.2 }, filter: 0.75 });
+def('Rush Power', { flagBoost: { flag: 'punch', mult: 1.3 }, typeBoost: { Steel: 1.2 } });
+def('Netherite Armor', { typeTaken: { Fire: 0.5 }, statusImmune: ['brn'] });
+
+// fighters saved before an ability was renamed keep their old name
+for (const [oldName, newName] of Object.entries(require('../../shared/dex.js').RENAMED_ABILITIES)) if (A[newName]) A[oldName] = A[newName];
 
 module.exports = A;
