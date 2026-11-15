@@ -22,8 +22,24 @@
     roster: load('ssbu-roster', []), elite: load('ssbu-elite', []), selElite: load('ssbu-sel-elite', 0),
     pass: null, passSel: new Set(), editElite: null, eliteSlot: 0, dexFilter: '',
     draft: {}, builds: {}, lineups: {}, turn: {},
+    account: null, dataVersion: 0, accountReady: false,
   };
-  const saveRoster = () => { store('ssbu-roster', S.roster); store('ssbu-elite', S.elite); store('ssbu-sel-elite', S.selElite); };
+  // Signed in: roster and Elite teams are saved to the account (any device). Guest: saved in this browser.
+  let saveTimer = null;
+  const accountData = () => ({ roster: S.roster, elite: S.elite, selElite: S.selElite });
+  function adoptAccountData(r) { S.roster = r.data.roster; S.elite = r.data.elite; S.selElite = r.data.selElite; S.dataVersion = r.version; }
+  function pushAccountData() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => socket.emit('data:save', { data: accountData(), version: S.dataVersion }, res => {
+      if (!res || res.error) return toast((res && res.error) || 'Could not save to your account.');
+      if (res.conflict) { adoptAccountData(res); toast('Your teams changed on another device, so this page was updated to match.', 4000); render(); return; }
+      S.dataVersion = res.version;
+    }), 400);
+  }
+  const saveRoster = () => {
+    if (S.account) return pushAccountData();
+    store('ssbu-roster', S.roster); store('ssbu-elite', S.elite); store('ssbu-sel-elite', S.selElite);
+  };
 
   // ---------- helpers ----------
   const typeChip = t => `<span class="type" style="background:var(--t-${t})">${t}</span>`;
@@ -74,7 +90,32 @@
   // ---------- sockets ----------
   const socket = io();
   socket.on('connect', () => socket.emit('hello', { clientId, name: load('ssbu-name', '') }));
-  socket.on('welcome', d => { S.me = { id: d.id, name: d.name }; store('ssbu-name', d.name); if (d.chat) S.lobbyChat = d.chat; if (d.pass) S.pass = d.pass; $('#nameBtn').textContent = d.name; render(); });
+  socket.on('welcome', d => {
+    S.me = { id: d.id, name: d.name }; if (!d.account) store('ssbu-name', d.name);
+    if (d.chat) S.lobbyChat = d.chat; if (d.pass) S.pass = d.pass;
+    if ('account' in d) onAccount(d.account || null);
+    $('#nameBtn').textContent = (S.account ? '● ' : '') + d.name; $('#nameBtn').title = S.account ? 'Your account' : 'Change your name or sign in'; $('#signInBtn').classList.toggle('hidden', !!S.account);
+    render();
+  });
+  socket.on('data:changed', () => { if (S.account) socket.emit('data:load', {}, r => { if (r && !r.error) { adoptAccountData(r); render(); } }); });
+  function onAccount(acct) {
+    const was = S.account && S.account.id;
+    S.account = acct;
+    if (!acct) { if (was) { S.roster = load('ssbu-roster', []); S.elite = load('ssbu-elite', []); S.selElite = load('ssbu-sel-elite', 0); } S.accountReady = true; return; }
+    if (was === acct.id && S.accountReady) return;
+    S.accountReady = false;
+    // first time this browser signs in: bring its guest roster, teams and today's Fighter Pass rolls along
+    const guest = { roster: load('ssbu-roster', []), elite: load('ssbu-elite', []), selElite: load('ssbu-sel-elite', 0) };
+    socket.emit('data:import', { data: guest, guestId: clientId }, r => {
+      if (!r || r.error) { toast((r && r.error) || 'Could not load your account.'); return; }
+      adoptAccountData(r); if (r.pass && !r.pass.error) S.pass = r.pass;
+      const moved = guest.roster.length + guest.elite.length;
+      store('ssbu-roster', []); store('ssbu-elite', []); store('ssbu-sel-elite', 0);
+      S.accountReady = true;
+      if (moved) toast(`Moved this browser's roster and teams into your account.`, 3500);
+      render();
+    });
+  }
   socket.on('lobby', d => { S.lobby = d; if (S.tab === 'home') renderHome(); });
   socket.on('chat', ({ room, msg }) => { if (room === 'lobby') { S.lobbyChat.push(msg); if (S.tab === 'home') renderHome(); } });
   socket.on('match', m => {
@@ -105,12 +146,68 @@
   socket.on('challengeAccepted', () => { S.outgoing = null; });
   socket.on('challengeCancelled', () => { closeModal(); toast('The challenge was cancelled.'); });
 
-  $('#nameBtn').onclick = () => {
-    modal(`<h2>Your name</h2><div class="row"><input id="nmIn" maxlength="24" value="${esc(S.me.name)}" class="grow"><button class="primary" id="nmOk">Save</button></div>`);
-    $('#nmIn').focus();
-    const go = () => { socket.emit('rename', $('#nmIn').value); closeModal(); };
-    $('#nmOk').onclick = go; $('#nmIn').onkeydown = e => { if (e.key === 'Enter') go(); };
-  };
+  // ---------- account ----------
+  const busyInBattle = () => Object.values(S.matches).some(m => m && m.phase !== 'ended' && m.you !== null && m.you !== undefined);
+  async function accountPost(path, body) {
+    const r = await fetch('/api/account/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}), credentials: 'same-origin' });
+    let j = {}; try { j = await r.json(); } catch {}
+    if (!r.ok && !j.error) j.error = 'Something went wrong. Try again.';
+    return j;
+  }
+  function reconnect() { socket.disconnect(); socket.connect(); }
+  function accountModal(tab = 'in') {
+    if (S.account) {
+      modal(`<h2>${esc(S.account.username)}</h2>
+        <p class="muted">Your roster, Elite teams and Fighter Pass rolls are saved to this account, so they follow you to any device.</p>
+        <details class="pw"><summary>Change password</summary>
+          <div class="field"><label>Current password</label><input id="pwCur" type="password" autocomplete="current-password"></div>
+          <div class="field"><label>New password</label><input id="pwNew" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+          <button id="pwOk">Change password</button> <span class="muted small">Signs out your other devices.</span></details>
+        <div class="row" style="margin-top:14px"><button id="acOut">Sign out</button><span class="grow"></span><button class="primary" id="acClose">Done</button></div>`);
+      $('#acClose').onclick = closeModal;
+      $('#acOut').onclick = async () => {
+        if (busyInBattle() && !confirm('You have a battle in progress. Signing out leaves it, and you will forfeit if you don\'t come back. Sign out anyway?')) return;
+        await accountPost('logout'); onAccount(null); closeModal(); reconnect(); toast('Signed out.');
+      };
+      $('#pwOk').onclick = async () => {
+        const r = await accountPost('password', { current: $('#pwCur').value, password: $('#pwNew').value });
+        if (r.error) return toast(r.error);
+        closeModal(); toast('Password changed.');
+      };
+      return;
+    }
+    const isNew = tab === 'new';
+    modal(`<div class="seg acct-tabs"><button data-actab="in" class="${isNew ? '' : 'on'}">Sign in</button><button data-actab="new" class="${isNew ? 'on' : ''}">Create account</button></div>
+      <p class="muted small">${isNew ? 'An account saves your roster, Elite teams and daily Fighter Pass rolls so you can play from any device.' : 'Sign in to load your roster, Elite teams and Fighter Pass rolls.'}
+      ${S.roster.length || S.elite.length ? ' The roster and teams saved in this browser will be moved into your account.' : ''}</p>
+      <form id="acForm" autocomplete="on">
+        <div class="field"><label>Username</label><input id="acUser" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" ${isNew ? 'placeholder="3–20 letters, numbers, _ or -"' : ''}></div>
+        <div class="field"><label>Password</label><input id="acPass" type="password" autocomplete="${isNew ? 'new-password' : 'current-password'}" ${isNew ? 'placeholder="At least 8 characters"' : ''}></div>
+        ${isNew ? '<div class="field"><label>Confirm password</label><input id="acPass2" type="password" autocomplete="new-password"></div><p class="muted small">There is no email on accounts, so keep your password somewhere safe.</p>' : ''}
+        <div id="acErr" class="err small"></div>
+        <div class="row"><span class="grow"></span><button type="button" id="acCancel">Cancel</button><button class="primary" id="acGo" type="submit">${isNew ? 'Create account' : 'Sign in'}</button></div>
+      </form>
+      <hr><div class="field"><label>Guest name (when not signed in)</label><div class="row"><input id="nmIn" maxlength="24" value="${esc(S.me.name)}" class="grow"><button id="nmOk">Save</button></div></div>`);
+    $$('[data-actab]').forEach(b => b.onclick = () => accountModal(b.dataset.actab));
+    $('#acCancel').onclick = closeModal;
+    $('#nmOk').onclick = () => { socket.emit('rename', $('#nmIn').value); closeModal(); };
+    $('#acUser').focus();
+    $('#acForm').onsubmit = async e => {
+      e.preventDefault();
+      const err = m => { $('#acErr').textContent = m; };
+      if (isNew && $('#acPass').value !== $('#acPass2').value) return err('The passwords don\'t match.');
+      if (busyInBattle() && !confirm('You have a battle in progress. Signing in leaves it, and you will forfeit if you don\'t come back. Continue?')) return;
+      $('#acGo').disabled = true;
+      const r = await accountPost(isNew ? 'register' : 'login', { username: $('#acUser').value, password: $('#acPass').value });
+      $('#acGo').disabled = false;
+      if (r.error) return err(r.error);
+      closeModal(); toast(isNew ? `Welcome, ${r.user.username}! Your account is ready.` : `Signed in as ${r.user.username}.`);
+      reconnect();   // the socket picks up the new session; 'welcome' then loads the account
+    };
+  }
+  $('#nameBtn').onclick = () => accountModal();
+  $('#signInBtn').onclick = () => accountModal('in');
+  document.addEventListener('click', e => { const a = e.target.closest('[data-signin]'); if (a) { e.preventDefault(); accountModal(a.dataset.signin === 'new' ? 'new' : 'in'); } });
 
   // ---------- tabs ----------
   function renderTabs() {
@@ -247,7 +344,7 @@
         <div class="fgrid">${pending.map(b => fighterCard(b, { sel: S.passSel.has(b.uid), attr: `data-pass="${b.uid}"`, extra: rosterHas(b.species) ? '<div class="muted small">You already own one</div>' : '' })).join('')}</div></section>` : ''}
       <section class="card" style="margin-top:14px">
         <h2>Your roster (${S.roster.length})</h2>
-        <p class="muted small" style="margin-top:-6px">Saved in this browser. Use these fighters to build Elite Smash teams.</p>
+        <p class="muted small" style="margin-top:-6px">${S.account ? 'Saved to your account.' : 'Saved in this browser. <a href="#" data-signin>Sign in</a> to keep them on any device.'} Use these fighters to build Elite Smash teams.</p>
         ${S.roster.length ? `<div class="fgrid">${rosterSorted.map(b => fighterCard(b, { extra: `<button class="small ghost" data-release="${b.uid}">Release</button>` })).join('')}</div>` : '<div class="muted">No fighters yet — roll the Fighter Pass!</div>'}
       </section>`;
     const r = $('#btnRoll'); if (r) r.onclick = () => socket.emit('pass:roll', {}, res => {
@@ -263,7 +360,8 @@
       if (!S.passSel.size && !confirm('Keep none of these fighters?')) return;
       socket.emit('pass:claim', { uids: [...S.passSel] }, res => {
         if (res.error) return toast(res.error);
-        S.roster.push(...res.fighters); saveRoster();
+        if (S.account) socket.emit('data:load', {}, r => { if (r && !r.error) { adoptAccountData(r); renderPass(); } });
+        else { S.roster.push(...res.fighters); saveRoster(); }
         S.pass = Object.assign({}, S.pass, { pending: null, rollsLeft: res.rollsLeft }); S.passSel = new Set();
         toast(`Added ${res.fighters.length} fighter${res.fighters.length === 1 ? '' : 's'} to your roster.`); renderPass();
       });

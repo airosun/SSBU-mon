@@ -329,3 +329,16 @@ details.pool .move-table { max-height: 220px; }
 .mvp-opt.taken { opacity: .45; }
 .pool tr[data-tipmove] { cursor: help; }
 .pool tr[data-tipmove]:hover td { background: #1c2230; }
+
+/* v8: accounts */
+.sign-in-btn { white-space: nowrap; margin-left: 8px; }
+.topbar #nameBtn { margin-left: 8px; }
+.acct-tabs { grid-template-columns: 1fr 1fr; margin: 0 0 10px; }
+.acct-tabs button { align-items: center; font-weight: 700; }
+.acct-tabs button.on { border-color: var(--accent, #ff4d5a); }
+#acForm .field input { width: 100%; }
+.err { color: var(--bad); min-height: 1.2em; margin: 4px 0 6px; }
+details.pw { margin-top: 10px; }
+details.pw summary { cursor: pointer; color: var(--muted); }
+details.pw .field input { width: 100%; }
+@media (max-width: 700px) { .sign-in-btn { padding: 6px 9px; font-size: 13px; } }

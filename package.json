@@ -5,12 +5,15 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node test/mechanics.js && node test/simulate.js 200",
+    "test": "node test/mechanics.js && node test/accounts.js && node test/simulate.js 200",
     "build:fighters": "python3 tools/build_fighters.py"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "express": "^4.21.2",
+    "pg": "^8.23.1",
     "socket.io": "^4.8.1"
   }
 }

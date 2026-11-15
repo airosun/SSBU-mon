@@ -8,6 +8,9 @@ const { validateEliteTeam } = require('./engine/validate.js');
 const { verify, genFighter } = require('./engine/roster.js');
 const AI = require('./engine/ai.js');
 const Pass = require('./pass.js');
+const { createStore } = require('./db.js');
+const { setupAuth, userFromCookie } = require('./auth.js');
+const UserData = require('./userdata.js');
 const MOVES = require('../shared/moves.js');
 const FIGHTERS = require('../shared/fighters.json');
 const DEX = require('../shared/dex.js');
@@ -17,6 +20,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 3000;
+const store = createStore();
+Pass.useStore(store);
+app.set('trust proxy', 1);
+setupAuth(app, store, { secure: process.env.NODE_ENV === 'production' });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 for (const f of ['dex.js', 'movetext.js', 'megas.js']) app.get('/shared/' + f, (req, res) => res.sendFile(path.join(__dirname, '..', 'shared', f)));
@@ -87,21 +94,26 @@ setInterval(() => {
 // ---------------- sockets ----------------
 io.on('connection', socket => {
   let me = null;
-  socket.on('hello', ({ clientId, name }) => {
-    clientId = String(clientId || '').slice(0, 40) || socket.id;
-    me = users.get(clientId);
-    if (!me) { me = { id: clientId, name: clean(name) || 'Guest' + Math.floor(Math.random() * 9000 + 1000), sockets: new Set(), matches: new Set(), searching: null }; users.set(clientId, me); }
-    else if (clean(name)) me.name = clean(name);
+  // signed-in players are identified by their account; guests by their browser id
+  const account = userFromCookie(store, socket.handshake.headers.cookie).catch(() => null);
+  let helloDone; const ready = new Promise(r => { helloDone = r; });
+  socket.on('hello', async ({ clientId, name }) => {
+    const acct = await account;
+    const id = acct ? 'u:' + acct.id : 'g:' + (String(clientId || '').slice(0, 40) || socket.id);
+    me = users.get(id);
+    if (!me) { me = { id, account: acct, name: acct ? acct.username : clean(name) || 'Guest' + Math.floor(Math.random() * 9000 + 1000), sockets: new Set(), matches: new Set(), searching: null }; users.set(id, me); }
+    else if (!acct && clean(name)) me.name = clean(name);
     me.sockets.add(socket.id); me.lastSeen = Date.now();
     socket.join('lobby');
-    socket.emit('welcome', { id: me.id, name: me.name, chat: lobbyChat.slice(-50), pass: Pass.status(me.id) });
+    socket.emit('welcome', { id: me.id, name: me.name, account: acct && { id: acct.id, username: acct.username }, chat: lobbyChat.slice(-50), pass: await Pass.status(me.id).catch(() => null) });
     for (const mid of me.matches) { const e = matches.get(mid); if (e) socket.emit('match', e.match.view(e.players.indexOf(me.id))); }
     broadcastLobby();
+    helloDone();
   });
-  const need = fn => (...args) => { if (me) fn(...args); };
+  const need = fn => async (...args) => { await ready; if (me) fn(...args); };
   const reply = (ack, data) => typeof ack === 'function' && ack(data);
 
-  socket.on('rename', need(name => { const n = clean(name); if (n) { me.name = n; socket.emit('welcome', { id: me.id, name: me.name }); broadcastLobby(); } }));
+  socket.on('rename', need(name => { const n = clean(name); if (n && !me.account) { me.name = n; socket.emit('welcome', { id: me.id, name: me.name }); broadcastLobby(); } }));
   socket.on('chat', need(({ room, text }) => {
     text = String(text || '').slice(0, 300).trim(); if (!text) return;
     if (room === 'lobby') {
@@ -116,9 +128,49 @@ io.on('connection', socket => {
   }));
 
   // ----- Fighter Pass -----
-  socket.on('pass:status', need((_, ack) => reply(ack, Pass.status(me.id))));
-  socket.on('pass:roll', need((_, ack) => reply(ack, Pass.roll(me.id))));
-  socket.on('pass:claim', need(({ uids }, ack) => reply(ack, Pass.claim(me.id, uids))));
+  const safe = p => p.catch(e => { console.error(e.message); return { error: 'Something went wrong. Try again.' }; });
+  socket.on('pass:status', need(async (_, ack) => reply(ack, await safe(Pass.status(me.id)))));
+  socket.on('pass:roll', need(async (_, ack) => reply(ack, await safe(Pass.roll(me.id)))));
+  socket.on('pass:claim', need(async ({ uids } = {}, ack) => {
+    const res = await safe(Pass.claim(me.id, uids));
+    // signed in: kept fighters go straight into the saved roster, so they can't be lost
+    if (me.account && res.fighters) await safe(saveWith(me.account.id, d => ({ ...d, roster: (d.roster || []).concat(res.fighters) })));
+    reply(ack, res);
+  }));
+
+  // ----- saved roster and Elite teams (signed-in players) -----
+  async function saveWith(userId, change) {
+    for (let tries = 0; tries < 5; tries++) {
+      const cur = await store.getData(userId);
+      const data = UserData.sanitize(change(cur.data || {}));
+      const version = await store.setData(userId, data, cur.version);
+      if (version) return { data, version };
+    }
+    throw new Error('could not save user data');
+  }
+  socket.on('data:load', need(async (_, ack) => {
+    if (!me.account) return reply(ack, { error: 'Not signed in.' });
+    const r = await safe(store.getData(me.account.id));
+    reply(ack, r.error ? r : { data: UserData.sanitize(r.data || {}), version: r.version });
+  }));
+  socket.on('data:save', need(async ({ data, version } = {}, ack) => {
+    if (!me.account) return reply(ack, { error: 'Not signed in.' });
+    if (JSON.stringify(data || {}).length > 1e6) return reply(ack, { error: 'That is too much to save.' });
+    const tidy = UserData.sanitize(data);
+    const v = await safe(store.setData(me.account.id, tidy, +version || 0));
+    if (v && v.error) return reply(ack, v);
+    if (v) { reply(ack, { version: v }); for (const sid of me.sockets) if (sid !== socket.id) io.to(sid).emit('data:changed'); return; }
+    const cur = await safe(store.getData(me.account.id));   // changed elsewhere (another tab or device)
+    reply(ack, { conflict: true, data: UserData.sanitize(cur.data || {}), version: cur.version });
+  }));
+  socket.on('data:import', need(async ({ data, guestId } = {}, ack) => {
+    if (!me.account) return reply(ack, { error: 'Not signed in.' });
+    if (JSON.stringify(data || {}).length > 1e6) return reply(ack, { error: 'That is too much to import.' });
+    const r = await safe(saveWith(me.account.id, cur => UserData.merge(cur, data)));
+    if (r.error) return reply(ack, r);
+    const pass = guestId ? await safe(Pass.absorb('g:' + String(guestId).slice(0, 40), me.id)) : await safe(Pass.status(me.id));
+    reply(ack, { ...r, pass });
+  }));
 
   // ----- starting matches -----
   socket.on('cpu', need(({ mode, format, team }, ack) => {
@@ -198,4 +250,7 @@ io.on('connection', socket => {
   });
 });
 
-server.listen(PORT, () => console.log(`SSBU-mon running on http://localhost:${PORT}`));
+store.init().then(() => {
+  if (store.kind === 'memory' && process.env.NODE_ENV === 'production') console.warn('DATABASE_URL is not set: accounts and Fighter Pass rolls are kept in memory and will be lost on restart.');
+  server.listen(PORT, () => console.log(`SSBU-mon running on http://localhost:${PORT} (storage: ${store.kind})`));
+}).catch(e => { console.error('Could not connect to the database:', e.message); process.exit(1); });

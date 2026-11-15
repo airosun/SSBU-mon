@@ -62,7 +62,7 @@ Real Mega Pokémon use their official Mega stats. The other forms keep the base 
 
 **Fighter Pass:** 3 rolls per day (the day resets at midnight US Eastern). Each roll shows 20 random fighters, randomized the same way as Standard, and you keep up to 5 for your roster.
 
-**Saving:** there are no accounts yet. Your roster, Elite teams and name are saved in your browser, so the same browser picks up where it left off. Each roster fighter carries a server signature, so its nature, IVs and ability can't be edited in the browser before an Elite battle.
+**Accounts:** sign in with a username and password (the **Sign in** button, top right) to save your roster, Elite teams and daily Fighter Pass rolls to your account, so they follow you to any device. You can still play as a guest: a guest's roster and teams are saved in that browser. When you sign in or create an account, that browser's roster, teams and today's Fighter Pass rolls move into the account. Rolls already used that day still count, so switching accounts doesn't give extra rolls. Edits from another tab or device are picked up automatically. Each roster fighter carries a server signature, so its nature, IVs and ability can't be edited before an Elite battle. Accounts have no email, so a forgotten password can't be reset from the site.
 
 **Battle screen:** animated turn playback (attacks, hits, faints, switches, stat changes) with a speed setting (normal, fast or off). Hover a move to see what it does. Tap a fighter's image to target it, and every fighter a move will hit flashes before you confirm. A **Type chart** button highlights the opposing fighters' types.
 
@@ -82,9 +82,18 @@ Use `render.yaml` (Blueprint), or create a Web Service by hand:
 
 - Build command: `npm install`
 - Start command: `npm start`
-- Environment variable: set **`SSBU_SECRET`** to a long random value. It signs roster fighters. If it changes, rosters saved in browsers stop being valid. `render.yaml` generates one for you.
+- Environment variables:
+  - **`SSBU_SECRET`**: a long random value. It signs roster fighters. If it changes, every saved roster fighter stops being valid. `render.yaml` generates one for you.
+  - **`DATABASE_URL`**: a Postgres connection string. Accounts, saved teams and Fighter Pass rolls are stored there. Without it the server keeps them in memory, and Render's free tier loses them on every restart.
 
-**Limitation until accounts exist:** Fighter Pass roll counts are kept in server memory, with a best-effort file copy. Render's free tier restarts the server after it's been idle, which resets that day's counts. Adding accounts and a database will fix this.
+### Setting up the database (Neon, free)
+
+1. Sign up at [neon.com](https://neon.com) (free plan, no card) and create a project. Any region close to your Render region works.
+2. On the project dashboard, click **Connect** and copy the connection string. It looks like `postgresql://user:password@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require`.
+3. In Render, open the ssbu-mon service → **Environment** → add `DATABASE_URL` with that value, then save. Render redeploys.
+4. The server creates its tables on startup. The log line `SSBU-mon running … (storage: postgres)` means it's connected.
+
+Locally, run with `DATABASE_URL=postgres://… npm start`, or with no `DATABASE_URL` to use in-memory storage (saved to `data/db.json`).
 
 ## Project layout
 
@@ -101,6 +110,9 @@ Use `render.yaml` (Blueprint), or create a Web Service by hand:
 | `server/engine/ai.js` | CPU: drafting, sets, lineups, battling |
 | `server/match.js` | Match flow: draft → build → preview/lineup → battle |
 | `server/pass.js` | Fighter Pass daily rolls |
+| `server/auth.js` | Accounts: sign up, sign in, sessions, password changes |
+| `server/db.js` | Storage: Postgres when `DATABASE_URL` is set, otherwise memory |
+| `server/userdata.js` | Saved rosters and Elite teams (signature checks, guest import) |
 | `server/index.js` | Express + Socket.IO server (lobby, queues, challenges, spectating) |
 | `public/` | Browser client |
 
