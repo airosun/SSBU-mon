@@ -4,6 +4,7 @@ const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
 const { effectiveness, calcStat, EVIOLITE_USERS } = require('../../shared/dex.js');
 const ABIL = require('./abilities.js');
+const { FINAL_SMASHES } = require('../../shared/megas.js');
 
 const FIGHTER_BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
 const LEVEL = 50;
@@ -22,7 +23,7 @@ const getMove = n => n === 'Struggle' ? STRUGGLE : MOVES[n];
 class Mon {
   constructor(set, side, teamIndex) {
     const f = FIGHTER_BY_ID[set.species];
-    this.side = side; this.teamIndex = teamIndex; this.species = f; this.uid = set.uid;
+    this.side = side; this.teamIndex = teamIndex; this.species = f; this.baseSpecies = f; this.uid = set.uid; this.mega = false;
     this.baseAbility = set.ability; this.ability = set.ability;
     this.item = set.item || ''; this.nature = set.nature || 'Hardy';
     this.evs = Object.assign({ hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, set.evs || {});
@@ -56,7 +57,7 @@ class Battle {
     this.activeCount = this.format === 'doubles' ? 2 : 1;
     this.sides = [0, 1].map(i => {
       const p = opts.players[i];
-      const side = { n: i, name: p.name, conditions: {}, wishes: {}, choices: null, needSwitch: [] };
+      const side = { n: i, name: p.name, conditions: {}, wishes: {}, choices: null, needSwitch: [], megaUsed: false };
       side.team = p.team.map((set, k) => new Mon(set, side, k));
       side.active = new Array(this.activeCount).fill(null);
       return side;
@@ -105,9 +106,31 @@ class Battle {
         const md = MOVES[mv.name];
         return { name: mv.name, index: i, pp: mv.pp, maxpp: mv.maxpp, type: md.type, cat: md.cat, power: md.power, acc: md.acc, target: md.target, disabled: !this.canUseMove(mon, i) };
       });
-      return { pos, teamIndex: mon.teamIndex, name: mon.species.name, moves, locked, struggle: !locked && !moves.some(m => !m.disabled), canSwitch: !this.isTrapped(mon) && this.bench(side).length > 0 };
+      const fs = !locked && this.canFinalSmash(mon) ? FINAL_SMASHES[mon.item] : null;
+      return { pos, teamIndex: mon.teamIndex, name: mon.species.name, moves, locked, struggle: !locked && !moves.some(m => !m.disabled), canSwitch: !this.isTrapped(mon) && this.bench(side).length > 0, finalSmash: fs ? { name: fs.name, id: fs.id } : null };
     });
     return { kind: 'move', format: this.format, actives, team };
+  }
+  canFinalSmash(mon) {
+    const fs = FINAL_SMASHES[mon.item];
+    return !!fs && !mon.mega && !mon.side.megaUsed && fs.base === mon.baseSpecies.id;
+  }
+  // a Final Smash stone can't be knocked off, stolen, swapped or flung
+  canLoseItem(mon) { return !FINAL_SMASHES[mon.item]; }
+  finalSmash(mon) {
+    const fs = FINAL_SMASHES[mon.item];
+    const oldName = mon.displaySpecies.name;
+    const base = mon.baseSpecies;
+    const ab = { name: fs.ability.name, desc: fs.ability.desc };
+    mon.species = Object.assign({}, base, { id: fs.id, name: fs.name, types: fs.types.slice(), stats: fs.stats, abilities: [ab], hidden: ab, image: fs.image });
+    for (const s of ['atk', 'def', 'spa', 'spd', 'spe']) mon.stats[s] = calcStat(s, fs.stats[s], mon.ivs[s], mon.evs[s], LEVEL, mon.nature);
+    mon.types = fs.types.slice();
+    mon.ability = mon.baseAbility = fs.ability.name;
+    mon.displaySpecies = mon.species; mon.v.illusion = false;
+    mon.mega = true; mon.side.megaUsed = true; mon.switchFlags.protean = false;
+    this.add('mega', `${mon.side.name}'s ${oldName} is using its Final Smash!`, { k: 'mega', m: this.P(mon), id: fs.id, name: fs.name, types: mon.types, from: base.id });
+    this.add('mega', `${oldName} became ${fs.name}!`, { k: 'types', m: this.P(mon), types: mon.types });
+    this.abilityOnStart(mon);
   }
   lockedMove(mon) {
     if (mon.v.charging) return mon.v.charging.move;
@@ -175,7 +198,11 @@ class Battle {
       else {
         const i = c.index | 0;
         if (!mon.moves[i] || !this.canUseMove(mon, i)) return `${mon.species.name} can't use that move.`;
-        out.push({ kind: 'move', mon, pos: a.pos, move: mon.moves[i].name, target: c.target });
+        if (c.mega) {
+          if (!a.finalSmash) return `${mon.species.name} can't use its Final Smash.`;
+          if (out.some(o => o.mega)) return 'Only one fighter can use its Final Smash.';
+        }
+        out.push({ kind: 'move', mon, pos: a.pos, move: mon.moves[i].name, target: c.target, mega: !!c.mega });
       }
     }
     side.choices = out;
@@ -210,6 +237,9 @@ class Battle {
     return mon.displaySpecies.name;
   }
   runTurn() {
+    // Final Smashes happen before anything else this turn, fastest first; new stats apply to turn order
+    const megas = this.sides.flatMap(s => (s.choices || []).filter(a => a.kind === 'move' && a.mega && this.canFinalSmash(a.mon)));
+    for (const a of this.speedOrder(megas.map(x => x.mon))) this.finalSmash(a);
     const actions = [];
     for (const s of this.sides) {
       for (const a of (s.choices || [])) {
@@ -763,7 +793,7 @@ class Battle {
         target.v.disable = { move: last, turns: 4 }; this.add('effect', `${target.label}'s ${last} was disabled!`); return;
       }
       case 'trick': {
-        if (!user.item && !target.item) { this.add('effect', 'But it failed!'); return; }
+        if ((!user.item && !target.item) || !this.canLoseItem(user) || !this.canLoseItem(target)) { this.add('effect', 'But it failed!'); return; }
         const a = user.item, b = target.item;
         user.item = b; target.item = a;
         if (!user.item && user.spec.unburden) user.unburdened = true;
@@ -836,7 +866,7 @@ class Battle {
       return;
     }
     if (md.special === 'fakeout' && mon.turnsActive > 0) { this.add('effect', 'But it failed!'); return; }
-    if (md.special === 'fling' && !mon.item) { this.add('effect', 'But it failed!'); return; }
+    if (md.special === 'fling' && (!mon.item || !this.canLoseItem(mon))) { this.add('effect', 'But it failed!'); return; }
     const targets = this.resolveTargets(mon, md, chosen);
     this.setMoveTargets(targets);
     if (!targets.length) { this.add('effect', 'But there was no target...'); mon.v.rollout = 0; return; }
@@ -908,7 +938,7 @@ class Battle {
       case 'facade': if (mon.status) p *= 2; break;
       case 'hex': if (target.status) p *= 2; break;
       case 'revenge': if (mon.v.lastHit && mon.v.lastHit.by === target) p *= 2; break;
-      case 'knockoff': if (target.item) p = Math.floor(p * 1.5); break;
+      case 'knockoff': if (target.item && this.canLoseItem(target)) p = Math.floor(p * 1.5); break;
       case 'rollout': p = 30 * Math.pow(2, Math.min(4, mon.v.rollout || 0)); break;
       case 'triplekick': p = 20 * (hitIndex + 1); break;
     }
@@ -943,7 +973,7 @@ class Battle {
     if (w === 'sun') { if (md.type === 'Fire') dmg *= 1.5; if (md.type === 'Water') dmg *= 0.5; }
     if (crit) dmg *= s.sniper ? 2.25 : 1.5;
     dmg = Math.floor(dmg * (noRandom ? 0.925 : (85 + this.random(16)) / 100));
-    if (mon.types.includes(md.type) && md.name !== 'Struggle') dmg *= 1.5;
+    if (mon.types.includes(md.type) && md.name !== 'Struggle') dmg *= s.adaptability ? 2 : 1.5;
     dmg *= eff;
     if (physical && mon.status === 'brn' && !s.guts && md.special !== 'facade') dmg *= 0.5;
     const c = target.side.conditions;
@@ -1015,7 +1045,7 @@ class Battle {
     if (ts.contactAttract && !mon.v.attract && this.chance(ts.contactAttract)) { mon.v.attract = target; this.add('status', `${mon.label} fell in love!`); }
     if (ts.contactFoeBoost) this.boost(mon, ts.contactFoeBoost, target);
     if (ts.mummy && mon.ability !== target.ability && !mon.spec.mummy) { mon.ability = target.ability; this.add('ability', `${mon.label}'s ability became ${target.ability}!`); }
-    if (ts.pickpocket && !target.fainted && !target.item && mon.item) { target.item = mon.item; this.loseItem(mon, false); this.add('ability', `${target.label} stole ${mon.label}'s ${target.item}!`); }
+    if (ts.pickpocket && !target.fainted && !target.item && mon.item && this.canLoseItem(mon)) { target.item = mon.item; this.loseItem(mon, false); this.add('ability', `${target.label} stole ${mon.label}'s ${target.item}!`); }
   }
   onKO(attacker, target) {
     if (attacker.fainted || attacker === target || attacker.side === target.side) return;
@@ -1043,8 +1073,8 @@ class Battle {
         const a = s.attackStatus;
         if ((!a.contactOnly || this.makesContact(mon, md)) && (!a.flag || md[a.flag]) && this.chance(a.chance)) this.trySetStatus(target, a.status, mon, false, true);
       }
-      if (dealt > 0 && md.special === 'knockoff' && target.item && !target.fainted) { this.add('effect', `${mon.label} knocked off ${target.label}'s ${target.item}!`); this.loseItem(target, false); }
-      if (dealt > 0 && (md.special === 'thief' || s.magician) && !mon.item && target.item && !mon.fainted) { mon.item = target.item; this.loseItem(target, false); this.add('effect', `${mon.label} stole ${target.label}'s ${mon.item}!`); }
+      if (dealt > 0 && md.special === 'knockoff' && target.item && !target.fainted && this.canLoseItem(target)) { this.add('effect', `${mon.label} knocked off ${target.label}'s ${target.item}!`); this.loseItem(target, false); }
+      if (dealt > 0 && (md.special === 'thief' || s.magician) && !mon.item && target.item && !mon.fainted && this.canLoseItem(target)) { mon.item = target.item; this.loseItem(target, false); this.add('effect', `${mon.label} stole ${target.label}'s ${mon.item}!`); }
       if (md.special === 'trap' && dealt > 0 && !target.fainted && !target.types.includes('Ghost')) { target.v.trapped = mon; this.add('effect', `${target.label} can no longer escape!`); }
       if (md.special === 'dragout' && dealt > 0 && !target.fainted && !mon.fainted && !(target.v.ingrain || this.abilityActive(target, mon).suctionCups)) this.dragOut(target);
     }

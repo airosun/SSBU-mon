@@ -9,6 +9,23 @@ A Pokémon VGC-style battle site where every Super Smash Bros. Ultimate fighter 
 - **Doubles:** bring 6, pick 4. Two fighters are out per side, you choose targets, and spread moves (Earthquake, Rock Slide, Hyper Voice…) hit several fighters for 75% damage.
 - **Clauses:** one of each fighter per team, and one of each item per team (item clause). Any fighter can hold any item. Eviolite (1.5× Defense and Sp. Def) only works on fighters that can still evolve: Pichu, Pikachu, Squirtle and Ivysaur.
 
+**Final Smashes (Megas):** a fighter holding its Final Smash stone can use its Final Smash once per battle. Turn on the **Final Smash** toggle above the moves, and the fighter transforms before anyone moves that turn. It keeps its HP but gets new stats, types and ability. Only one fighter per team can use its Final Smash in a battle. You can bring several stone holders, but once one transforms the rest can't. Stones can't be knocked off, stolen, traded or flung.
+
+| Fighter | Stone | Final Smash form | Types |
+|---|---|---|---|
+| Bowser | Bowserite | Giga Bowser | Fire/Dragon |
+| Ganondorf | Ganonite | Beast Ganon | Dark/Fighting |
+| Sonic | Chaos Emerald | Super Sonic | Electric/Fighting |
+| Greninja | Greninjite | Mega Greninja | Water/Dark |
+| Charizard | Charizardite X / Y | Mega Charizard X / Y | Fire/Dragon · Fire/Flying |
+| Lucario | Lucarionite / Lucarionite Z | Mega Lucario / Mega Lucario Z | Fighting/Steel |
+| Mewtwo | Mewtwonite X / Y | Mega Mewtwo X / Y | Psychic/Fighting · Psychic |
+| Piranha Plant | Plantite | Petey Piranha | Grass/Poison |
+| Sephiroth | Sephirite | Safer Sephiroth | Dark/Flying |
+| Kazuya | Devil Gene | Devil Kazuya | Fighting/Dark |
+
+Real Mega Pokémon use their official Mega stats. The other forms keep the base fighter's HP and add 100 to its base stat total. All forms are defined in `shared/megas.js`, and each form's image is `public/images/<form id>.png`.
+
 **Standard Battle**
 1. Each player gets 20 random fighters with random natures, random IVs (0–31) and either their standard or hidden ability. Pick 6.
 2. Choose moves (up to 4 from each fighter's move pool) and an item for each of your 6.

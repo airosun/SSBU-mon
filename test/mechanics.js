@@ -88,5 +88,28 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
     assert.equal(last, 'ended');
   });
 
+  await test('Final Smash: transforms once per team, keeps HP, stone stays put', () => {
+    const b = battle(
+      [mk('bowser', 'Spiked Shell', ['Flamethrower', 'Protect'], { item: 'Bowserite' }), mk('charizard', 'Blaze', ['Flamethrower'], { item: 'Charizardite Y' })],
+      [mk('wario', 'Treasure Greed', ['Knock Off'])], 'singles');
+    const req = b.getRequest(0);
+    assert.equal(req.actives[0].finalSmash.name, 'Giga Bowser');
+    const hp = b.sides[0].active[0].hp;
+    b.choose(0, { actions: [{ pos: 0, type: 'move', index: 1, mega: true }] }); b.choose(1, mv(0));
+    const bw = b.sides[0].team[0];
+    assert.equal(bw.species.id, 'giga-bowser'); assert.equal(bw.ability, 'Giga Might'); assert.equal(bw.hp <= hp, true);
+    assert.equal(bw.item, 'Bowserite');
+    assert.match(text(b), /is using its Final Smash/);
+    // Charizard can't Final Smash now: the team already used it
+    if (!b.ended) { b.sides[0].team[0].hp = 1; }
+    const sw = b.sides[0].team[1]; assert.equal(b.canFinalSmash(sw), false);
+  });
+
+  await test('Final Smash stone must match its fighter', () => {
+    const v = validateStandardBuild([genFighter('mario')], [{ moves: ['Fire Punch'], item: 'Bowserite' }]);
+    assert(!v.ok && v.errors.some(e => /only works for Bowser/.test(e)));
+    assert(validateStandardBuild([genFighter('mewtwo')], [{ moves: ['Psychic'], item: 'Mewtwonite Y' }]).ok);
+  });
+
   console.log(`${passed} passed`);
 })();

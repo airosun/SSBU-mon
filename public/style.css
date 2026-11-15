@@ -299,3 +299,19 @@ details.pool .move-table { max-height: 220px; }
 .fx.pop.big.crit { color: #ff9a3c; font-size: 26px; }
 .fx.pop.big.block { color: #7fd8ff; }
 .fx.pop.big.se { font-size: 20px; } .fx.pop.big.nve { font-size: 18px; }
+/* ---- v6: Final Smash ---- */
+.fs-chip { font-size: 12px; font-weight: 700; color: #ffd34d; background: linear-gradient(90deg, #3a2a0a, #2a1c24); border: 1px solid #ffd34d55; border-radius: 7px; padding: 3px 8px; }
+.fs-box { margin-top: 12px; padding: 10px; border-radius: 12px; border: 1px solid #ffd34d55; background: linear-gradient(135deg, #2b2210, #171c26 70%); }
+.fs-btn { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; margin-bottom: 10px; border: 1px solid #ffd34d88; background: linear-gradient(90deg, #3a2a0a, #241a2e); color: #ffe9a8; }
+.fs-btn:hover { background: linear-gradient(90deg, #4a360c, #2e2040); }
+.fs-btn.on { border-color: #ffd34d; box-shadow: 0 0 0 2px #ffd34d66, 0 0 18px #ffd34d55; animation: fsglow 1.2s ease-in-out infinite; }
+@keyframes fsglow { 50% { box-shadow: 0 0 0 2px #ffd34daa, 0 0 26px #ffd34d99; } }
+.fs-note { color: #ffd34d; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.fx.fs-aura { width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(#ff4d4d, #ffb020, #ffe14d, #3ddc84, #6390f0, #a35cff, #ff4d4d); -webkit-mask: radial-gradient(circle, transparent 52%, #000 55%, #000 66%, transparent 69%); mask: radial-gradient(circle, transparent 52%, #000 55%, #000 66%, transparent 69%); animation: fsaura 1.6s ease-out forwards; }
+.fx.fs-aura.two { width: 110px; height: 110px; animation-delay: .25s; opacity: 0; }
+@keyframes fsaura { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0deg); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6) rotate(540deg); } }
+.fx.fs-burst { width: 200px; height: 200px; background: radial-gradient(circle, #fff, #ffd34d 40%, transparent 70%); }
+.fx.fs-banner { left: 50% !important; width: 100%; text-align: center; z-index: 7; animation: fsbanner 1.8s ease-out forwards; }
+.fx.fs-banner span { display: inline-block; font-size: 34px; font-weight: 800; font-style: italic; letter-spacing: .04em; color: #fff; -webkit-text-stroke: 1.5px #7a3b00; text-shadow: 0 0 18px #ffb020, 0 3px 0 #b45309; background: linear-gradient(90deg, transparent, #ff4d4dcc 20%, #ffb020cc 50%, #ff4d4dcc 80%, transparent); padding: 6px 60px; }
+@keyframes fsbanner { 0% { opacity: 0; transform: translate(-50%, -50%) scaleX(.2); } 15% { opacity: 1; transform: translate(-50%, -50%) scaleX(1.05); } 25% { transform: translate(-50%, -50%) scaleX(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); } }
+.log .mega { color: #ffd34d; font-weight: 800; }
