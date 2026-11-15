@@ -161,14 +161,21 @@
   function reconnect() { socket.disconnect(); socket.connect(); }
   function accountModal(tab = 'in') {
     if (S.account) {
-      modal(`<h2>${esc(S.account.username)}</h2>
-        <p class="muted">Your roster, Elite teams and Fighter Pass rolls are saved to this account, so they follow you to any device.</p>
+      modal(`<div id="acCard"><div class="muted">Loading your Battler Card…</div></div>
+        <div class="row" style="margin-top:8px"><button class="small" id="acEditCard" disabled>Edit Battler Card</button><span class="grow"></span></div>
+        <p class="muted small">Your roster, Elite teams and Fighter Pass rolls are saved to this account, so they follow you to any device.</p>
         <details class="pw"><summary>Change password</summary>
           <div class="field"><label>Current password</label><input id="pwCur" type="password" autocomplete="current-password"></div>
           <div class="field"><label>New password</label><input id="pwNew" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
           <button id="pwOk">Change password</button> <span class="muted small">Signs out your other devices.</span></details>
         <div class="row" style="margin-top:14px"><button id="acOut">Sign out</button><span class="grow"></span><button class="primary" id="acClose">Done</button></div>`);
       $('#acClose').onclick = closeModal;
+      SSBU.loadMyCard().then(card => {
+        const box = $('#acCard'); if (!box) return;
+        box.innerHTML = SSBU.cardHtml(card);
+        const ed = $('#acEditCard'); ed.disabled = false;
+        ed.onclick = () => SSBU.editCard(card, { after: () => accountModal() });
+      }).catch(e => { const box = $('#acCard'); if (box) box.innerHTML = `<div class="err small">${esc(e.message)}</div>`; });
       $('#acOut').onclick = async () => {
         if (busyInBattle() && !confirm('You have a battle in progress. Signing out leaves it, and you will forfeit if you don\'t come back. Sign out anyway?')) return;
         await accountPost('logout'); onAccount(null); closeModal(); reconnect(); toast('Signed out.');

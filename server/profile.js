@@ -1,4 +1,4 @@
-// Trainer cards: a signed-in player's avatar, title, short bio and a showcased Elite team.
+// Battler Cards: a signed-in player's avatar, title, short bio and a showcased Elite team.
 const FIGHTERS = require('../shared/fighters.json');
 const { FINAL_SMASHES } = require('../shared/megas.js');
 const AVATARS = new Set([...FIGHTERS.map(f => f.id), ...Object.values(FINAL_SMASHES).map(x => x.id)]);
