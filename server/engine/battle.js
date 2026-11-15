@@ -70,7 +70,10 @@ class Battle {
   }
 
   // ---------------- utilities ----------------
-  add(cls, text) { this.log.push({ cls, text }); }
+  add(cls, text, a) { const e = a ? { cls, text, a } : { cls, text }; this.log.push(e); return e; }
+  P(mon) { return [mon.side.n, mon.pos]; }
+  pct(mon) { return Math.ceil(mon.hp / mon.maxhp * 100); }
+  inMeta(mon) { return { k: 'in', m: this.P(mon), id: mon.displaySpecies.id, name: mon.displaySpecies.name, types: mon.v.illusion ? mon.displaySpecies.types : mon.types, hp: this.pct(mon), status: mon.status }; }
   random(n) { return Math.floor(this.rng() * n); }
   chance(pct) { return this.rng() * 100 < pct; }
   foeSide(side) { return this.sides[1 - side.n]; }
@@ -194,7 +197,7 @@ class Battle {
     this.add('info', `${this.format === 'doubles' ? 'Double' : 'Single'} Battle: ${this.sides[0].name} vs ${this.sides[1].name}!`);
     for (const s of this.sides) for (let p = 0; p < this.activeCount; p++) if (s.team[p]) this.placeMon(s, p, s.team[p]);
     const order = this.speedOrder(this.allActive());
-    for (const m of order) this.add('switch', `${m.side.name} sent out ${this.illusionName(m)}!`);
+    for (const m of order) { const n = this.illusionName(m); this.add('switch', `${m.side.name} sent out ${n}!`, this.inMeta(m)); }
     for (const m of order) this.onSwitchIn(m);
     this.turn = 1; this.add('turn', 'Turn 1');
   }
@@ -270,7 +273,7 @@ class Battle {
       s.switchChoice = null; s.needSwitch = [];
     }
     const order = this.speedOrder(mons);
-    for (const m of order) this.add('switch', `${m.side.name} sent out ${this.illusionName(m)}!`);
+    for (const m of order) { const n = this.illusionName(m); this.add('switch', `${m.side.name} sent out ${n}!`, this.inMeta(m)); }
     for (const m of order) if (!m.fainted) this.onSwitchIn(m);
     if (this.checkWin()) return;
     if (this.computeNeedSwitch()) { this.emit(); return; }
@@ -297,7 +300,7 @@ class Battle {
     const inc = side.team[index];
     inc.resetVolatiles();
     this.placeMon(side, pos, inc);
-    this.add('switch', `${side.name} sent out ${this.illusionName(inc)}!`);
+    { const n = this.illusionName(inc); this.add('switch', `${side.name} sent out ${n}!`, this.inMeta(inc)); }
     this.onSwitchIn(inc);
   }
   onSwitchOut(mon) {
@@ -305,7 +308,7 @@ class Battle {
     if (s.regenerator && !mon.fainted) mon.hp = Math.min(mon.maxhp, mon.hp + Math.floor(mon.maxhp / 3));
     if (s.naturalCure && mon.status) mon.status = '';
     for (const o of this.allActive()) if (o.v.trapped === mon) delete o.v.trapped;
-    this.add('switch', `${mon.side.name} withdrew ${mon.displaySpecies.name}.`);
+    this.add('switch', `${mon.side.name} withdrew ${mon.displaySpecies.name}.`, { k: 'out', m: this.P(mon) });
     mon.resetVolatiles();
   }
   onSwitchIn(mon) {
@@ -427,19 +430,19 @@ class Battle {
     if (mon.fainted || amt <= 0) return 0;
     amt = Math.min(Math.max(1, Math.floor(amt)), mon.hp);
     mon.hp -= amt;
-    if (msg) this.add('dmg', msg);
+    this.add(msg ? 'dmg' : 'hp', msg || '', { k: 'hp', m: this.P(mon), hp: this.pct(mon), dmg: true });
     if (mon.hp <= 0) this.faint(mon); else this.checkThresholds(mon);
     return amt;
   }
   heal(mon, amt, msg) {
     if (mon.fainted || mon.hp >= mon.maxhp) return 0;
     const h = Math.min(Math.max(1, Math.floor(amt)), mon.maxhp - mon.hp);
-    mon.hp += h; if (msg) this.add('heal', msg);
+    mon.hp += h; this.add(msg ? 'heal' : 'hp', msg || '', { k: 'hp', m: this.P(mon), hp: this.pct(mon), heal: true });
     return h;
   }
   faint(mon) {
     mon.hp = 0; mon.fainted = true; mon.status = '';
-    this.add('faint', `${mon.label} fainted!`);
+    this.add('faint', `${mon.label} fainted!`, { k: 'faint', m: this.P(mon) });
     this.queue = this.queue.filter(a => a.mon !== mon);
     for (const o of this.allActive()) if (o.v.trapped === mon) delete o.v.trapped;
   }
@@ -487,7 +490,7 @@ class Battle {
     if (status === 'tri') status = ['brn', 'par', 'frz'][this.random(3)];
     if (!this.canStatus(mon, status, source)) { if (!quiet) this.add('effect', `It doesn't affect ${mon.label}...`); return false; }
     mon.status = status; mon.statusTurns = status === 'slp' ? 2 + this.random(3) : 0; mon.toxCount = 0;
-    this.add('status', `${mon.label} was ${STATUS_LABEL[status]}!`);
+    this.add('status', `${mon.label} was ${STATUS_LABEL[status]}!`, { k: 'status', m: this.P(mon), status });
     if (this.hasItem(mon, 'Lum Berry')) this.eatBerry(mon, () => { mon.status = ''; this.add('heal', `${mon.label}'s Lum Berry cured it!`); });
     return true;
   }
@@ -512,7 +515,7 @@ class Battle {
       const diff = mon.boosts[k] - before;
       if (!diff) { this.add('effect', `${mon.label}'s ${STAT_LABEL[k]} won't go any ${raw > 0 ? 'higher' : 'lower'}!`); continue; }
       const word = Math.abs(diff) >= 3 ? ' drastically' : Math.abs(diff) === 2 ? ' sharply' : '';
-      this.add('boost', `${mon.label}'s ${STAT_LABEL[k]} ${diff > 0 ? 'rose' : 'fell'}${word}!`);
+      this.add('boost', `${mon.label}'s ${STAT_LABEL[k]} ${diff > 0 ? 'rose' : 'fell'}${word}!`, { k: 'boost', m: this.P(mon), up: diff > 0, stat: k, n: diff });
       if (diff < 0 && fromFoe) dropped = true;
     }
     if (dropped && s.onStatDrop) { this.add('ability', `${mon.label}'s ${mon.ability} activated!`); this.boost(mon, s.onStatDrop, mon); }
@@ -541,6 +544,8 @@ class Battle {
     if (!foes.length) return [];
     return [foes[this.random(foes.length)]];
   }
+
+  setMoveTargets(targets) { if (this.curMove && this.curMove.a) this.curMove.a.t = targets.filter(Boolean).map(t => this.P(t)); }
 
   // ---------------- moves ----------------
   useMove(mon, moveName, action) {
@@ -578,7 +583,7 @@ class Battle {
     mon.movedSinceSwitch = true;
     if (slotObj && ['Choice Band', 'Choice Specs', 'Choice Scarf'].includes(mon.item)) mon.v.choiceLock = moveName;
     if (moveName === 'Metronome' || moveName === 'Copycat') {
-      this.add('move', `${mon.label} used ${moveName}!`);
+      this.add('move', `${mon.label} used ${moveName}!`, { k: 'move', u: this.P(mon), name: moveName, type: 'Normal', cat: 'Status', t: [] });
       let called;
       if (moveName === 'Metronome') { const pool = Object.keys(MOVES).filter(n => !NO_METRONOME.has(n)); called = pool[this.random(pool.length)]; }
       else called = this.lastMoveUsed && !NO_METRONOME.has(this.lastMoveUsed) ? this.lastMoveUsed : null;
@@ -587,20 +592,20 @@ class Battle {
       moveName = called; md = MOVES[called]; chosen = null;
     }
     if (md.charge && !mon.v.charging && !(md.sunSkip && this.field.weather === 'sun')) {
-      this.add('move', `${mon.label} used ${moveName}!`);
+      this.add('move', `${mon.label} used ${moveName}!`, { k: 'move', u: this.P(mon), name: moveName, type: md.type, cat: md.cat, t: [], charge: md.semi || true });
       mon.v.charging = { move: moveName, semi: md.semi }; mon.v.lockTarget = chosen;
       this.add('effect', `${mon.label} ${{ fly: 'flew up high!', dig: 'burrowed underground!', dive: 'hid underwater!', phantom: 'vanished instantly!' }[md.semi] || 'is charging up!'}`);
       if (md.chargeBoost) this.boost(mon, md.chargeBoost, mon);
       return;
     }
     delete mon.v.charging;
-    this.add('move', `${mon.label} used ${moveName}!`);
+    this.curMove = this.add('move', `${mon.label} used ${moveName}!`, { k: 'move', u: this.P(mon), name: moveName, type: md.type, cat: md.cat, t: [] });
     if (moveName !== 'Struggle') this.lastMoveUsed = moveName;
     mon.lastMove = moveName;
     if (md.special === 'focuspunch' && mon.v.tookDamage) { this.add('effect', `${mon.label} lost its focus and couldn't move!`); return; }
     if (mon.spec.protean && !mon.switchFlags.protean && moveName !== 'Struggle' && !(mon.types.length === 1 && mon.types[0] === md.type)) {
       mon.types = [md.type]; mon.switchFlags.protean = true;
-      this.add('ability', `${mon.label}'s ${mon.ability} made it the ${md.type} type!`);
+      this.add('ability', `${mon.label}'s ${mon.ability} made it the ${md.type} type!`, { k: 'types', m: this.P(mon), types: mon.types });
     }
     this.moldBreaker = (mon.spec.moldBreaker || (mon.spec.fireBreaker && md.type === 'Fire')) ? mon : null;
     try {
@@ -628,14 +633,14 @@ class Battle {
     if (mon.spec.accMult) acc *= mon.spec.accMult;
     if (this.field.gravity) acc *= 5 / 3;
     if (this.rng() * 100 < acc) return true;
-    this.add('effect', `${target.label} avoided the attack!`);
+    this.add('effect', `${target.label} avoided the attack!`, { k: 'pop', m: this.P(target), text: 'Missed!', tone: 'miss' });
     if (target.spec.foeMissBoost && !target.fainted) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(target, target.spec.foeMissBoost, target); }
     return false;
   }
   checkProtect(mon, target, md) {
     if (!target.v.protect) return false;
     if (md.breaksProtect) { delete target.v.protect; this.add('effect', `${mon.label} broke through the protection!`); return false; }
-    this.add('effect', `${target.label} protected itself!`);
+    this.add('effect', `${target.label} protected itself!`, { k: 'protect', m: this.P(target) });
     if (target.v.protect === 'kings' && this.makesContact(mon, md)) this.boost(mon, { atk: -1 }, target);
     const ts = target.spec;
     if (ts.protectFoeBoost) { this.add('ability', `${target.label}'s ${target.ability} activated!`); this.boost(mon, ts.protectFoeBoost, target); }
@@ -657,11 +662,13 @@ class Battle {
       if (!target) { this.add('effect', 'But there was no target...'); return; }
       const vsFoe = target.side !== mon.side;
       if (vsFoe && mon.spec.prankster && target.types.includes('Dark')) { this.add('effect', `It doesn't affect ${target.label}...`); return; }
+      this.setMoveTargets([target]);
       if (this.checkProtect(mon, target, md)) return;
       if (vsFoe && this.isReflectable(md) && (target.v.magiccoat || this.abilityActive(target, mon).magicBounce)) {
         this.add('effect', `${target.label} bounced the ${name} back!`);
         user = target; target = mon;
       }
+      this.setMoveTargets([target]);
       if (md.acc !== true && !this.accuracyCheck(user, target, md, name)) return;
       if (target.v.substitute && !md.sound && !user.spec.infiltrator && md.special !== 'painsplit') { this.add('effect', 'But it failed!'); return; }
       if (md.powder && target.types.includes('Grass')) { this.add('effect', `It doesn't affect ${target.label}...`); return; }
@@ -709,30 +716,32 @@ class Battle {
         const ok = this.queue.length > 0 && this.chance(100 / Math.pow(3, user.protectCount));
         if (!ok) { this.add('effect', 'But it failed!'); user.protectCount = 0; return; }
         user.v.protect = md.kingsShield ? 'kings' : true; user.protectCount++; user.v.protectedThisTurn = true;
-        this.add('effect', `${user.label} protected itself!`); return;
+        this.add('effect', `${user.label} protected itself!`, { k: 'protect', m: this.P(user) }); return;
       }
       case 'substitute': {
         if (user.v.substitute) { this.add('effect', `${user.label} already has a substitute!`); return; }
         const cost = Math.floor(user.maxhp / (user.spec.cheapSub ? 8 : 4));
         if (user.hp <= cost) { this.add('effect', 'But it does not have enough HP left to make a substitute!'); return; }
-        this.damage(user, cost); user.v.substitute = cost; this.add('effect', `${user.label} put in a substitute!`); return;
+        this.damage(user, cost); user.v.substitute = cost; this.add('effect', `${user.label} put in a substitute!`, { k: 'subon', m: this.P(user) }); return;
       }
       case 'bellydrum':
         if (user.hp <= user.maxhp / 2 || user.boosts.atk >= 6) { this.add('effect', 'But it failed!'); return; }
-        this.damage(user, user.maxhp / 2); user.boosts.atk = 6; this.add('boost', `${user.label} cut its own HP and maximized its Attack!`); return;
+        this.damage(user, user.maxhp / 2); user.boosts.atk = 6; this.add('boost', `${user.label} cut its own HP and maximized its Attack!`, { k: 'boost', m: this.P(user), up: true, stat: 'atk', n: 6 }); return;
       case 'wish':
         if (user.side.wishes[user.pos]) { this.add('effect', 'But it failed!'); return; }
         user.side.wishes[user.pos] = { turns: 2, hp: Math.floor(user.maxhp / 2), from: user.displaySpecies.name };
         this.add('effect', `${user.label} made a wish!`); return;
       case 'rest':
         if (user.hp >= user.maxhp || user.status === 'slp' || (user.spec.statusImmune && user.spec.statusImmune.includes('slp'))) { this.add('effect', 'But it failed!'); return; }
-        user.status = 'slp'; user.statusTurns = 3; user.hp = user.maxhp; this.add('heal', `${user.label} slept and became healthy!`); return;
+        user.status = 'slp'; user.statusTurns = 3; user.hp = user.maxhp; this.add('heal', `${user.label} slept and became healthy!`, { k: 'hp', m: this.P(user), hp: 100, heal: true }); this.add('hp', '', { k: 'status', m: this.P(user), status: 'slp' }); return;
       case 'focusenergy': user.v.focusEnergy = true; this.add('effect', `${user.label} is getting pumped!`); return;
       case 'healbell': for (const m of user.side.team) m.status = ''; this.add('heal', `A soothing aroma wafted through ${user.side.name}'s team!`); return;
       case 'painsplit': {
         const avg = Math.floor((user.hp + target.hp) / 2);
         user.hp = Math.min(user.maxhp, avg); target.hp = Math.min(target.maxhp, avg);
-        this.add('effect', 'The battlers shared their pain!'); this.checkThresholds(target); return;
+        this.add('effect', 'The battlers shared their pain!');
+        for (const x of [user, target]) this.add('hp', '', { k: 'hp', m: this.P(x), hp: this.pct(x) });
+        this.checkThresholds(target); return;
       }
       case 'leechseed':
         if (target.types.includes('Grass') || target.v.leechSeed) { this.add('effect', `It doesn't affect ${target.label}...`); return; }
@@ -810,6 +819,7 @@ class Battle {
     if (md.special === 'futuresight') {
       const t = this.resolveTargets(mon, md, chosen)[0];
       if (!t) { this.add('effect', 'But there was no target...'); return; }
+      this.setMoveTargets([t]);
       const key = { side: t.side.n, pos: t.pos };
       if (this.futures.some(f => f.side === key.side && f.pos === key.pos)) { this.add('effect', 'But it failed!'); return; }
       this.futures.push({ ...key, turns: 3, user: mon }); this.add('effect', `${mon.label} foresaw an attack!`); return;
@@ -819,6 +829,7 @@ class Battle {
       const h = mon.v.lastHit;
       if (!h || h.cat !== want || !this.isActive(h.by) || h.by.side === mon.side) { this.add('effect', 'But it failed!'); return; }
       const t = h.by;
+      this.setMoveTargets([t]);
       if (this.checkProtect(mon, t, md)) return;
       const d = this.applyDamage(mon, t, md, h.amount * 2, { eff: 1 });
       this.afterAttack(mon, [t], md, d, new Map([[t, d]]));
@@ -827,6 +838,7 @@ class Battle {
     if (md.special === 'fakeout' && mon.turnsActive > 0) { this.add('effect', 'But it failed!'); return; }
     if (md.special === 'fling' && !mon.item) { this.add('effect', 'But it failed!'); return; }
     const targets = this.resolveTargets(mon, md, chosen);
+    this.setMoveTargets(targets);
     if (!targets.length) { this.add('effect', 'But there was no target...'); mon.v.rollout = 0; return; }
     const spread = targets.length > 1;
     let total = 0; const dealtMap = new Map(); let anyHit = false;
@@ -880,8 +892,8 @@ class Battle {
       let power = this.basePower(mon, target, md, h);
       if (pBond && h === 1) power = Math.floor(power / 4);
       const { dmg, crit } = this.calcDamage(mon, target, md, power, eff, false, spread);
-      if (crit) this.add('effect', `A critical hit on ${target.label}!`);
-      if (h === 0 && !target.v.substitute) { if (eff > 1) this.add('eff', "It's super effective!"); else if (eff < 1) this.add('eff', "It's not very effective..."); }
+      if (crit) this.add('effect', `A critical hit on ${target.label}!`, { k: 'pop', m: this.P(target), text: 'Critical hit!', tone: 'crit' });
+      if (h === 0 && !target.v.substitute) { if (eff > 1) this.add('eff', "It's super effective!", { k: 'pop', m: this.P(target), text: 'Super effective!', tone: 'se' }); else if (eff < 1) this.add('eff', "It's not very effective...", { k: 'pop', m: this.P(target), text: 'Not very effective', tone: 'nve' }); }
       dealt += this.applyDamage(mon, target, md, dmg, { eff, crit }); count++;
     }
     if (hits > 1 && count) this.add('effect', `Hit ${count} time${count > 1 ? 's' : ''}!`);
@@ -956,12 +968,12 @@ class Battle {
     if (target.v.substitute && !md.sound && !mon.spec.infiltrator) {
       const d = Math.min(dmg, target.v.substitute);
       target.v.substitute -= d;
-      this.add('dmg', `The substitute took damage for ${target.label}!`);
+      this.add('dmg', `The substitute took damage for ${target.label}!`, { k: 'sub', m: this.P(target) });
       if (target.v.substitute <= 0) { delete target.v.substitute; this.add('effect', `${target.label}'s substitute faded!`); }
       return d;
     }
     if (ts.disguise && !target.once.disguise) { target.once.disguise = true; this.add('ability', `${target.label}'s ${target.ability} took the hit! Its mask fell off.`); return 0; }
-    if (target.v.illusion) { target.v.illusion = false; target.once.illusionBroken = true; target.displaySpecies = target.species; this.add('ability', `${target.side.name}'s ${target.species.name}'s illusion wore off!`); }
+    if (target.v.illusion) { target.v.illusion = false; target.once.illusionBroken = true; target.displaySpecies = target.species; this.add('ability', `${target.side.name}'s ${target.species.name}'s illusion wore off!`, this.inMeta(target)); }
     if (dmg >= target.hp) {
       if (target.hp === target.maxhp && ts.sturdy) { dmg = target.hp - 1; this.add('ability', `${target.label} endured the hit with ${target.ability}!`); }
       else if (target.hp === target.maxhp && this.hasItem(target, 'Focus Sash')) { dmg = target.hp - 1; this.add('effect', `${target.label} hung on using its Focus Sash!`); this.loseItem(target, true); }
@@ -970,7 +982,7 @@ class Battle {
     dmg = Math.min(dmg, target.hp);
     const hpBefore = target.hp;
     target.hp -= dmg;
-    this.add('dmg', `${target.label} lost ${Math.round(dmg / target.maxhp * 1000) / 10}% of its HP!`);
+    this.add('dmg', `${target.label} lost ${Math.round(dmg / target.maxhp * 1000) / 10}% of its HP!`, { k: 'hp', m: this.P(target), hp: this.pct(target), dmg: true, hit: true });
     target.v.tookDamage = true;
     target.v.lastHit = { amount: dmg, cat: md.cat, by: mon };
     target.hitsTaken++;
@@ -990,7 +1002,7 @@ class Battle {
     if (s.rattled && ['Bug', 'Ghost', 'Dark'].includes(md.type)) { act(); this.boost(target, { spe: 1 }, target); }
     if (s.hitBoost) { act(); this.boost(target, s.hitBoost, target); }
     if (s.angerPoint && info.crit && target.boosts.atk < 6) { target.boosts.atk = 6; this.add('ability', `${target.label}'s ${target.ability} maxed its Attack!`); }
-    if (s.colorChange && !target.types.includes(md.type) && md.name !== 'Struggle') { target.types = [md.type]; this.add('ability', `${target.label}'s ${target.ability} made it the ${md.type} type!`); }
+    if (s.colorChange && !target.types.includes(md.type) && md.name !== 'Struggle') { target.types = [md.type]; this.add('ability', `${target.label}'s ${target.ability} made it the ${md.type} type!`, { k: 'types', m: this.P(target), types: target.types }); }
     if (s.emergencyExit && hpBefore > target.maxhp / 2 && target.hp <= target.maxhp / 2 && this.bench(target.side).length) { act(); this.requestPivot(target, 'emergency'); }
   }
   contactReactions(mon, target, md) {
@@ -1060,7 +1072,7 @@ class Battle {
       this.futures.splice(this.futures.indexOf(f), 1);
       const t = this.sides[f.side].active[f.pos];
       if (!t || t.fainted) continue;
-      this.add('move', `${t.label} took the Future Sight attack!`);
+      this.add('move', `${t.label} took the Future Sight attack!`, { k: 'move', u: null, name: 'Future Sight', type: 'Psychic', cat: 'Special', t: [this.P(t)] });
       const md = MOVES['Future Sight']; const eff = effectiveness('Psychic', t.types);
       if (!eff) this.add('effect', `It doesn't affect ${t.label}...`);
       else this.applyDamage(f.user, t, md, this.calcDamage(f.user, t, md, 120, eff).dmg, { eff });

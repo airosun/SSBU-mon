@@ -63,7 +63,8 @@
    "Protect",
    "Substitute"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "mario.png"
  },
  {
   "num": 2,
@@ -129,7 +130,8 @@
    "Slack Off",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "donkey kong.png"
  },
  {
   "num": 3,
@@ -192,7 +194,8 @@
    "Ice Spinner",
    "Protect"
   ],
-  "notes": "Breath of the Wild Link"
+  "notes": "Breath of the Wild Link",
+  "image": "link.png"
  },
  {
   "num": 4,
@@ -257,7 +260,8 @@
    "Protect",
    "Substitute"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "samus.png"
  },
  {
   "num": 5,
@@ -321,7 +325,8 @@
    "Pain Split",
    "Protect"
   ],
-  "notes": "Echo of Samus"
+  "notes": "Echo of Samus",
+  "image": "dark samus.png"
  },
  {
   "num": 6,
@@ -385,7 +390,8 @@
    "Headbutt",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "yoshi.png"
  },
  {
   "num": 7,
@@ -449,7 +455,8 @@
    "Recover",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "kirby.png"
  },
  {
   "num": 8,
@@ -513,7 +520,8 @@
    "Light Screen",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "fox.png"
  },
  {
   "num": 9,
@@ -578,7 +586,8 @@
    "Nasty Plot",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities"
+  "notes": "Official Pokémon stats/abilities",
+  "image": "pikachu.png"
  },
  {
   "num": 10,
@@ -644,7 +653,8 @@
    "Substitute",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "luigi.png"
  },
  {
   "num": 11,
@@ -708,7 +718,8 @@
    "Teleport",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "ness.png"
  },
  {
   "num": 12,
@@ -772,7 +783,8 @@
    "Bulk Up",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "captain falcon.png"
  },
  {
   "num": 13,
@@ -841,7 +853,8 @@
    "Pain Split",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities"
+  "notes": "Official Pokémon stats/abilities",
+  "image": "jigglypuff.png"
  },
  {
   "num": 14,
@@ -908,7 +921,8 @@
    "Light Screen",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "peach.png"
  },
  {
   "num": 15,
@@ -972,7 +986,8 @@
    "Aromatherapy",
    "Protect"
   ],
-  "notes": "Echo of Peach"
+  "notes": "Echo of Peach",
+  "image": "daisy.png"
  },
  {
   "num": 16,
@@ -1041,7 +1056,8 @@
    "Roar",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "bowser.png"
  },
  {
   "num": 17,
@@ -1106,7 +1122,8 @@
    "Swords Dance",
    "Protect"
   ],
-  "notes": "Kept as one duo (both climbers fight together)"
+  "notes": "Kept as one duo (both climbers fight together)",
+  "image": "ice climbers.png"
  },
  {
   "num": 18,
@@ -1170,7 +1187,8 @@
    "Teleport",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "sheik.png"
  },
  {
   "num": 19,
@@ -1235,7 +1253,8 @@
    "Teleport",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "zelda.png"
  },
  {
   "num": 20,
@@ -1301,7 +1320,8 @@
    "Rapid Spin",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "dr. mario.png"
  },
  {
   "num": 21,
@@ -1364,7 +1384,8 @@
    "Nasty Plot",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities"
+  "notes": "Official Pokémon stats/abilities",
+  "image": "pichu.png"
  },
  {
   "num": 22,
@@ -1427,7 +1448,8 @@
    "Reflect",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "falco.png"
  },
  {
   "num": 23,
@@ -1488,7 +1510,8 @@
    "Quick Attack",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "marth.png"
  },
  {
   "num": 24,
@@ -1550,7 +1573,8 @@
    "Quick Attack",
    "Protect"
   ],
-  "notes": "Echo of Marth"
+  "notes": "Echo of Marth",
+  "image": "lucina.png"
  },
  {
   "num": 25,
@@ -1613,7 +1637,8 @@
    "Sing",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "young link.png"
  },
  {
   "num": 26,
@@ -1680,7 +1705,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "ganondorf.png"
  },
  {
   "num": 27,
@@ -1746,7 +1772,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities"
+  "notes": "Official Pokémon stats/abilities",
+  "image": "mewtwo.png"
  },
  {
   "num": 28,
@@ -1807,7 +1834,8 @@
    "Will-O-Wisp",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "roy.png"
  },
  {
   "num": 29,
@@ -1868,7 +1896,8 @@
    "Quick Attack",
    "Protect"
   ],
-  "notes": "Echo of Roy"
+  "notes": "Echo of Roy",
+  "image": "chrom.png"
  },
  {
   "num": 30,
@@ -1930,7 +1959,8 @@
    "Substitute",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "mr. game & watch.png"
  },
  {
   "num": 31,
@@ -1996,7 +2026,8 @@
    "Tailwind",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "meta knight.png"
  },
  {
   "num": 32,
@@ -2061,7 +2092,8 @@
    "Tailwind",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "pit.png"
  },
  {
   "num": 33,
@@ -2125,7 +2157,8 @@
    "Roost",
    "Protect"
   ],
-  "notes": "Echo of Pit"
+  "notes": "Echo of Pit",
+  "image": "dark pit.png"
  },
  {
   "num": 34,
@@ -2188,7 +2221,8 @@
    "Agility",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "zero suit samus.png"
  },
  {
   "num": 35,
@@ -2253,7 +2287,8 @@
    "Slack Off",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "wario.png"
  },
  {
   "num": 36,
@@ -2317,7 +2352,8 @@
    "U-turn",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "snake.png"
  },
  {
   "num": 37,
@@ -2379,7 +2415,8 @@
    "Bulk Up",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "ike.png"
  },
  {
   "num": 38,
@@ -2442,7 +2479,8 @@
    "Rain Dance",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split"
+  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split",
+  "image": "squirtle.png"
  },
  {
   "num": 39,
@@ -2507,7 +2545,8 @@
    "Sunny Day",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split"
+  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split",
+  "image": "ivysaur.png"
  },
  {
   "num": 40,
@@ -2574,7 +2613,8 @@
    "Sunny Day",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split"
+  "notes": "Official Pokémon stats/abilities; Pokémon Trainer split",
+  "image": "charizard.png"
  },
  {
   "num": 41,
@@ -2637,7 +2677,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "diddy kong.png"
  },
  {
   "num": 42,
@@ -2700,7 +2741,8 @@
    "Teleport",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "lucas.png"
  },
  {
   "num": 43,
@@ -2765,7 +2807,8 @@
    "Agility",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "sonic.png"
  },
  {
   "num": 44,
@@ -2829,7 +2872,8 @@
    "Belly Drum",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "king dedede.png"
  },
  {
   "num": 45,
@@ -2893,7 +2937,8 @@
    "Sticky Web",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "olimar.png"
  },
  {
   "num": 46,
@@ -2959,7 +3004,8 @@
    "Rain Dance",
    "Protect"
   ],
-  "notes": "Split from Olimar"
+  "notes": "Split from Olimar",
+  "image": "alph.png"
  },
  {
   "num": 47,
@@ -3027,7 +3073,8 @@
    "Nasty Plot",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities"
+  "notes": "Official Pokémon stats/abilities",
+  "image": "lucario.png"
  },
  {
   "num": 48,
@@ -3091,7 +3138,8 @@
    "Reflect",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "r.o.b..png"
  },
  {
   "num": 49,
@@ -3154,7 +3202,8 @@
    "Defog",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "toon link.png"
  },
  {
   "num": 50,
@@ -3218,7 +3267,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "wolf.png"
  },
  {
   "num": 51,
@@ -3280,7 +3330,8 @@
    "Synthesis",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "villager.png"
  },
  {
   "num": 52,
@@ -3345,7 +3396,8 @@
    "Iron Defense",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "mega man.png"
  },
  {
   "num": 53,
@@ -3407,7 +3459,8 @@
    "Agility",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "wii fit trainer.png"
  },
  {
   "num": 54,
@@ -3473,7 +3526,8 @@
    "Reflect",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "rosalina & luma.png"
  },
  {
   "num": 55,
@@ -3537,7 +3591,8 @@
    "Agility",
    "Detect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "little mac.png"
  },
  {
   "num": 56,
@@ -3601,7 +3656,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities"
+  "notes": "Official Pokémon stats/abilities",
+  "image": "greninja.png"
  },
  {
   "num": 57,
@@ -3666,7 +3722,8 @@
    "Magic Coat",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "palutena.png"
  },
  {
   "num": 58,
@@ -3730,7 +3787,8 @@
    "Hydro Pump",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "pac-man.png"
  },
  {
   "num": 59,
@@ -3794,7 +3852,8 @@
    "Nasty Plot",
    "Protect"
   ],
-  "notes": "Male/female are costumes"
+  "notes": "Male/female are costumes",
+  "image": "robin.png"
  },
  {
   "num": 60,
@@ -3858,7 +3917,8 @@
    "Counter",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "shulk.png"
  },
  {
   "num": 61,
@@ -3922,7 +3982,8 @@
    "Will-O-Wisp",
    "Protect"
   ],
-  "notes": "Split from Koopalings"
+  "notes": "Split from Koopalings",
+  "image": "bowser jr..png"
  },
  {
   "num": 62,
@@ -3985,7 +4046,8 @@
    "Parting Shot",
    "Protect"
   ],
-  "notes": "Koopaling"
+  "notes": "Koopaling",
+  "image": "larry.png"
  },
  {
   "num": 63,
@@ -4049,7 +4111,8 @@
    "Bulk Up",
    "Protect"
   ],
-  "notes": "Koopaling"
+  "notes": "Koopaling",
+  "image": "roy_koopa.png"
  },
  {
   "num": 64,
@@ -4114,7 +4177,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": "Koopaling"
+  "notes": "Koopaling",
+  "image": "wendy.png"
  },
  {
   "num": 65,
@@ -4177,7 +4241,8 @@
    "Trick Room",
    "Protect"
   ],
-  "notes": "Koopaling"
+  "notes": "Koopaling",
+  "image": "iggy.png"
  },
  {
   "num": 66,
@@ -4241,7 +4306,8 @@
    "Rock Polish",
    "Protect"
   ],
-  "notes": "Koopaling"
+  "notes": "Koopaling",
+  "image": "morton.png"
  },
  {
   "num": 67,
@@ -4305,7 +4371,8 @@
    "Charm",
    "Protect"
   ],
-  "notes": "Koopaling"
+  "notes": "Koopaling",
+  "image": "lemmy.png"
  },
  {
   "num": 68,
@@ -4369,7 +4436,8 @@
    "Trick Room",
    "Protect"
   ],
-  "notes": "Koopaling"
+  "notes": "Koopaling",
+  "image": "ludwig.png"
  },
  {
   "num": 69,
@@ -4432,7 +4500,8 @@
    "Defog",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "duck hunt.png"
  },
  {
   "num": 70,
@@ -4495,7 +4564,8 @@
    "Counter",
    "Detect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "ryu.png"
  },
  {
   "num": 71,
@@ -4557,7 +4627,8 @@
    "Bulk Up",
    "Detect"
   ],
-  "notes": "Echo of Ryu"
+  "notes": "Echo of Ryu",
+  "image": "ken.png"
  },
  {
   "num": 72,
@@ -4618,7 +4689,8 @@
    "Bulk Up",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "cloud.png"
  },
  {
   "num": 73,
@@ -4683,7 +4755,8 @@
    "Rain Dance",
    "Protect"
   ],
-  "notes": "Male/female are costumes"
+  "notes": "Male/female are costumes",
+  "image": "corrin.png"
  },
  {
   "num": 74,
@@ -4746,7 +4819,8 @@
    "Taunt",
    "Trick Room"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "bayonetta.png"
  },
  {
   "num": 75,
@@ -4808,7 +4882,8 @@
    "Rain Dance",
    "Protect"
   ],
-  "notes": "Boy/girl are costumes"
+  "notes": "Boy/girl are costumes",
+  "image": "inkling.png"
  },
  {
   "num": 76,
@@ -4874,7 +4949,8 @@
    "Roost",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "ridley.png"
  },
  {
   "num": 77,
@@ -4936,7 +5012,8 @@
    "Bulk Up",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "simon.png"
  },
  {
   "num": 78,
@@ -4998,7 +5075,8 @@
    "Bulk Up",
    "Protect"
   ],
-  "notes": "Echo of Simon"
+  "notes": "Echo of Simon",
+  "image": "richter.png"
  },
  {
   "num": 79,
@@ -5063,7 +5141,8 @@
    "Slack Off",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "king k. rool.png"
  },
  {
   "num": 80,
@@ -5128,7 +5207,8 @@
    "Charm",
    "Protect"
   ],
-  "notes": "Echo of Villager"
+  "notes": "Echo of Villager",
+  "image": "isabelle.png"
  },
  {
   "num": 81,
@@ -5194,7 +5274,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": "Official Pokémon stats/abilities"
+  "notes": "Official Pokémon stats/abilities",
+  "image": "incineroar.png"
  },
  {
   "num": 82,
@@ -5259,7 +5340,8 @@
    "Swords Dance",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "piranha plant.png"
  },
  {
   "num": 83,
@@ -5327,7 +5409,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "joker.png"
  },
  {
   "num": 84,
@@ -5390,7 +5473,8 @@
    "Iron Defense",
    "Protect"
   ],
-  "notes": "Split Hero"
+  "notes": "Split Hero",
+  "image": "hero-eleven.png"
  },
  {
   "num": 85,
@@ -5453,7 +5537,8 @@
    "Recover",
    "Protect"
   ],
-  "notes": "Split Hero"
+  "notes": "Split Hero",
+  "image": "hero-erdrick.png"
  },
  {
   "num": 86,
@@ -5516,7 +5601,8 @@
    "Tailwind",
    "Protect"
   ],
-  "notes": "Split Hero"
+  "notes": "Split Hero",
+  "image": "hero-solo.png"
  },
  {
   "num": 87,
@@ -5580,7 +5666,8 @@
    "Iron Defense",
    "Protect"
   ],
-  "notes": "Split Hero"
+  "notes": "Split Hero",
+  "image": "hero-eight.png"
  },
  {
   "num": 88,
@@ -5642,7 +5729,8 @@
    "Roost",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "banjo & kazooie.png"
  },
  {
   "num": 89,
@@ -5704,7 +5792,8 @@
    "Counter",
    "Detect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "terry.png"
  },
  {
   "num": 90,
@@ -5766,7 +5855,8 @@
    "Dragon Dance",
    "Protect"
   ],
-  "notes": "Male/female are costumes"
+  "notes": "Male/female are costumes",
+  "image": "byleth.png"
  },
  {
   "num": 91,
@@ -5827,7 +5917,8 @@
    "Bulk Up",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "min min.png"
  },
  {
   "num": 92,
@@ -5889,7 +5980,8 @@
    "Swords Dance",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "steve.png"
  },
  {
   "num": 93,
@@ -5952,7 +6044,8 @@
    "Swords Dance",
    "Protect"
   ],
-  "notes": "Split from Steve"
+  "notes": "Split from Steve",
+  "image": "alex.png"
  },
  {
   "num": 94,
@@ -6014,7 +6107,8 @@
    "Pain Split",
    "Protect"
   ],
-  "notes": "Split from Steve"
+  "notes": "Split from Steve",
+  "image": "zombie.png"
  },
  {
   "num": 95,
@@ -6076,7 +6170,8 @@
    "Swords Dance",
    "Protect"
   ],
-  "notes": "Split from Steve"
+  "notes": "Split from Steve",
+  "image": "enderman.png"
  },
  {
   "num": 96,
@@ -6140,7 +6235,8 @@
    "Nasty Plot",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "sephiroth.png"
  },
  {
   "num": 97,
@@ -6201,7 +6297,8 @@
    "Sunny Day",
    "Protect"
   ],
-  "notes": "Split from Mythra"
+  "notes": "Split from Mythra",
+  "image": "pyra.png"
  },
  {
   "num": 98,
@@ -6265,7 +6362,8 @@
    "Reflect",
    "Protect"
   ],
-  "notes": "Split from Pyra"
+  "notes": "Split from Pyra",
+  "image": "mythra.png"
  },
  {
   "num": 99,
@@ -6327,7 +6425,8 @@
    "Taunt",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": "kazuya.png"
  },
  {
   "num": 100,
@@ -6391,6 +6490,7 @@
    "Reflect",
    "Protect"
   ],
-  "notes": ""
+  "notes": "",
+  "image": null
  }
 ]

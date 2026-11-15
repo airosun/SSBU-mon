@@ -1,0 +1,419 @@
+/* SSBU-mon battle screen: animated playback, click-to-target, move info, type chart.
+   Loaded after app.js; app.js exposes helpers on window.SSBU. */
+(() => {
+  const U = window.SSBU;
+  const { $, $$, esc, S, F, typeChip, badge, sprite, act, socket, label, toast, modal, closeModal } = U;
+  const BOOSTL = { atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe', accuracy: 'Acc', evasion: 'Eva' };
+  const STATUSL = { brn: 'BRN', par: 'PAR', psn: 'PSN', tox: 'TOX', slp: 'SLP', frz: 'FRZ' };
+  const STATUS_COLOR = { brn: '#e4572e', par: '#e0c020', psn: '#a33ea1', tox: '#a33ea1', slp: '#8b96aa', frz: '#78cfcf' };
+  const VOL = { substitute: 'Substitute', confusion: 'Confused', leechSeed: 'Seeded', taunt: 'Taunted', encore: 'Encore', trapped: 'Trapped', ingrain: 'Ingrained', charging: 'Charging', attract: 'Infatuated' };
+  const hpColor = p => p > 50 ? 'var(--good)' : p > 20 ? 'var(--warn)' : 'var(--bad)';
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const SPEEDS = { normal: 1, fast: 0.45, off: 0 };
+  S.animSpeed = U.load('ssbu-anim', 'normal');
+  const typeColor = t => getComputedStyle(document.documentElement).getPropertyValue('--t-' + t).trim() || '#999';
+
+  // ---------- tooltip ----------
+  const tip = document.createElement('div'); tip.className = 'tip hidden'; document.body.appendChild(tip);
+  function moveInfoHtml(name) {
+    const m = S.dex.moves[name]; if (!m) return '';
+    const d = window.MOVETEXT.describe(m);
+    return `<div class="tip-h">${esc(name)} ${typeChip(m.type)} <span class="cat">${m.cat}</span></div>
+      <div class="tip-s">${m.cat === 'Status' ? '' : `Power ${m.power || '—'} · `}Accuracy ${m.acc === true ? '—' : m.acc + '%'}${m.prio ? ` · Priority ${m.prio > 0 ? '+' : ''}${m.prio}` : ''}</div>
+      <div>${esc(d.text)}</div>${d.flags.length ? `<div class="tip-f">${d.flags.map(f => `<span class="chip">${f}</span>`).join(' ')}</div>` : ''}`;
+  }
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tipmove]');
+    if (!el) { tip.classList.add('hidden'); return; }
+    tip.innerHTML = moveInfoHtml(el.dataset.tipmove); tip.classList.remove('hidden');
+    const r = el.getBoundingClientRect();
+    const top = r.top - tip.offsetHeight - 8;
+    tip.style.top = (top > 8 ? top : r.bottom + 8) + window.scrollY + 'px';
+    tip.style.left = Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, r.left)) + 'px';
+  });
+
+  // ---------- type chart ----------
+  function showTypeChart(highlight) {
+    const T = S.dex.types; const C = S.dex.chart;
+    const cell = (a, d) => { const v = C[a][d] ?? 1; return v === 1 ? '<td></td>' : `<td class="tc-${v === 0 ? 0 : v > 1 ? 2 : 'h'}">${v === 0 ? '0' : v > 1 ? '2' : '½'}</td>`; };
+    modal(`<div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">Type chart</h2><button id="tcX">Close</button></div>
+      <p class="muted small" style="margin-top:0">Rows = attacking move type · columns = defending type. ${highlight && highlight.length ? 'Highlighted columns: the opposing fighters\' types.' : ''}</p>
+      <div class="tchart"><table><tr><th class="corner">ATK ↓ / DEF →</th>${T.map(d => `<th class="${highlight && highlight.includes(d) ? 'hl' : ''}"><span class="type" style="background:var(--t-${d})">${d.slice(0, 3)}</span></th>`).join('')}</tr>
+      ${T.map(a => `<tr><th><span class="type" style="background:var(--t-${a})">${a}</span></th>${T.map(d => cell(a, d).replace('<td', `<td data-hl="${highlight && highlight.includes(d) ? 1 : 0}"`)).join('')}</tr>`).join('')}</table></div>
+      <div class="row small" style="margin-top:8px"><span class="tc-2 legend">2</span> super effective <span class="tc-h legend">½</span> not very effective <span class="tc-0 legend">0</span> no effect</div>`);
+    $('#tcX').onclick = closeModal;
+  }
+
+  // ---------- playback state ----------
+  function rec(id) { return S.bat[id]; }
+  S.bat = S.bat || {};
+  // called by app.js whenever a match payload with a battle arrives
+  U.onBattlePayload = (m, prev) => {
+    const b = m.battle;
+    let r = rec(m.id);
+    if (!r) {
+      const fresh = !prev || !prev.battle;
+      r = S.bat[m.id] = { shown: 0, queued: 0, queue: [], playing: false };
+      if (fresh && b.state.turn <= 1 && !b.state.ended) {
+        // brand-new battle: start from an empty field and play the send-outs
+        r.vm = clone(b.state); for (const s of r.vm.sides) s.active = s.active.map(() => null);
+      } else { r.vm = clone(b.state); r.shown = r.queued = b.log.length; }
+    }
+    if (b.log.length < r.queued) { r.queued = r.shown = b.log.length; r.vm = clone(b.state); }
+    r.queue.push(...b.log.slice(r.queued).map((e, i) => ({ e, idx: r.queued + i })));
+    r.queued = b.log.length;
+    if (!r.playing) play(m.id);
+  };
+
+  async function play(id) {
+    const r = rec(id); r.playing = true;
+    if (S.tab === id) renderBattle(id);
+    while (r.queue.length) {
+      const m = S.matches[id]; if (!m) return;
+      const { e } = r.queue.shift();
+      const visible = S.tab === id && document.getElementById('arena-' + id);
+      const speed = r.skip ? 0 : SPEEDS[S.animSpeed] ?? 1;
+      const ms = applyEvent(id, e, visible && speed > 0);
+      r.shown++;
+      if (visible) appendLog(e);
+      if (visible && speed > 0 && ms) await sleep(ms * speed);
+    }
+    r.playing = false; r.skip = false;
+    const m = S.matches[id];
+    if (m && m.battle) r.vm = clone(m.battle.state);
+    if (S.tab === id) renderBattle(id);
+  }
+  U.isPlaying = id => !!(rec(id) && rec(id).playing);
+
+  function slotEl(side, pos) { return document.getElementById(`slot-${side}-${pos}`); }
+  function sprEl(side, pos) { const s = slotEl(side, pos); return s && s.querySelector('.spr'); }
+  function centerOf(el, arena) {
+    const a = arena.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height / 2 };
+  }
+  function fx(arena, cls, at, html) {
+    const d = document.createElement('div'); d.className = 'fx ' + cls; d.innerHTML = html || '';
+    d.style.left = at.x + 'px'; d.style.top = at.y + 'px'; arena.appendChild(d); return d;
+  }
+
+  // apply one log event to the view model (and animate when visible). Returns how long to wait.
+  function applyEvent(id, e, animate) {
+    const m = S.matches[id]; const r = rec(id); const a = e.a;
+    const arena = document.getElementById('arena-' + id);
+    if (!a) return e.cls === 'turn' ? 350 : e.text ? 160 : 0;
+    const vm = r.vm;
+    const mon = a.m ? (vm.sides[a.m[0]].active[a.m[1]]) : null;
+    switch (a.k) {
+      case 'in': {
+        const prevTeam = vm.sides[a.m[0]].team;
+        vm.sides[a.m[0]].active[a.m[1]] = { id: a.id, name: a.name, types: a.types, hpPct: a.hp, status: a.status, fainted: false, boosts: {}, volatiles: [], pos: a.m[1] };
+        if (!prevTeam.some(t => t.id === a.id)) prevTeam.push({ id: a.id, name: a.name, fainted: false, status: a.status });
+        if (!animate) return 0;
+        redrawField(id);
+        const s = sprEl(...a.m); if (s) s.animate([{ transform: 'scale(.2)', opacity: 0, filter: 'brightness(3)' }, { transform: 'scale(1.08)', opacity: 1, offset: .7 }, { transform: 'scale(1)', opacity: 1, filter: 'none' }], { duration: 450, easing: 'ease-out' });
+        return 480;
+      }
+      case 'out': {
+        if (animate) { const s = sprEl(...a.m); if (s) s.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.2)', filter: 'brightness(3)' }], { duration: 300, fill: 'forwards' }); }
+        vm.sides[a.m[0]].active[a.m[1]] = null;
+        if (animate) setTimeout(() => redrawField(id), 300);
+        return animate ? 340 : 0;
+      }
+      case 'move': {
+        if (!animate) return 0;
+        return animateMove(id, arena, a);
+      }
+      case 'hp': {
+        if (!mon) return 0;
+        mon.hpPct = a.hp; if (a.hp <= 0) mon.hpPct = 0;
+        const t = vm.sides[a.m[0]].team.find(x => x.id === mon.id); if (t) t.hpPct = mon.hpPct;
+        if (!animate) return 0;
+        const slot = slotEl(...a.m); if (!slot) return 0;
+        const bar = slot.querySelector('.hpbar > i'); if (bar) { bar.style.width = mon.hpPct + '%'; bar.style.background = hpColor(mon.hpPct); }
+        const txt = slot.querySelector('.hptext'); if (txt) txt.textContent = mon.hpPct + '%';
+        const s = sprEl(...a.m);
+        if (a.hit && s) { s.animate([{ transform: 'translateX(0)', filter: 'brightness(1)' }, { transform: 'translateX(-9px)', filter: 'brightness(2.6)' }, { transform: 'translateX(8px)', filter: 'brightness(1)' }, { transform: 'translateX(-5px)', filter: 'brightness(2)' }, { transform: 'translateX(0)', filter: 'brightness(1)' }], { duration: 380 }); return 520; }
+        if (a.heal && s) { fx(arena, 'ring heal', centerOf(s, arena)); return 450; }
+        if (a.dmg && s) { s.animate([{ opacity: 1 }, { opacity: .4 }, { opacity: 1 }], { duration: 300 }); return 380; }
+        return 300;
+      }
+      case 'sub': {
+        if (animate) { const s = sprEl(...a.m); if (s) fx(arena, 'ring sub', centerOf(s, arena)); }
+        return animate ? 350 : 0;
+      }
+      case 'subon': { if (mon && !mon.volatiles.includes('substitute')) mon.volatiles.push('substitute'); if (animate) redrawField(id); return animate ? 250 : 0; }
+      case 'faint': {
+        if (mon) { mon.fainted = true; mon.hpPct = 0; const t = vm.sides[a.m[0]].team.find(x => x.id === mon.id); if (t) t.fainted = true; }
+        if (!animate) return 0;
+        const s = sprEl(...a.m);
+        if (s) s.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(40px)', opacity: 0 }], { duration: 650, easing: 'ease-in', fill: 'forwards' });
+        return 700;
+      }
+      case 'status': {
+        if (mon) mon.status = a.status;
+        if (!animate) return 0;
+        redrawField(id);
+        const s = sprEl(...a.m); if (s) { const ring = fx(arena, 'ring', centerOf(s, arena)); ring.style.borderColor = STATUS_COLOR[a.status] || '#fff'; }
+        return 450;
+      }
+      case 'boost': {
+        if (mon) { mon.boosts[a.stat] = Math.max(-6, Math.min(6, (mon.boosts[a.stat] || 0) + a.n)); if (!mon.boosts[a.stat]) delete mon.boosts[a.stat]; }
+        if (!animate) return 0;
+        redrawField(id);
+        const s = sprEl(...a.m); if (s) fx(arena, 'pop ' + (a.up ? 'up' : 'down'), centerOf(s, arena), `${a.up ? '▲' : '▼'} ${BOOSTL[a.stat] || a.stat}`);
+        return 380;
+      }
+      case 'types': { if (mon) mon.types = a.types; if (animate) redrawField(id); return animate ? 250 : 0; }
+      case 'pop': {
+        if (!animate) return 0;
+        const s = sprEl(...a.m); if (s) fx(arena, 'pop ' + a.tone, centerOf(s, arena), esc(a.text));
+        return 300;
+      }
+      case 'protect': {
+        if (!animate) return 0;
+        const s = sprEl(...a.m); if (s) fx(arena, 'shield', centerOf(s, arena));
+        return 450;
+      }
+    }
+    return 120;
+  }
+
+  function animateMove(id, arena, a) {
+    const user = a.u ? sprEl(...a.u) : null;
+    const color = typeColor(a.type);
+    const targets = (a.t || []).map(t => sprEl(...t)).filter(Boolean);
+    if (user) user.parentElement.classList.add('acting');
+    setTimeout(() => user && user.parentElement.classList.remove('acting'), 700);
+    if (a.charge) {
+      if (user) { const ring = fx(arena, 'ring', centerOf(user, arena)); ring.style.borderColor = color; }
+      return 500;
+    }
+    if (a.cat === 'Status') {
+      if (user) { const ring = fx(arena, 'ring big', centerOf(user, arena)); ring.style.borderColor = color; }
+      for (const t of targets) if (t !== user && user) orb(arena, centerOf(user, arena), centerOf(t, arena), color, 'small');
+      return 560;
+    }
+    if (a.cat === 'Physical' && user && targets.length) {
+      const from = centerOf(user, arena); const to = centerOf(targets[0], arena);
+      const dx = (to.x - from.x) * 0.55, dy = (to.y - from.y) * 0.55;
+      user.animate([{ transform: 'translate(0,0)' }, { transform: `translate(${dx}px,${dy}px) scale(1.08)`, offset: 0.45 }, { transform: 'translate(0,0)' }], { duration: 520, easing: 'cubic-bezier(.3,.7,.4,1)' });
+      setTimeout(() => { for (const t of targets) { const s = fx(arena, 'slash', centerOf(t, arena)); s.style.background = color; } }, 230);
+      return 600;
+    }
+    // special (or physical with no visible user, e.g. Future Sight)
+    const from = user ? centerOf(user, arena) : null;
+    for (const t of targets) { const to = centerOf(t, arena); if (from) orb(arena, from, to, color); else { const s = fx(arena, 'burst', to); s.style.background = color; } }
+    if (user) user.animate([{ filter: 'none' }, { filter: `drop-shadow(0 0 14px ${color}) brightness(1.4)` }, { filter: 'none' }], { duration: 560 });
+    return 620;
+  }
+  function orb(arena, from, to, color, size) {
+    const o = fx(arena, 'orb ' + (size || ''), from); o.style.background = color; o.style.boxShadow = `0 0 18px 6px ${color}`;
+    o.animate([{ transform: 'translate(-50%,-50%) scale(.6)' }, { transform: `translate(calc(-50% + ${to.x - from.x}px), calc(-50% + ${to.y - from.y}px)) scale(1.2)` }], { duration: 420, easing: 'ease-in', fill: 'forwards' });
+    setTimeout(() => { o.remove(); const b = fx(arena, 'burst', to); b.style.background = color; }, 420);
+  }
+  function appendLog(e) {
+    const lg = $('#blog'); if (!lg || (!e.text && e.cls !== 'turn')) return;
+    const d = document.createElement('div'); d.className = e.cls === 'chat' ? 'chatline' : e.cls; d.textContent = e.text;
+    const atBottom = lg.scrollHeight - lg.scrollTop - lg.clientHeight < 80;
+    lg.appendChild(d); if (atBottom) lg.scrollTop = lg.scrollHeight;
+  }
+
+  // ---------- rendering ----------
+  function view(id) {
+    const m = S.matches[id]; const r = rec(id);
+    return r && (r.playing || r.queue.length) ? r.vm : m.battle.state;
+  }
+  function sideHtml(m, vs, n, isFoe, sel) {
+    const side = vs.sides[n];
+    const pips = [...Array(side.brought)].map((_, i) => { const t = side.team[i]; return `<span class="pip ${t ? (t.fainted ? 'fainted' : t.status ? 'status' : '') : 'unknown'}" title="${t ? esc(t.name) : 'Not revealed'}"></span>`; }).join('');
+    const mons = side.active.map((a, pos) => {
+      const key = `${n}:${pos}`;
+      const flash = sel && sel.flash.includes(key); const pickable = sel && sel.pick.includes(key);
+      if (!a) return `<div class="combatant empty ${isFoe ? 'foe' : 'you'}" id="slot-${n}-${pos}"></div>`;
+      const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
+      const vols = (a.volatiles || []).map(v => `<span class="chip">${VOL[v] || v}</span>`).join('');
+      return `<div class="combatant ${isFoe ? 'foe' : 'you'} ${flash ? 'flashing' : ''} ${pickable ? 'pickable' : ''} ${a.fainted ? 'down' : ''}" id="slot-${n}-${pos}" ${pickable ? `data-pick="${key}"` : ''}>
+        <div class="sprwrap"><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
+        <div class="hpcard"><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
+          <div class="chips">${(a.types || []).map(typeChip).join('')}</div>
+          <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
+          <div class="hptext">${a.hp !== undefined && !(rec(m.id) || {}).playing ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</div>
+          <div class="chips">${boosts}${vols}</div></div></div>`;
+    }).join('');
+    return `<div class="sidewrap ${isFoe ? 'foe' : 'you'}"><div class="sidelabel">${esc(side.name)} <span class="pips">${pips}</span></div><div class="actives n${side.active.length}">${mons}</div></div>`;
+  }
+  function fieldChips(st) {
+    const c = [];
+    if (st.field.weather) c.push({ rain: '🌧 Rain', sun: '☀ Harsh sun', snow: '❄ Snow' }[st.field.weather]);
+    if (st.field.trickroom) c.push(`Trick Room (${st.field.trickroom})`);
+    if (st.field.gravity) c.push(`Gravity (${st.field.gravity})`);
+    for (const s of st.sides) {
+      const k = s.conditions || {}; const n = esc(s.name);
+      if (k.reflect) c.push(`${n}: Reflect`); if (k.lightscreen) c.push(`${n}: Light Screen`); if (k.tailwind) c.push(`${n}: Tailwind`);
+      if (k.stealthrock) c.push(`${n}: Stealth Rock`); if (k.spikes) c.push(`${n}: Spikes ×${k.spikes}`); if (k.toxicspikes) c.push(`${n}: Toxic Spikes ×${k.toxicspikes}`); if (k.stickyweb) c.push(`${n}: Sticky Web`);
+    }
+    return c.map(x => `<span class="chip">${x}</span>`).join('');
+  }
+  function fieldHtml(id) {
+    const m = S.matches[id]; const vs = view(id); const you = m.you === null ? 0 : m.you;
+    const sel = selection(m);
+    return `${sideHtml(m, vs, 1 - you, true, sel)}<div class="fieldinfo">${fieldChips(vs)}</div>${sideHtml(m, vs, you, false, sel)}`;
+  }
+  function redrawField(id) { const ar = document.getElementById('arena-' + id); if (ar) { ar.querySelectorAll('.fx').forEach(x => x.remove()); ar.innerHTML = fieldHtml(id); wirePicks(id); } }
+
+  // which slots flash / are pickable for the move currently being chosen
+  function selection(m) {
+    const T = S.turn[m.id]; const r = rec(m.id);
+    if (!T || !T.pending || (r && r.playing)) return null;
+    return { flash: T.pending.flash || [], pick: T.pending.pick || [] };
+  }
+  function targetsFor(m, cur, mv) {
+    const st = m.battle.state; const you = m.you;
+    const alive = (n) => st.sides[n].active.map((a, p) => a && !a.fainted ? `${n}:${p}` : null).filter(Boolean);
+    const foes = alive(1 - you); const allies = alive(you).filter(k => k !== `${you}:${cur.pos}`);
+    const self = `${you}:${cur.pos}`;
+    switch (mv.target) {
+      case 'allFoes': return { flash: foes, note: 'Hits both opposing fighters' };
+      case 'all': return { flash: [...foes, ...allies], note: allies.length ? 'Hits everyone else — including your partner!' : 'Hits all opposing fighters' };
+      case 'randomFoe': return { flash: foes, note: 'Hits a random opposing fighter' };
+      case 'self': return { flash: [self], note: mv.cat === 'Status' && S.dex.moves[mv.name].side ? 'Affects your whole side' : 'Affects the user' };
+      case 'foeSide': return { flash: foes, note: "Affects the opposing side of the field" };
+      case 'scripted': return { flash: foes, note: 'Hits back whoever last attacked it' };
+      default: {
+        const cands = m.format === 'doubles' ? [...foes, ...allies] : foes;
+        if (cands.length > 1) return { pick: cands, note: 'Choose a target' };
+        return { flash: cands, note: cands.length ? '' : 'No target' };
+      }
+    }
+  }
+  const nameAt = (m, key) => { const [n, p] = key.split(':').map(Number); const a = m.battle.state.sides[n].active[p]; return a ? `${n === m.you ? 'your' : 'foe'} ${a.name}` : '?'; };
+
+  function controlsHtml(m) {
+    const b = m.battle; const r = b.request; const st = b.state; const you = m.you;
+    const pr = rec(m.id);
+    if (pr && pr.playing) return `<div class="row"><span class="muted grow">▶ Playing turn…</span><button class="small" id="bSkip">Skip</button></div>`;
+    if (st.ended) { const won = st.winner === you; return `<div class="banner ${you !== null && !won ? 'lose' : ''}"><span>${st.winner === null ? 'Tie game!' : esc(st.sides[st.winner].name) + ' won!'}</span><button id="mBack">Back to lobby</button></div>`; }
+    if (you === null) return '<div class="muted">You are spectating.</div>';
+    if (r.kind === 'wait') return `<div class="row"><span class="muted grow">Waiting for ${esc(st.sides[1 - you].name)}…</span>${r.canUndo ? '<button class="small" id="bUndo">Undo</button>' : ''}</div>`;
+    const T = S.turn[m.id] = S.turn[m.id] || { step: 0, actions: [], switches: [], pending: null };
+    if (r.kind === 'switch') {
+      const taken = new Set(T.switches.map(s => s.index));
+      return `<h2>${r.reason === 'faint' ? 'Send in a fighter' : 'Choose a fighter to switch in'}${r.slots.length > 1 ? ` (${T.switches.length + 1} of ${r.slots.length})` : ''}</h2>
+        <div class="switches">${switchBtns(r.team, mm => mm.fainted || mm.pos >= 0 || taken.has(mm.index))}</div>
+        ${T.switches.length ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
+    }
+    const slots = r.actives.filter(Boolean); const cur = slots[T.step];
+    if (T.pending) {
+      const p = T.pending; const mv = cur.moves[p.index] || { name: cur.locked || 'Struggle' };
+      const info = S.dex.moves[mv.name];
+      const tgtText = p.pick ? 'Tap a glowing fighter (or a button below) to choose who to hit.' : (p.flash.length ? `${p.note ? p.note + ': ' : 'Target: '}${p.flash.map(k => esc(nameAt(m, k))).join(', ')}` : esc(p.note || ''));
+      return `<div class="confirm"><div class="row"><h2 class="grow" style="margin:0">${esc(cur.name)} → ${esc(mv.name)}</h2>${slots.length > 1 ? `<span class="pill">${T.step + 1}/${slots.length}</span>` : ''}</div>
+        ${info ? `<div class="move-info">${moveInfoHtml(mv.name)}</div>` : ''}
+        <div class="tgt-note">${tgtText}</div>
+        ${p.pick ? `<div class="targets">${p.pick.map(k => `<button data-pickbtn="${k}" class="${k.startsWith((1 - m.you) + ':') ? 'primary' : ''}">${esc(nameAt(m, k))}</button>`).join('')}</div>` : ''}
+        <div class="row" style="margin-top:10px">${p.pick ? '' : '<button class="primary" id="tConfirm">Confirm</button>'}<button id="tCancel">Back</button></div></div>`;
+    }
+    const taken = new Set(T.actions.filter(a => a.type === 'switch').map(a => a.index));
+    const moveBtns = cur.locked ? `<button class="move-btn" data-move="-1" style="grid-column:span 2" data-tipmove="${esc(cur.locked)}"><span class="mn">Continue: ${esc(cur.locked)}</span></button>`
+      : cur.struggle ? `<button class="move-btn" data-move="-2" style="grid-column:span 2"><span class="mn">Struggle</span></button>`
+        : cur.moves.map(mv => `<button class="move-btn" data-move="${mv.index}" data-tipmove="${esc(mv.name)}" style="--tc:var(--t-${mv.type})" ${mv.disabled ? 'disabled' : ''}><span class="mn">${esc(mv.name)}</span><span class="mi">${mv.type} · ${mv.cat === 'Status' ? 'Status' : (mv.power || '—') + ' BP'} · ${mv.pp}/${mv.maxpp}${mv.target === 'allFoes' ? ' · spread' : mv.target === 'all' ? ' · hits all' : ''}</span></button>`).join('');
+    return `<h2>What will ${esc(cur.name)} do?${slots.length > 1 ? ` <span class="pill">${T.step + 1}/${slots.length}</span>` : ''}</h2>
+      <div class="moves">${moveBtns}</div>
+      <h2 style="margin-top:12px">Switch ${cur.canSwitch ? '' : '<span class="pill">can\'t switch</span>'}</h2>
+      <div class="switches">${switchBtns(r.team, mm => !cur.canSwitch || mm.fainted || mm.pos >= 0 || taken.has(mm.index))}</div>
+      ${T.step > 0 ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
+  }
+  function switchBtns(team, disabled) {
+    return team.map(mm => `<button class="sw-btn" data-sw="${mm.index}" ${disabled(mm) ? 'disabled' : ''} title="${esc(`${mm.name} — ${mm.hp}/${mm.maxhp} HP · ${mm.ability}${mm.item ? ' · ' + mm.item : ''}\n${(mm.moves || []).map(x => x.name).join(', ')}`)}">${sprite(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''), true)}<span class="grow">${esc(mm.name)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button>`).join('');
+  }
+
+  function renderBattle(id) {
+    const m = S.matches[id]; const b = m.battle; const st = b.state;
+    const r = rec(id) || { shown: b.log.length };
+    const logEl = $('#blog'); const atBottom = !logEl || logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 80;
+    const vs = view(id);
+    $('#view').innerHTML = `<div class="battle">
+      <section>
+        <div class="row" style="margin-bottom:8px"><b class="grow">${esc(st.sides[0].name)} vs ${esc(st.sides[1].name)}</b><span class="pill">${esc(label(m.mode, m.format))}</span><span class="pill">Turn ${st.turn}</span>
+          <button class="small" id="bTypes">Type chart</button>
+          <select id="bSpeed" class="small" title="Animation speed"><option value="normal">Anim: normal</option><option value="fast">Anim: fast</option><option value="off">Anim: off</option></select>
+          ${!st.ended && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>
+        <div class="arena ${vs.field.weather ? 'weather-' + vs.field.weather : ''} ${m.format}" id="arena-${id}">${fieldHtml(id)}</div>
+        <div class="controls card">${controlsHtml(m)}</div>
+      </section>
+      <section>
+        <div class="log" id="blog">${b.log.slice(0, r.shown).filter(l => l.text || l.cls === 'turn').map(l => `<div class="${l.cls === 'chat' ? 'chatline' : l.cls}">${esc(l.text)}</div>`).join('')}</div>
+        <div class="row" style="margin-top:8px"><input id="bChat" class="grow" maxlength="300" placeholder="Chat…"><button id="bSend">Send</button></div>
+      </section></div>`;
+    const lg = $('#blog'); if (atBottom) lg.scrollTop = lg.scrollHeight;
+    wire(m);
+  }
+  U.renderBattle = renderBattle;
+
+  function wirePicks(id) {
+    const m = S.matches[id]; const T = S.turn[id];
+    const choose = key => {
+      const [side, pos] = key.split(':').map(Number);
+      T.pending = { index: T.pending.index, flash: [key], note: 'Target', target: { side, pos } };
+      renderBattle(id);
+    };
+    $$('[data-pick]').forEach(el => el.onclick = () => choose(el.dataset.pick));
+    $$('[data-pickbtn]').forEach(el => el.onclick = () => choose(el.dataset.pickbtn));
+  }
+
+  function wire(m) {
+    const id = m.id; const b = m.battle; const r = b.request; const st = b.state;
+    const fo = $('#mForfeit'); if (fo) fo.onclick = () => { if (confirm('Forfeit this match?')) act(id, { type: 'forfeit' }); };
+    const bb = $('#mBack'); if (bb) bb.onclick = () => { S.tab = 'home'; U.render(); };
+    const sk = $('#bSkip'); if (sk) sk.onclick = () => { rec(id).skip = true; };
+    const sp = $('#bSpeed'); sp.value = S.animSpeed; sp.onchange = () => { S.animSpeed = sp.value; U.store('ssbu-anim', sp.value); };
+    $('#bTypes').onclick = () => {
+      const you = m.you === null ? 0 : m.you;
+      const foeTypes = [...new Set(st.sides[1 - you].active.filter(a => a && !a.fainted).flatMap(a => a.types))];
+      showTypeChart(foeTypes);
+    };
+    const send = () => { const v = $('#bChat').value.trim(); if (v) { socket.emit('chat', { room: id, text: v }); $('#bChat').value = ''; } };
+    $('#bSend').onclick = send; $('#bChat').onkeydown = e => { if (e.key === 'Enter') send(); };
+    const u = $('#bUndo'); if (u) u.onclick = () => { delete S.turn[id]; act(id, { type: 'undo' }); };
+    if (!r || m.you === null || (rec(id) && rec(id).playing)) return;
+    const T = S.turn[id]; if (!T) return;
+    const rerender = () => renderBattle(id);
+    const back = $('#tBack');
+    if (r.kind === 'switch') {
+      if (back) back.onclick = () => { T.switches.pop(); rerender(); };
+      $$('[data-sw]').forEach(el => el.onclick = () => {
+        T.switches.push({ pos: r.slots[T.switches.length], index: +el.dataset.sw });
+        if (T.switches.length === r.slots.length) { const sw = T.switches; delete S.turn[id]; act(id, { type: 'choose', choice: { switches: sw } }); }
+        else rerender();
+      });
+      return;
+    }
+    if (r.kind !== 'move') return;
+    const slots = r.actives.filter(Boolean); const cur = slots[T.step];
+    const finish = action => {
+      T.actions.push(action); T.pending = null;
+      if (T.step + 1 < slots.length) { T.step++; rerender(); return; }
+      const actions = T.actions; delete S.turn[id];
+      act(id, { type: 'choose', choice: { actions } });
+    };
+    if (back) back.onclick = () => { T.step--; T.actions.pop(); T.pending = null; rerender(); };
+    wirePicks(id);
+    const c = $('#tConfirm'); if (c) c.onclick = () => {
+      const p = T.pending;
+      const foeKey = p.flash.find(k => k.startsWith((1 - m.you) + ':'));
+      let target = p.target;
+      if (!target && foeKey) { const [side, pos] = foeKey.split(':').map(Number); target = { side, pos }; }
+      finish({ pos: cur.pos, type: 'move', index: Math.max(0, p.index), target });
+    };
+    const x = $('#tCancel'); if (x) x.onclick = () => { T.pending = null; rerender(); };
+    $$('[data-move]').forEach(el => el.onclick = () => {
+      const i = +el.dataset.move;
+      const mv = i >= 0 ? cur.moves[i] : { name: cur.locked || 'Struggle', target: 'randomFoe', cat: 'Physical' };
+      const t = i >= 0 ? targetsFor(m, cur, mv) : targetsFor(m, cur, Object.assign({}, S.dex.moves[mv.name] || mv, { name: mv.name }));
+      T.pending = Object.assign({ index: i, flash: [], pick: null }, t);
+      rerender();
+    });
+    $$('[data-sw]').forEach(el => el.onclick = () => finish({ pos: cur.pos, type: 'switch', index: +el.dataset.sw }));
+  }
+})();
