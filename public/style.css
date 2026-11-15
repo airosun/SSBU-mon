@@ -537,3 +537,31 @@ textarea.paste { width: 100%; font-family: var(--mono); font-size: 13px; backgro
 .au-sliders label { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: 10px; font-size: 14px; }
 .au-sliders input[type=range] { width: 100%; accent-color: var(--accent); }
 @media (max-width: 700px) { .audio-btn { padding: 6px 8px; } .au-sliders label { grid-template-columns: 96px 1fr 40px; } }
+
+/* v16: What is SSBU-mon? */
+.about { display: grid; grid-template-columns: 210px 1fr; gap: 14px; align-items: start; }
+.about-nav { position: sticky; top: 70px; display: flex; flex-direction: column; gap: 2px; padding: 12px; }
+.about-nav a { color: var(--text, #e8ebf2); text-decoration: none; font-size: 13.5px; padding: 5px 8px; border-radius: 6px; }
+.about-nav a:hover { background: #ffffff10; }
+.about-body { display: grid; gap: 14px; min-width: 0; }
+.about-body section { scroll-margin-top: 70px; }
+.about-body h2 { margin-top: 0; }
+.about-body h3 { margin: 12px 0 4px; font-size: 15px; }
+.about-body p, .about-body li { line-height: 1.55; font-size: 14.5px; }
+.about-hero h1 { margin: 6px 0 8px; font-size: 28px; }
+.about-hero .lead { font-size: 16px; }
+.about-sprites { display: flex; gap: 4px; }
+.about-facts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.about-facts > div { background: #0d1016aa; border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; text-align: center; min-width: 84px; }
+.about-facts b { display: block; font-size: 22px; }
+.about-facts span { font-size: 12px; color: var(--muted); }
+.about-steps li { margin-bottom: 6px; }
+.about-list { padding-left: 20px; }
+.about-list li { margin-bottom: 6px; }
+.about-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.about-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
+.about-tabs h3 a.goto { font-size: 15px; }
+.about-fs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; margin: 8px 0; }
+a.goto { color: var(--accent2); text-decoration: none; font-weight: 600; }
+a.goto:hover { text-decoration: underline; }
+@media (max-width: 860px) { .about { grid-template-columns: 1fr; } .about-nav { position: static; flex-direction: row; flex-wrap: wrap; } .about-two, .about-tabs { grid-template-columns: 1fr; } }
