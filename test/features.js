@@ -86,7 +86,7 @@ function pvp(timed = true) {
     const data = { roster: [{ uid: 'a', species: 'mario', nature: 'Adamant', ability: 'Super Mushroom' }], elite: [{ name: 'Mine', mons: [{ uid: 'a', moves: ['Fire Punch', ''], item: 'Leftovers' }, { uid: 'ghost', moves: [] }] }] };
     const p = sanitizeProfile({ avatar: 'giga-bowser', title: '<b>' + 'x'.repeat(50), bio: 'hi\n there', favoriteTeam: 0 }, data);
     assert.equal(p.avatar, 'giga-bowser'); assert.equal(p.title.length, 32); assert(!p.title.includes('<')); assert.equal(p.bio, 'hi there');
-    assert.deepEqual(p.favoriteTeam, { name: 'Mine', mons: [{ species: 'mario', nature: 'Adamant', ability: 'Super Mushroom', item: 'Leftovers', moves: ['Fire Punch'] }] });
+    assert.deepEqual(p.favoriteTeam, { name: 'Mine', mons: [{ species: 'mario', gender: null, nature: 'Adamant', ability: 'Super Mushroom', item: 'Leftovers', moves: ['Fire Punch'] }] });
     assert.equal(sanitizeProfile({ avatar: 'not-real', favoriteTeam: 5 }, data).avatar, null);
     assert.equal(sanitizeProfile({ favoriteTeam: 5 }, data).favoriteTeam, null);
   });

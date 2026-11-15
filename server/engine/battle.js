@@ -4,6 +4,7 @@ const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
 const { effectiveness, calcStat, EVIOLITE_USERS } = require('../../shared/dex.js');
 const ABIL = require('./abilities.js');
+const GENDER = require('../../shared/genders.js');
 const { FINAL_SMASHES } = require('../../shared/megas.js');
 
 const FIGHTER_BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
@@ -25,6 +26,7 @@ class Mon {
     const f = FIGHTER_BY_ID[set.species];
     this.side = side; this.teamIndex = teamIndex; this.species = f; this.baseSpecies = f; this.uid = set.uid; this.mega = false;
     this.baseAbility = set.ability; this.ability = set.ability;
+    this.gender = GENDER.normalize(f.id, set.gender);
     this.item = set.item || ''; this.nature = set.nature || 'Hardy';
     this.evs = Object.assign({ hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, set.evs || {});
     this.ivs = Object.assign({ hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 }, set.ivs || {});
@@ -99,7 +101,7 @@ class Battle {
   }
   P(mon) { return [mon.side.n, mon.pos]; }
   pct(mon) { return Math.ceil(mon.hp / mon.maxhp * 100); }
-  inMeta(mon) { return { k: 'in', m: this.P(mon), id: mon.displaySpecies.id, name: mon.displaySpecies.name, types: mon.v.illusion ? mon.displaySpecies.types : mon.types, hp: this.pct(mon), status: mon.status }; }
+  inMeta(mon) { return { k: 'in', m: this.P(mon), gender: mon.v.illusion ? GENDER.defaultGender(mon.displaySpecies.id) : mon.gender, id: mon.displaySpecies.id, name: mon.displaySpecies.name, types: mon.v.illusion ? mon.displaySpecies.types : mon.types, hp: this.pct(mon), status: mon.status }; }
   random(n) { return Math.floor(this.rng() * n); }
   chance(pct) { return this.rng() * 100 < pct; }
   foeSide(side) { return this.sides[1 - side.n]; }
@@ -1068,7 +1070,7 @@ class Battle {
     if (this.hasItem(target, 'Rocky Helmet')) this.damage(mon, mon.maxhp / 6, `${mon.label} was hurt by the Rocky Helmet!`);
     if (mon.fainted) return;
     if (ts.contactStatus && this.chance(ts.contactStatus.chance)) this.trySetStatus(mon, ts.contactStatus.status, target, false, true);
-    if (ts.contactAttract && !mon.v.attract && this.chance(ts.contactAttract)) { mon.v.attract = target; this.add('status', `${mon.label} fell in love!`); }
+    if (ts.contactAttract && !mon.v.attract && GENDER.opposite(mon.gender, target.gender) && this.chance(ts.contactAttract)) { mon.v.attract = target; this.add('status', `${mon.label} fell in love!`); }
     if (ts.contactFoeBoost) this.boost(mon, ts.contactFoeBoost, target);
     if (ts.mummy && mon.ability !== target.ability && !mon.spec.mummy) { mon.ability = target.ability; this.add('ability', `${mon.label}'s ability became ${target.ability}!`); }
     if (ts.pickpocket && !target.fainted && !target.item && mon.item && this.canLoseItem(mon)) { target.item = mon.item; this.loseItem(mon, false); this.add('ability', `${target.label} stole ${mon.label}'s ${target.item}!`); }
@@ -1209,7 +1211,7 @@ class Battle {
   // ---------------- views ----------------
   monInfo(m, own) {
     const sp = own ? m.species : m.displaySpecies;
-    const base = { index: m.teamIndex, id: sp.id, name: sp.name, types: own || !m.v.illusion ? m.types : m.displaySpecies.types, hpPct: Math.ceil(m.hp / m.maxhp * 100), status: m.status, fainted: m.fainted, pos: m.pos };
+    const base = { index: m.teamIndex, id: sp.id, name: sp.name, gender: !own && m.v.illusion ? GENDER.defaultGender(sp.id) : m.gender, types: own || !m.v.illusion ? m.types : m.displaySpecies.types, hpPct: Math.ceil(m.hp / m.maxhp * 100), status: m.status, fainted: m.fainted, pos: m.pos };
     if (own) Object.assign(base, { hp: m.hp, maxhp: m.maxhp, ability: m.ability, item: m.item, stats: m.stats, moves: m.moves.map(x => ({ name: x.name, pp: x.pp, maxpp: x.maxpp, type: MOVES[x.name].type })) });
     else base.seen = { moves: (m.shownMoves || []).slice(), ability: m.shownAbility || null, item: m.shownItem || null, itemNow: m.shownItem ? m.item === m.shownItem : null, mega: !!m.mega };
     return base;

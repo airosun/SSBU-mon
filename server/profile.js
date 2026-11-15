@@ -12,7 +12,7 @@ function sanitizeProfile(input, userData) {
   const teams = (userData && userData.elite) || [];
   if (Number.isInteger(i) && teams[i]) {
     const byUid = Object.fromEntries(((userData && userData.roster) || []).map(f => [f.uid, f]));
-    const mons = teams[i].mons.map(m => byUid[m.uid] && { species: byUid[m.uid].species, nature: byUid[m.uid].nature, ability: byUid[m.uid].ability, item: m.item, moves: m.moves.filter(Boolean) }).filter(Boolean);
+    const mons = teams[i].mons.map(m => byUid[m.uid] && { species: byUid[m.uid].species, gender: m.gender || byUid[m.uid].gender || null, nature: byUid[m.uid].nature, ability: byUid[m.uid].ability, item: m.item, moves: m.moves.filter(Boolean) }).filter(Boolean);
     if (mons.length) out.favoriteTeam = { name: teams[i].name, mons };
   }
   return out;

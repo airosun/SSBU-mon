@@ -43,14 +43,17 @@
 
   // ---------- helpers ----------
   const typeChip = t => `<span class="type" style="background:var(--t-${t})">${t}</span>`;
-  function sprite(f, cls = '', flip = false) {
+  // gender: picks the alternate sprite when that gender has one
+  function sprite(f, cls = '', flip = false, gender = null) {
     const full = f && (f.image !== undefined ? f : (S.byId[f.id] || f));
     if (!full || !full.image) return badge(full || f, cls.replace('battle', 'lg'));
-    return `<div class="sprite ${cls}" title="${esc(full.name)}"><img src="/images/${encodeURIComponent(full.image)}" alt="${esc(full.name)}" draggable="false"${flip ? ' class="flip"' : ''}></div>`;
+    const img = gender && window.GENDER ? GENDER.image(full.id, gender, full.image) : full.image;
+    return `<div class="sprite ${cls}" title="${esc(full.name)}"><img src="/images/${encodeURIComponent(img)}" alt="${esc(full.name)}" draggable="false"${flip ? ' class="flip"' : ''}></div>`;
   }
-  function badge(f, cls = '') {
+  const gsym = g => g === 'M' || g === 'F' ? `<span class="gsym g${g}" title="${g === 'M' ? 'Male' : 'Female'}">${GENDER.SYMBOL[g]}</span>` : '';
+  function badge(f, cls = '', gender = null) {
     if (!f) return `<div class="badge ${cls}">?</div>`;
-    if (f.image && !cls.includes('nobadge')) return sprite(f, cls);
+    if (f.image && !cls.includes('nobadge')) return sprite(f, cls, false, gender);
     const t = f.types || ['Normal'];
     const sub = f.name.match(/\((.*?)\)/);
     const words = f.name.replace(/\(.*?\)/g, '').replace(/[^A-Za-z0-9 &.]/g, '').split(/[\s&.]+/).filter(Boolean);
@@ -77,9 +80,10 @@
   // A compact card for a randomized fighter (draft pool, pass roll, roster)
   function fighterCard(b, opts = {}) {
     const f = F(b.species); const st = statsOf(b); const ab = abilityInfo(f, b.ability); const nat = S.dex.natures[b.nature] || {};
+    const g = opts.gender || b.gender || GENDER.defaultGender(f.id);
     return `<div class="fcard ${opts.sel ? 'sel' : ''} ${opts.dim ? 'dim' : ''}" ${opts.attr || ''}>
       ${opts.order ? `<span class="order">${opts.order}</span>` : ''}
-      <div class="row">${badge(f)}<div class="grow"><div class="nm">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')}</div></div><span class="grade g-${ivGrade(b)}" title="IV total ${ivTotal(b)}/186">${ivGrade(b)}</span></div>
+      <div class="row">${badge(f, '', g)}<div class="grow"><div class="nm">${esc(f.name)} ${gsym(g)}</div><div>${f.types.map(typeChip).join(' ')}</div></div><span class="grade g-${ivGrade(b)}" title="IV total ${ivTotal(b)}/186">${ivGrade(b)}</span></div>
       <div class="fmeta"><b>${esc(ab.name)}</b>${ab.hidden ? ' <span class="pill">Hidden</span>' : ''}<div class="muted small">${esc(ab.desc)}</div></div>
       <div class="fmeta small">${natureTag(b.nature)}</div>
       ${finalSmashChip(f)}
@@ -260,7 +264,7 @@
   function eliteTeamSets(i) {
     const t = S.elite[i];
     if (!t || !eliteReady(t)) { toast('Build a complete Elite team (6 fighters with moves) in the Elite Teams tab first.', 4500); return null; }
-    return t.mons.map(m => Object.assign({}, rosterById(m.uid), { moves: m.moves.filter(Boolean), item: m.item || '' }));
+    return t.mons.map(m => { const r = rosterById(m.uid); return Object.assign({}, r, { moves: m.moves.filter(Boolean), item: m.item || '', gender: m.gender || r.gender || GENDER.defaultGender(r.species) }); });
   }
   function teamForMode() {
     if (S.mode !== 'elite') return { team: null };
@@ -436,13 +440,20 @@
         <h2>Elite Smash teams</h2>
         <button class="primary" id="eNew" ${S.roster.length ? '' : 'disabled'}>New team</button> <button id="eImport" ${S.roster.length ? '' : 'disabled'}>Import</button>
         ${S.roster.length ? '' : '<p class="muted small">Roll the Fighter Pass first — teams are built from your roster.</p>'}
-        <div class="list" style="max-height:none;margin-top:10px">${S.elite.map((t, i) => `<div class="team-row ${i === S.editElite ? 'sel' : ''}" data-et="${i}"><div class="row"><b class="grow">${esc(t.name)}</b><span class="pill">${eliteReady(t) ? 'Ready' : t.mons.length + '/6'}</span></div><div class="mini">${t.mons.map(m => rosterById(m.uid) ? badge(F(rosterById(m.uid).species), 'sm') : '').join('')}</div></div>`).join('') || '<div class="muted">No teams yet.</div>'}</div>
+        <div class="list" style="max-height:none;margin-top:10px">${S.elite.map((t, i) => `<div class="team-row ${i === S.editElite ? 'sel' : ''}" data-et="${i}"><div class="row"><b class="grow">${esc(t.name)}</b><span class="pill">${eliteReady(t) ? 'Ready' : t.mons.length + '/6'}</span></div><div class="mini">${t.mons.map(m => { const r = rosterById(m.uid); return r ? badge(F(r.species), 'sm', m.gender || r.gender) : ''; }).join('')}</div></div>`).join('') || '<div class="muted">No teams yet.</div>'}</div>
       </section>
       <section class="card" id="eEditor">${S.editElite === null ? '<div class="muted">Pick a team or make a new one. Each team has 6 fighters from your roster; you choose their moves and items.</div>' : ''}</section></div>`;
     $('#eImport').onclick = () => SSBU.importTeam();
     $('#eNew').onclick = () => { S.elite.push({ name: 'Elite team ' + (S.elite.length + 1), mons: [] }); S.editElite = S.elite.length - 1; S.eliteSlot = 0; saveRoster(); renderElite(); };
     $$('[data-et]').forEach(el => el.onclick = () => { S.editElite = +el.dataset.et; S.eliteSlot = 0; renderElite(); });
     if (S.editElite !== null) renderEliteEditor();
+  }
+  // Elite Smash: fighters that can be either gender let you choose
+  function genderPicker(m) {
+    const r = rosterById(m.uid); const id = r.species; const gi = GENDER.info(id);
+    const cur = m.gender || r.gender || GENDER.defaultGender(id);
+    if (gi.type !== 'X') return `<div class="gender-pick muted small">Gender: ${gi.type === 'B' ? 'Both (one of each) — counts as genderless' : gi.type === 'N' ? 'Genderless' : gi.type === 'M' ? '♂ Male' : '♀ Female'}</div>`;
+    return `<div class="gender-pick"><span class="small muted">Gender</span><button class="small ${cur === 'M' ? 'on' : ''}" data-gender="M">♂ Male</button><button class="small ${cur === 'F' ? 'on' : ''}" data-gender="F">♀ Female</button></div>`;
   }
   function renderEliteEditor() {
     const t = S.elite[S.editElite];
@@ -452,15 +463,15 @@
     const slots = [0, 1, 2, 3, 4, 5].map(i => {
       const m = t.mons[i];
       if (!m) return i === t.mons.length ? `<div class="slot" data-eslot="add">＋<span class="muted">Add fighter</span></div>` : `<div class="slot" style="opacity:.3"></div>`;
-      const f = F(rosterById(m.uid).species);
-      return `<div class="slot filled ${i === S.eliteSlot ? 'sel' : ''}" data-eslot="${i}">${badge(f)}<span>${esc(f.name)}</span></div>`;
+      const r = rosterById(m.uid); const f = F(r.species); const g = m.gender || r.gender;
+      return `<div class="slot filled ${i === S.eliteSlot ? 'sel' : ''}" data-eslot="${i}">${badge(f, '', g)}<span>${esc(f.name)} ${gsym(g)}</span></div>`;
     }).join('');
     const m = t.mons[S.eliteSlot];
     $('#eEditor').innerHTML = `
       <div class="row"><input id="eName" class="grow" value="${esc(t.name)}" maxlength="40"><button class="small" id="eExport">Export</button><button class="small" id="eDup">Duplicate</button><button class="small" id="eDel">Delete</button></div>
       <div class="slots">${slots}</div>
       ${[...counts.values()].some(c => c > 1) ? '<p class="small" style="color:var(--bad)">Item clause: each item can only be used once per team.</p>' : ''}
-      ${m ? `<div class="editor"><div>${fighterCard(rosterById(m.uid))}<div class="row" style="margin-top:8px"><button class="small" id="eSwap">Swap fighter</button><button class="small" id="eRemove">Remove</button></div></div><div id="eSet">${setEditor(rosterById(m.uid), m, 'elite', counts)}</div></div>` : ''}`;
+      ${m ? `<div class="editor"><div>${fighterCard(rosterById(m.uid), { gender: m.gender })}${genderPicker(m)}<div class="row" style="margin-top:8px"><button class="small" id="eSwap">Swap fighter</button><button class="small" id="eRemove">Remove</button></div></div><div id="eSet">${setEditor(rosterById(m.uid), m, 'elite', counts)}</div></div>` : ''}`;
     $('#eName').oninput = e => { t.name = e.target.value; saveRoster(); };
     $('#eExport').onclick = () => SSBU.exportTeam(t);
     $('#eDup').onclick = () => { S.elite.push(JSON.parse(JSON.stringify(Object.assign({}, t, { name: t.name + ' (copy)' })))); S.editElite = S.elite.length - 1; saveRoster(); renderElite(); };
@@ -469,6 +480,7 @@
     if (m) {
       wireSetEditor($('#eSet'), m, () => { saveRoster(); renderEliteEditor(); });
       $('#eSwap').onclick = () => pickFromRoster(t, S.eliteSlot);
+      $$('[data-gender]').forEach(b => b.onclick = () => { m.gender = b.dataset.gender; saveRoster(); renderEliteEditor(); });
       $('#eRemove').onclick = () => { t.mons.splice(S.eliteSlot, 1); S.eliteSlot = Math.max(0, S.eliteSlot - 1); saveRoster(); renderElite(); };
     }
   }
@@ -481,7 +493,7 @@
     $('#rpX').onclick = closeModal;
     $$('[data-rp]').forEach(el => el.onclick = () => {
       const b = rosterById(el.dataset.rp); const f = F(b.species);
-      const entry = { uid: b.uid, moves: f.signature.map(s => s.move), item: '' };
+      const entry = { uid: b.uid, moves: f.signature.map(s => s.move), item: '', gender: b.gender || GENDER.defaultGender(f.id) };
       if (slot === null) t.mons.push(entry); else t.mons[slot] = entry;
       saveRoster(); closeModal(); renderElite();
     });
@@ -500,6 +512,7 @@
   function showFighter(f) {
     const sig = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
     modal(`<div class="row" style="margin-bottom:10px">${badge(f, 'lg')}<div class="grow"><div style="font-size:22px;font-weight:800">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')} <span class="muted">· ${esc(f.series)}</span></div></div><button id="fx">Close</button></div>
+      <div class="small" style="margin:-4px 0 8px"><b>Gender:</b> ${esc(GENDER.label(f.id))}${(GENDER.info(f.id).images) ? ` · alternate sprite: ${Object.entries(GENDER.info(f.id).images).map(([g]) => `${sprite(f, 'sm', false, g)}`).join('')}` : ''}</div>
       <h2>Abilities</h2>${f.abilities.map(a => `<div><b>${esc(a.name)}</b> — <span class="muted">${esc(a.desc)}</span></div>`).join('')}
       <div><b>${esc(f.hidden.name)}</b> <span class="pill">Hidden</span> — <span class="muted">${esc(f.hidden.desc)}</span></div>
       ${Object.values(S.dex.finalSmashes || {}).filter(x => x.bases.includes(f.id)).map(x => `<div class="fs-box"><div class="row">${sprite(S.byId[x.id], 'lg')}<div class="grow"><div style="font-weight:800;font-size:17px">Final Smash: ${esc(x.name)}</div><div>${x.types.map(typeChip).join(' ')} <span class="muted">· hold <b>${esc(x.stone)}</b> · BST ${Object.values(x.stats).reduce((a, c) => a + c, 0)}</span></div><div class="small"><b>${esc(x.ability.name)}</b> — <span class="muted">${esc(x.ability.desc)}</span></div></div></div>
@@ -589,11 +602,11 @@
         const k = order.indexOf(i);
         return fighterCard(s, { sel: k >= 0, order: k >= 0 ? (k < lead ? 'Lead ' + (k + 1) : k + 1) : null, attr: `data-line="${i}"`, extra: `<div class="small">${s.moves.map(x => `<span class="chip">${esc(x)}</span>`).join(' ')}${s.item ? ` <span class="chip up">${esc(s.item)}</span>` : ''}</div>` });
       }).join('')}</div></div>
-      <div><h2>${esc(m.players[1 - m.you].name)}'s team</h2><p class="muted small" style="margin-top:-6px">Hover (or tap) a fighter for its stats, possible abilities and Final Smash.</p>${m.foeTeam.map(s => `<div class="list-item" style="margin-bottom:6px" data-tipdex="${esc(s.species)}">${badge(F(s.species), 'sm')}<span class="grow">${esc(s.name)}</span>${s.types.map(typeChip).join(' ')}</div>`).join('')}</div></div>`;
+      <div><h2>${esc(m.players[1 - m.you].name)}'s team</h2><p class="muted small" style="margin-top:-6px">Hover (or tap) a fighter for its stats, possible abilities and Final Smash.</p>${m.foeTeam.map(s => `<div class="list-item" style="margin-bottom:6px" data-tipdex="${esc(s.species)}">${badge(F(s.species), 'sm', s.gender)}<span class="grow">${esc(s.name)} ${gsym(s.gender)}</span>${s.types.map(typeChip).join(' ')}</div>`).join('')}</div></div>`;
   }
 
   // ---------- shared with battle.js ----------
-  window.SSBU = { $, $$, esc, S, F, typeChip, badge, sprite, act, socket, label, toast, modal, closeModal, load, store, render: () => render(), renderTabs: () => renderTabs(), fighterCard, statsOf, rosterById: u => rosterById(u), saveRoster: () => saveRoster(), renderElite: () => renderElite(), abilityInfo };
+  window.SSBU = { $, $$, esc, S, F, typeChip, badge, sprite, gsym, act, socket, label, toast, modal, closeModal, load, store, render: () => render(), renderTabs: () => renderTabs(), fighterCard, statsOf, rosterById: u => rosterById(u), saveRoster: () => saveRoster(), renderElite: () => renderElite(), abilityInfo };
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {

@@ -185,7 +185,7 @@ class Match {
       if (this.phase === 'build') out.picks = me.picks.map(i => me.pool[i]);
       if (this.phase === 'preview' || this.phase === 'battle' || this.phase === 'ended') {
         if (me.team) out.myTeam = me.team;
-        if (foe.team) out.foeTeam = foe.team.map(s => ({ species: s.species, name: BY_ID[s.species].name, types: BY_ID[s.species].types }));
+        if (foe.team) out.foeTeam = foe.team.map(s => ({ species: s.species, gender: s.gender, name: BY_ID[s.species].name, types: BY_ID[s.species].types }));
         out.lineup = me.lineup;
       }
     }

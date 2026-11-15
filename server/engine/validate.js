@@ -5,6 +5,7 @@ const MOVES = require('../../shared/moves.js');
 const FIGHTERS = require('../../shared/fighters.json');
 const { NATURES, ITEMS, RENAMED_ABILITIES } = require('../../shared/dex.js');
 const { FINAL_SMASHES } = require('../../shared/megas.js');
+const GENDER = require('../../shared/genders.js');
 const BY_ID = Object.fromEntries(FIGHTERS.map(f => [f.id, f]));
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 
@@ -24,7 +25,7 @@ function buildSet(base, build, errors) {
   if (!NATURES[base.nature]) errors.push(`${f.name}: invalid nature.`);
   const ivs = {};
   for (const s of STATS) { const v = base.ivs ? base.ivs[s] : 31; if (!Number.isInteger(v) || v < 0 || v > 31) errors.push(`${f.name}: invalid IVs.`); ivs[s] = v; }
-  return { uid: base.uid, species: f.id, nature: base.nature, ivs, ability, item, moves };
+  return { uid: base.uid, species: f.id, nature: base.nature, ivs, ability, item, moves, gender: GENDER.normalize(f.id, base.gender) };
 }
 
 function checkClauses(sets, errors) {

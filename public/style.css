@@ -512,3 +512,9 @@ textarea.paste { width: 100%; font-family: var(--mono); font-size: 13px; backgro
 .avatar-grid .av { padding: 3px; display: grid; place-items: center; }
 .avatar-grid .av.on { border-color: var(--accent2); box-shadow: 0 0 0 2px #ffb02066; }
 @media (max-width: 760px) { .usage-cols { grid-template-columns: 1fr; } .tc-stats { grid-template-columns: 1fr 1fr; } }
+
+/* v12: genders */
+.gsym { font-weight: 800; font-size: .95em; }
+.gsym.gM { color: #5ca8ff; } .gsym.gF { color: #ff7ab8; }
+.gender-pick { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.gender-pick button.on { border-color: var(--accent2); background: #2a2416; }

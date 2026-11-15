@@ -9,6 +9,8 @@ A Pokémon VGC-style battle site where every Super Smash Bros. Ultimate fighter 
 - **Doubles:** bring 6, pick 4. Two fighters are out per side, you choose targets, and spread moves (Earthquake, Rock Slide, Hyper Voice…) hit several fighters for 75% damage.
 - **Clauses:** one of each fighter per team, and one of each item per team (item clause). Any fighter can hold any item. Eviolite (1.5× Defense and Sp. Def) only works on fighters that can still evolve: Pichu, Pikachu, Squirtle, Ivysaur and Jigglypuff.
 
+**Genders:** each fighter is male, female, genderless, "both" (two people, one of each, like the Ice Climbers) or either. Fighters that can be either get a random gender in Standard Battle, using the male/female ratio from the gender sheet. In Elite Smash you choose it in the team editor. Some fighters (and Robin's and Byleth's Final Smash forms) have an alternate sprite for the other gender. Gender matters for infatuation (Cute Charm-style abilities): only opposite genders can be infatuated, and genderless and "both" fighters never are. Genders are shown with ♂/♀ in battle and team preview, and exported as `(M)`/`(F)`. The data lives in `shared/genders.js`.
+
 **Final Smashes (Megas):** a fighter holding its Final Smash stone can use its Final Smash once per battle. Turn on the **Final Smash** toggle above the moves, and the fighter transforms before anyone moves that turn. It keeps its HP but gets new stats, types and ability. Only one fighter per team can use its Final Smash in a battle. You can bring several stone holders, but once one transforms the rest can't. Stones can't be knocked off, stolen, traded or flung.
 
 | Fighter | Stone | Final Smash form | Types |

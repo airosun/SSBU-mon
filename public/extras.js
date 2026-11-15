@@ -2,7 +2,7 @@
    and Showdown-style team import/export. Loaded after app.js and battle.js. */
 (() => {
   const U = window.SSBU;
-  const { $, $$, esc, S, F, typeChip, sprite, toast, modal, closeModal, label } = U;
+  const { $, $$, esc, S, F, typeChip, sprite, gsym, toast, modal, closeModal, label } = U;
   const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
   const SL = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
   const LEVEL = 50;
@@ -29,9 +29,9 @@
     const [lo, hi] = speedRange(f.stats.spe);
     const fs = !f.form && base ? fsOf(base.id) : [];
     const lines = [
-      `<div class="tip-h">${sprite(f, 'sm')} ${esc(opts.name || f.name)} ${f.types.map(typeChip).join(' ')}${opts.hpPct !== undefined ? ` <span class="muted">${opts.hpPct}%</span>` : ''}</div>`,
+      `<div class="tip-h">${sprite(f, 'sm', false, opts.gender)} ${esc(opts.name || f.name)} ${gsym(opts.gender)} ${f.types.map(typeChip).join(' ')}${opts.hpPct !== undefined ? ` <span class="muted">${opts.hpPct}%</span>` : ''}</div>`,
       `<div class="tip-s">${STATS.map(s => `${SL[s]} ${f.stats[s]}`).join(' · ')} · BST ${STATS.reduce((a, s) => a + f.stats[s], 0)}</div>`,
-      `<div class="small muted">Lv. 50 Speed: ${lo}–${hi}</div>`,
+      `<div class="small muted">Lv. 50 Speed: ${lo}–${hi}${base && !opts.gender ? ` · ${esc(GENDER.label(base.id))}` : ''}</div>`,
       abHtml,
     ];
     if (seen) {
@@ -101,7 +101,7 @@
       ${p.bio ? `<div class="tc-bio">${esc(p.bio)}</div>` : ''}
       <div class="tc-stats"><div><span>vs players</span><b>${recordLine(p.record.pvp)}</b></div><div><span>All battles</span><b>${recordLine(p.record.total)}</b></div>
         <div><span>Favorite fighters</span><b class="tc-top3">${p.top.length ? p.top.map(x => sprite(F(x.species), 'sm')).join('') : '<span class="muted small">none yet</span>'}</b></div></div>
-      ${team ? `<div class="tc-team"><div class="muted small">Showcase team · <b>${esc(team.name)}</b></div><div class="tc-mons">${team.mons.map(m => `<div class="tc-mon" data-tiphtml="${esc(`<div class='tip-h'>${esc(F(m.species).name)}${m.item ? ' @ ' + esc(m.item) : ''}</div><div class='small'>${esc(renamed(m.ability))} · ${esc(m.nature)}</div><div>${m.moves.map(x => `<span class='chip'>${esc(x)}</span>`).join(' ')}</div>`)}">${sprite(F(m.species), 'sm')}${m.item ? `<span class="tc-item">${esc(m.item)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
+      ${team ? `<div class="tc-team"><div class="muted small">Showcase team · <b>${esc(team.name)}</b></div><div class="tc-mons">${team.mons.map(m => `<div class="tc-mon" data-tiphtml="${esc(`<div class='tip-h'>${esc(F(m.species).name)}${m.item ? ' @ ' + esc(m.item) : ''}</div><div class='small'>${esc(renamed(m.ability))} · ${esc(m.nature)}</div><div>${m.moves.map(x => `<span class='chip'>${esc(x)}</span>`).join(' ')}</div>`)}">${sprite(F(m.species), 'sm', false, m.gender)}${m.item ? `<span class="tc-item">${esc(m.item)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
     </div>`;
   };
   U.showProfile = async name => {
@@ -269,7 +269,8 @@
     return t.mons.map(m => {
       const b = U.rosterById(m.uid); if (!b) return '';
       const f = F(b.species);
-      const lines = [`${f.name}${m.item ? ' @ ' + m.item : ''}`, `Ability: ${renamed(b.ability)}`, 'Level: 50', `${b.nature} Nature`];
+      const g = m.gender || b.gender;
+      const lines = [`${f.name}${GENDER.info(f.id).type === 'X' && (g === 'M' || g === 'F') ? ` (${g})` : ''}${m.item ? ' @ ' + m.item : ''}`, `Ability: ${renamed(b.ability)}`, 'Level: 50', `${b.nature} Nature`];
       const ivs = STATS.filter(s => b.ivs[s] !== 31).map(s => `${b.ivs[s]} ${SL[s]}`);
       if (ivs.length) lines.push('IVs: ' + ivs.join(' / '));
       for (const mv of m.moves.filter(Boolean)) lines.push('- ' + mv);
@@ -290,13 +291,15 @@
     return blocks.map(block => {
       const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
       let [head, item] = lines[0].split(' @ ').map(x => x && x.trim());
+      const gm = head.match(/\s*\((M|F)\)\s*$/); const gender = gm ? gm[1] : null;
       head = head.replace(/\s*\((M|F)\)\s*$/, '');
       const nick = head.match(/^(.*)\(([^()]+)\)\s*$/);
       const f = byName[head.toLowerCase()] || (nick && (byName[nick[2].trim().toLowerCase()] || byName[nick[1].trim().toLowerCase()]));
-      const out = { raw: lines[0], fighter: f, item: item || '', ability: null, nature: null, ivs: null, moves: [] };
+      const out = { raw: lines[0], fighter: f, item: item || '', ability: null, nature: null, ivs: null, moves: [], gender };
       for (const l of lines.slice(1)) {
         let mm;
-        if ((mm = l.match(/^Ability:\s*(.+)$/i))) out.ability = mm[1].trim();
+        if ((mm = l.match(/^Gender:\s*([MF])/i))) out.gender = mm[1].toUpperCase();
+        else if ((mm = l.match(/^Ability:\s*(.+)$/i))) out.ability = mm[1].trim();
         else if ((mm = l.match(/^(\w+)\s+Nature$/i))) out.nature = mm[1][0].toUpperCase() + mm[1].slice(1).toLowerCase();
         else if ((mm = l.match(/^IVs:\s*(.+)$/i))) { out.ivs = {}; for (const part of mm[1].split('/')) { const p = part.trim().match(/^(\d+)\s+(\w+)$/); if (p) { const k = Object.keys(SL).find(s => SL[s].toLowerCase() === p[2].toLowerCase()); if (k) out.ivs[k] = +p[1]; } } }
         else if ((mm = l.match(/^[-~]\s*(.+)$/))) out.moves.push(mm[1].replace(/\s*\[.*\]$/, '').trim());
@@ -326,7 +329,8 @@
         let item = s.item;
         if (item) { const known = Object.keys(S.dex.items).find(i => i.toLowerCase() === item.toLowerCase()); const fsItem = known && (S.dex.finalSmashes || {})[known]; if (!known || (fsItem && !fsItem.bases.includes(f.id))) { notes.push(`${esc(item)} isn't an item ${esc(f.name)} can hold here, so it was left off.`); item = ''; } else item = known; }
         if (s.nature && pickR.nature !== s.nature) notes.push(`${esc(f.name)}: using your ${esc(pickR.nature)} one (no ${esc(s.nature)} ${esc(f.name)} in your roster).`);
-        mons.push({ uid: pickR.uid, moves: moves.length ? moves.slice(0, 4) : f.signature.map(x => x.move), item });
+        if (s.gender && GENDER.info(f.id).type !== 'X' && s.gender !== GENDER.defaultGender(f.id)) notes.push(`${esc(f.name)} is always ${GENDER.label(f.id).toLowerCase()}, so the gender was ignored.`);
+        mons.push({ uid: pickR.uid, moves: moves.length ? moves.slice(0, 4) : f.signature.map(x => x.move), item, gender: GENDER.normalize(f.id, s.gender || pickR.gender) });
       }
       const items = mons.map(m => m.item).filter(Boolean); const dup = items.find((x, i) => items.indexOf(x) !== i);
       if (dup) notes.push(`${esc(dup)} is on more than one fighter. Item clause allows one of each, so change one before battling.`);
