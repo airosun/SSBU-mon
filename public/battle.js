@@ -2,7 +2,7 @@
    Loaded after app.js; app.js exposes helpers on window.SSBU. */
 (() => {
   const U = window.SSBU;
-  const { $, $$, esc, S, F, typeChip, badge, sprite, act, socket, label, toast, modal, closeModal } = U;
+  const { $, $$, esc, S, F, typeChip, badge, sprite, gsym, act, socket, label, toast, modal, closeModal } = U;
   const BOOSTL = { atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe', accuracy: 'Acc', evasion: 'Eva' };
   const STATUSL = { brn: 'BRN', par: 'PAR', psn: 'PSN', tox: 'TOX', slp: 'SLP', frz: 'FRZ' };
   const STATUS_COLOR = { brn: '#e4572e', par: '#e0c020', psn: '#a33ea1', tox: '#a33ea1', slp: '#8b96aa', frz: '#78cfcf' };
@@ -71,7 +71,7 @@
     const vs = view(matchId); const t = (vs.sides[n].team || []).find(x => x.index === idx) || (vs.sides[n].active || []).find(x => x && x.index === idx);
     if (!t) return '';
     const seen = t.seen || { moves: [] };
-    return U.dexTipHtml(t.id, { seen, name: t.name, hpPct: t.hpPct, status: t.status });
+    return U.dexTipHtml(t.id, { seen, name: t.name, hpPct: t.hpPct, status: t.status, gender: t.gender });
   }
   function monTipHtml(matchId, monId) {
     const m = S.matches[matchId]; if (!m || !m.battle || m.you === null) return '';
@@ -86,7 +86,7 @@
       return `<span>${STATN[k]}</span><b>${t.stats[k]}</b><i class="${b > 0 ? 'up' : b < 0 ? 'down' : ''}">${b ? `→ ${eff} (${b > 0 ? '+' : ''}${b})` : ''}</i>`;
     }).join('');
     const extra = ['accuracy', 'evasion'].filter(k => boosts[k]).map(k => `${k === 'accuracy' ? 'Accuracy' : 'Evasion'} ${boosts[k] > 0 ? '+' : ''}${boosts[k]}`).join(' · ');
-    return `<div class="tip-h">${sprite(f, 'sm')} ${esc(t.name)} ${t.status ? `<span class="st st-${t.status}">${STATUSL[t.status]}</span>` : ''}</div>
+    return `<div class="tip-h">${sprite(f, 'sm', false, t.gender)} ${esc(t.name)} ${gsym(t.gender)} ${t.status ? `<span class="st st-${t.status}">${STATUSL[t.status]}</span>` : ''}</div>
       <div class="tipstats">${rows}</div>${extra ? `<div class="tip-s">${extra}</div>` : ''}
       <div><b>${esc(ab.name)}</b> <span class="muted">— ${esc(ab.desc)}</span></div>
       <div style="margin-top:3px"><b>Item:</b> ${t.item ? `${esc(t.item)} <span class="muted">— ${esc(S.dex.items[t.item] || '')}</span>` : '<span class="muted">none</span>'}</div>
@@ -168,8 +168,8 @@
     switch (a.k) {
       case 'in': {
         const prevTeam = vm.sides[a.m[0]].team;
-        vm.sides[a.m[0]].active[a.m[1]] = { id: a.id, name: a.name, types: a.types, hpPct: a.hp, status: a.status, fainted: false, boosts: {}, volatiles: [], pos: a.m[1] };
-        if (!prevTeam.some(t => t.id === a.id)) prevTeam.push({ id: a.id, name: a.name, fainted: false, status: a.status });
+        vm.sides[a.m[0]].active[a.m[1]] = { id: a.id, name: a.name, gender: a.gender, types: a.types, hpPct: a.hp, status: a.status, fainted: false, boosts: {}, volatiles: [], pos: a.m[1] };
+        if (!prevTeam.some(t => t.id === a.id)) prevTeam.push({ id: a.id, name: a.name, gender: a.gender, fainted: false, status: a.status });
         if (!animate) return 0;
         redrawField(id);
         const s = sprEl(...a.m); if (s) s.animate([{ transform: 'scale(.2)', opacity: 0, filter: 'brightness(3)' }, { transform: 'scale(1.08)', opacity: 1, offset: .7 }, { transform: 'scale(1)', opacity: 1, filter: 'none' }], { duration: 450, easing: 'ease-out' });
@@ -305,8 +305,8 @@
       const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
       const vols = (a.volatiles || []).map(v => `<span class="chip">${VOL[v] || v}</span>`).join('');
       return `<div class="combatant ${isFoe ? 'foe' : 'you'} ${flash ? 'flashing' : ''} ${pickable ? 'pickable' : ''} ${a.fainted ? 'down' : ''}" id="slot-${n}-${pos}" ${pickable ? `data-pick="${key}"` : ''}>
-        <div class="sprwrap" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
-        <div class="hpcard" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="nm">${esc(a.name)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
+        <div class="sprwrap" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe, a.gender)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
+        <div class="hpcard" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="nm">${esc(a.name)} ${gsym(a.gender)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
           <div class="chips">${(a.types || []).map(typeChip).join('')}</div>
           <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
           <div class="hptext">${a.hp !== undefined && !(rec(m.id) || {}).playing ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</div>
@@ -407,7 +407,7 @@
       : cur.struggle ? `<button class="move-btn" data-move="-2" style="grid-column:span 2"><span class="mn">Struggle</span></button>`
         : cur.moves.map(mv => `<button class="move-btn" data-move="${mv.index}" data-tipmove="${esc(mv.name)}" style="--tc:var(--t-${mv.type})" ${mv.disabled ? 'disabled' : ''}><span class="mn">${esc(mv.name)}</span><span class="mi">${mv.type} · ${mv.cat === 'Status' ? 'Status' : (mv.power || '—') + ' BP'} · ${mv.pp}/${mv.maxpp}${mv.target === 'allFoes' ? ' · spread' : mv.target === 'all' ? ' · hits all' : ''}</span></button>`).join('');
     const fsTaken = T.actions.some(x => x.mega);
-    const fsBtn = cur.finalSmash && !fsTaken ? `<button class="fs-btn ${T.megaPos === cur.pos ? 'on' : ''}" id="tFS">${sprite(F(cur.finalSmash.id), 'sm')}<span><b>${T.megaPos === cur.pos ? '✓ Final Smash ready' : 'Use Final Smash'}</b><br><span class="small">${esc(cur.name)} becomes ${esc(cur.finalSmash.name)} before moving${T.megaPos === cur.pos ? ' — now pick a move' : ''}</span></span></button>` : '';
+    const fsBtn = cur.finalSmash && !fsTaken ? `<button class="fs-btn ${T.megaPos === cur.pos ? 'on' : ''}" id="tFS">${sprite(F(cur.finalSmash.id), 'sm', false, ((view(m.id).sides[m.you].active[cur.pos]) || {}).gender)}<span><b>${T.megaPos === cur.pos ? '✓ Final Smash ready' : 'Use Final Smash'}</b><br><span class="small">${esc(cur.name)} becomes ${esc(cur.finalSmash.name)} before moving${T.megaPos === cur.pos ? ' — now pick a move' : ''}</span></span></button>` : '';
     return `<h2>What will ${esc(cur.name)} do?${slots.length > 1 ? ` <span class="pill">${T.step + 1}/${slots.length}</span>` : ''}</h2>
       ${fsBtn}
       <div class="moves">${moveBtns}</div>
@@ -416,7 +416,7 @@
       ${T.step > 0 ? '<button class="small" id="tBack" style="margin-top:8px">Back</button>' : ''}`;
   }
   function switchBtns(team, disabled) {
-    return team.map(mm => `<span class="sw-wrap" data-tipmon="${mm.id}"><button class="sw-btn" data-sw="${mm.index}" ${disabled(mm) ? 'disabled' : ''}>${sprite(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''), true)}<span class="grow">${esc(mm.name)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button></span>`).join('');
+    return team.map(mm => `<span class="sw-wrap" data-tipmon="${mm.id}"><button class="sw-btn" data-sw="${mm.index}" ${disabled(mm) ? 'disabled' : ''}>${sprite(F(mm.id), 'sm' + (mm.fainted ? ' fainted' : ''), true, mm.gender)}<span class="grow">${esc(mm.name)} ${gsym(mm.gender)}${mm.pos >= 0 && !mm.fainted ? ' <span class="pill">in battle</span>' : ''}${mm.status ? ` <span class="st st-${mm.status}">${STATUSL[mm.status]}</span>` : ''}<div class="mini-hp"><i style="width:${mm.hpPct}%;background:${hpColor(mm.hpPct)}"></i></div></span></button></span>`).join('');
   }
 
   const QUICK = ['Good luck!', 'GG', 'Well played!', 'Nice!', 'Oops'];

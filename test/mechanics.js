@@ -169,5 +169,45 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
     assert(ev, 'flinch event'); assert.match(ev.text, /flinched/);
   });
 
+  await test('genders: infatuation needs opposite genders; genderless and "both" are immune', () => {
+    const G = require('../shared/genders.js');
+    const MOVES = require('../shared/moves.js');
+    const tryInfatuate = (attacker, gender) => {
+      let hits = 0;
+      for (let k = 0; k < 40; k++) {
+        const b = battle([mk(attacker, require('../shared/fighters.json').find(f => f.id === attacker).abilities[0].name, ['Pound'], { gender })], [mk('isabelle', 'Cheerful Secretary', ['Protect'])]);
+        const a = b.sides[0].team[0], t = b.sides[1].team[0];
+        b.rng = () => 0.01;   // the 30% roll always succeeds
+        b.contactReactions(a, t, MOVES['Pound']);
+        if (a.v.attract) hits++;
+      }
+      return hits;
+    };
+    assert.equal(G.defaultGender('isabelle'), 'F');
+    assert.equal(tryInfatuate('mario', 'M'), 40, 'male attacker vs female Isabelle');
+    assert.equal(tryInfatuate('samus', 'F'), 0, 'female vs female');
+    assert.equal(tryInfatuate('kirby', 'F'), 0, 'genderless (gender request ignored)');
+    assert.equal(tryInfatuate('ice-climbers', 'M'), 0, '"both" acts genderless');
+  });
+
+  await test('genders: rolled by the sheet ratio, chosen in Elite, fixed ones forced, old saves default', () => {
+    const G = require('../shared/genders.js');
+    let males = 0; for (let i = 0; i < 4000; i++) if (genFighter('squirtle').gender === 'M') males++;
+    assert(males > 3300 && males < 3700, 'about 87.5% male: ' + males);
+    assert.equal(genFighter('mario').gender, 'M'); assert.equal(genFighter('kirby').gender, 'N'); assert.equal(genFighter('banjo-and-kazooie').gender, 'B');
+    const F = require('../shared/fighters.json');
+    const pika = Object.assign(sign(genFighter('pikachu')), { moves: [F.find(f => f.id === 'pikachu').learnset[0]], item: '', gender: 'F' });
+    const mario = Object.assign(sign(genFighter('mario')), { moves: ['Fire Punch'], item: '', gender: 'F' });
+    const rest = ['link', 'samus', 'kirby', 'fox'].map(id => Object.assign(sign(genFighter(id)), { moves: [F.find(f => f.id === id).learnset[0]], item: '' }));
+    const v = validateEliteTeam([pika, mario, ...rest], verify);
+    assert(v.ok, v.errors && v.errors.join());
+    assert.equal(v.team[0].gender, 'F', 'Pikachu can be chosen female'); assert.equal(v.team[1].gender, 'M', 'Mario is always male');
+    const old = sign(genFighter('pikachu')); delete old.gender;
+    assert(verify(old), 'gender is not part of the signature, so old saved fighters still verify');
+    assert.equal(G.normalize('pikachu', undefined), 'M');
+    const s = validateStandardBuild([Object.assign(genFighter('jigglypuff'), { gender: 'F' })], [{ moves: ['Pound'] }]);
+    assert.equal(s.team[0].gender, 'F', 'Standard keeps the rolled gender');
+  });
+
   console.log(`${passed} passed`);
 })();

@@ -12,6 +12,7 @@ if (!process.env.SSBU_SECRET && process.env.NODE_ENV === 'production') console.w
 const uid = () => crypto.randomBytes(8).toString('hex');
 const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
 
+const GENDER = require('../../shared/genders.js');
 function genFighter(species, rng = Math.random) {
   const f = typeof species === 'string' ? FIGHTERS.find(x => x.id === species) : species;
   const ivs = {};
@@ -19,6 +20,7 @@ function genFighter(species, rng = Math.random) {
   return {
     uid: uid(), species: f.id, nature: pick(NATURE_NAMES, rng), ivs,
     ability: rng() < 0.5 ? f.abilities[0].name : f.hidden.name,
+    gender: GENDER.roll(f.id, rng),   // not signed: Elite Smash lets you pick it anyway
   };
 }
 
