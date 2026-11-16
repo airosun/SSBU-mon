@@ -11,7 +11,7 @@ and placed on the shared ground line.
 Input:  public/sprites-raw/<id>_front.png and <id>_back.png
         alternate genders: <id>_female_front.png / <id>_male_back.png
         Final Smash forms use the form's ID: giga-bowser_front.png, grima_female_back.png
-Output: public/sprites/<same name>.png, a 320x320 transparent PNG with the fighter centered and its
+Output: public/sprites/<same name>.png, a 480x480 transparent PNG with the fighter centered and its
         feet on a shared ground line, so every fighter stands on its platform the same way.
         Size is kept relative to the drawing's canvas: draw every fighter on the same canvas size
         (for example 512x512), filling it for the biggest fighters, and their sizes stay in proportion.
@@ -31,9 +31,9 @@ from scipy import ndimage
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(ROOT, 'public', 'sprites-raw')
 OUT = os.path.join(ROOT, 'public', 'sprites')
-CANVAS = 320          # output size (square)
-MAX_W, MAX_H = 300, 300
-GROUND = 312          # y of the feet line
+CANVAS = 480          # output size (square); sharp even for the larger back view on phones
+MAX_W, MAX_H = 450, 450
+GROUND = 468          # y of the feet line
 WHITE = 228           # a pixel counts as background white when all channels are at least this...
 GRAY_SPREAD = 28      # ...and it is nearly gray (max - min channel)
 FRINGE = 2            # px of edge softening next to removed background
@@ -109,6 +109,16 @@ def place(out, alpha):
     canvas.alpha_composite(sprite, ((CANVAS - sprite.width) // 2, GROUND - sprite.height))
     return canvas
 
+def write_manifest():
+    """public/sprites/manifest.json: how tall each fighter stands in its sprite (fraction of the canvas).
+    The game uses it to crop the same share off the bottom of every back view."""
+    out = {}
+    for name in sorted(os.listdir(OUT)):
+        if not name.endswith('.png'): continue
+        box = Image.open(os.path.join(OUT, name)).getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+        if box: out[name[:-4]] = round((GROUND - box[1]) / CANVAS, 3)
+    with open(os.path.join(OUT, 'manifest.json'), 'w') as fh: json.dump(out, fh, separators=(',', ':'))
+
 def main(only):
     os.makedirs(OUT, exist_ok=True)
     if not os.path.isdir(RAW): print('No public/sprites-raw folder yet.'); return 0
@@ -129,6 +139,7 @@ def main(only):
         except Exception as e:
             problems.append(f'{name}: {e}')
     for p in problems: print('skip', p)
+    write_manifest()
     print(f'{done} sprite(s) written to public/sprites/')
     return 1 if problems else 0
 

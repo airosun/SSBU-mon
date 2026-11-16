@@ -766,3 +766,28 @@ a.goto:hover { text-decoration: underline; }
 
 .arena .wx.burst i { animation-delay: var(--bd, 0s) !important; }   /* resume a burst after a redraw */
 @media (prefers-reduced-motion: reduce) { .arena .wx.burst i { animation: none !important; } }
+
+/* v21: Pokémon-style back views. Your fighters stand at the bottom edge, a bit bigger than the opponents,
+   with the lower part of their body running off the field. Drawn sprites carry --h (how tall the fighter
+   stands in its sprite), so the same share (~quarter) of every fighter is cut, short or tall. */
+.arena .mon.you.p0 { top: 100%; }
+.arena.doubles .mon.you.p0 { top: 100%; }
+.arena.doubles .mon.you.p1 { top: 102%; }
+.arena .mon.you .sprite.battle { width: 260px; height: 260px; transform: translateY(14%); }
+.arena .mon.you .sprite.battle.drawn { transform: translateY(calc(2.5% + var(--h, .9) * 26%)); }
+.arena.doubles .mon.you .sprite.battle { width: 200px; height: 200px; }
+@media (max-width: 600px) {
+  .arena .mon.you .sprite.battle { width: 176px; height: 176px; }
+  .arena.doubles .mon.you .sprite.battle { width: 132px; height: 132px; }
+}
+/* Fighterdex battle sprite gallery */
+.bs-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.bs-tile { margin: 0; width: 132px; display: flex; flex-direction: column; gap: 6px; background: var(--panel2, #151c28);
+  border: 1px solid var(--line); border-radius: 10px; padding: 6px; }
+.bs-stage { position: relative; height: 128px; border-radius: 7px; overflow: hidden; background: linear-gradient(180deg, #2a3e62 0%, #22344f 55%, #2f4a35 56%, #283f2e 100%); }
+.bs-stage i { position: absolute; left: 50%; bottom: 6px; width: 84%; height: 22px; transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(ellipse, #7aa35f 0%, #5b8546 60%, #44683a 100%); box-shadow: 0 2px 4px #0005; }
+.bs-stage img { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: 112px; height: 112px; object-fit: contain; object-position: 50% 100%; filter: drop-shadow(0 3px 2px #0007); }
+.bs-tile figcaption { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.25; }
+.bs-tile.fs { border-color: #ffcf4d77; }
+@media (max-width: 600px) { .bs-tile { width: 104px; } .bs-stage { height: 100px; } .bs-stage img { width: 86px; height: 86px; } }

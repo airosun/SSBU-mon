@@ -36,7 +36,10 @@ function drawnSprites() {
   try { return require('fs').readdirSync(path.join(__dirname, '..', 'public', 'sprites')).filter(f => /\.png$/i.test(f)).map(f => f.replace(/\.png$/i, '')); } catch { return []; }
 }
 const drawnList = drawnSprites();
-app.get('/api/dex', (req, res) => res.type('json').send(dexPayload.slice(0, -1) + ',"drawn":' + JSON.stringify(drawnList) + '}'));
+// how tall each drawn fighter stands in its sprite (written by the sprite script); used to crop back views evenly
+let drawnH = {};
+try { drawnH = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', 'public', 'sprites', 'manifest.json'), 'utf8')); } catch {}
+app.get('/api/dex', (req, res) => res.type('json').send(dexPayload.slice(0, -1) + ',"drawn":' + JSON.stringify(drawnList) + ',"drawnH":' + JSON.stringify(drawnH) + '}'));
 app.get('/healthz', (req, res) => res.send('ok'));
 
 // ---------- replays, stats, damage calc ----------
