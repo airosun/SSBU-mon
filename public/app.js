@@ -57,7 +57,7 @@
     // For now back views always use the front drawing mirrored; flip to true to use *_back drawings again.
     if (back && USE_DRAWN_BACKS) { const b = pick('back'); if (b) return { url: `/sprites/${b}.png`, flip: false, drawn: true }; }
     const fr = pick('front');
-    if (fr) return { url: `/sprites/${fr}.png`, flip: back, drawn: true };
+    if (fr) return { url: `/sprites/${fr}.png`, flip: back, drawn: true, h: (S.drawnH || {})[fr] || 0.9 };
     const img = gender && window.GENDER ? GENDER.image(id, gender, full.image) : full.image;
     return { url: `/images/${encodeURIComponent(img)}`, flip: back, drawn: false };
   }
@@ -69,7 +69,9 @@
     const full = f && (f.image !== undefined ? f : (S.byId[f.id] || f));
     if (!full || !full.image) return badge(full || f, cls.replace('battle', 'lg'));
     const src = cls.split(' ').includes('battle') ? spriteSrc(full, flip, gender) : officialSrc(full, flip, gender);
-    return `<div class="sprite ${cls}${src.drawn ? ' drawn' : ''}" title="${esc(full.name)}"><img src="${src.url}" alt="${esc(full.name)}" draggable="false"${src.flip ? ' class="flip"' : ''}></div>`;
+    // back view of a drawn sprite: --h (how tall the fighter stands in its sprite) lets the CSS crop the same share of everyone
+    const hv = src.drawn && src.flip && src.h ? ` style="--h:${src.h}"` : '';
+    return `<div class="sprite ${cls}${src.drawn ? ' drawn' : ''}"${hv} title="${esc(full.name)}"><img src="${src.url}" alt="${esc(full.name)}" draggable="false"${src.flip ? ' class="flip"' : ''}></div>`;
   }
   const gsym = g => g === 'M' || g === 'F' ? `<span class="gsym g${g}" title="${g === 'M' ? 'Male' : 'Female'}">${GENDER.SYMBOL[g]}</span>` : '';
   function badge(f, cls = '', gender = null) {
@@ -596,6 +598,24 @@
     const rs = $('#dexReset'); if (rs) rs.onclick = () => { Object.assign(o, { t1: '', t2: '', fs: true, sort: 'num', dir: 'asc' }); S.dexFilter = ''; renderDex(); };
     $$('[data-dex]').forEach(el => el.onclick = () => showFighter(F(el.dataset.dex)));
   }
+  // Fighterdex: every front battle sprite this fighter has (each gender, plus its Final Smash forms)
+  function battleSpritesHtml(f) {
+    const genders = GENDER.choices(f.id).filter(g => g === 'M' || g === 'F');
+    const gs = genders.length ? genders : [null];
+    const forms = [f, ...Object.values(S.dex.finalSmashes || {}).filter(x => x.bases.includes(f.id)).map(x => S.byId[x.id]).filter(Boolean)];
+    const byUrl = new Map(), missing = [];   // one tile per distinct sprite; note which genders use it
+    for (const form of forms) for (const g of gs) {
+      const src = spriteSrc(form, false, g);
+      if (!src.drawn) { missing.push(esc(form.name) + (g && genders.length > 1 ? ' ' + gsym(g) : '')); continue; }
+      const t = byUrl.get(src.url) || { form, url: src.url, gs: [] }; t.gs.push(g); byUrl.set(src.url, t);
+    }
+    const tiles = [...byUrl.values()].map(t => {
+      const sym = genders.length > 1 && t.gs.length < genders.length ? ' ' + t.gs.map(gsym).join('') : '';
+      return `<figure class="bs-tile${t.form === f ? '' : ' fs'}"><div class="bs-stage"><i></i><img src="${t.url}" alt="${esc(t.form.name)}" loading="lazy"></div><figcaption>${esc(t.form.name)}${sym}${t.form === f ? '' : ' <span class="fs-star">★</span>'}</figcaption></figure>`;
+    });
+    if (!tiles.length) return `<h2 style="margin-top:14px">Battle sprites</h2><div class="muted small">No battle sprites yet; battles use the official art.</div>`;
+    return `<h2 style="margin-top:14px">Battle sprites</h2><div class="bs-grid">${tiles.join('')}</div>${missing.length ? `<div class="muted small" style="margin-top:4px">Official art in battle for: ${missing.join(', ')}</div>` : ''}`;
+  }
   function showFighter(f) {
     const sig = Object.fromEntries(f.signature.map(s => [s.move, s.smash]));
     modal(`<div class="row" style="margin-bottom:10px">${badge(f, 'lg')}<div class="grow"><div style="font-size:22px;font-weight:800">${esc(f.name)}</div><div>${f.types.map(typeChip).join(' ')} <span class="muted">· ${esc(f.series)}</span></div></div><button id="fx">Close</button></div>
@@ -604,6 +624,7 @@
       <div><b>${esc(f.hidden.name)}</b> <span class="pill">Hidden</span> — <span class="muted">${esc(f.hidden.desc)}</span></div>
       ${Object.values(S.dex.finalSmashes || {}).filter(x => x.bases.includes(f.id)).map(x => `<div class="fs-box"><div class="row">${sprite(S.byId[x.id], 'lg')}<div class="grow"><div style="font-weight:800;font-size:17px">Final Smash: ${esc(x.name)}</div><div>${x.types.map(typeChip).join(' ')} <span class="muted">· hold <b>${esc(x.stone)}</b> · BST ${Object.values(x.stats).reduce((a, c) => a + c, 0)}</span></div><div class="small"><b>${esc(x.ability.name)}</b> — <span class="muted">${esc(x.ability.desc)}</span></div></div></div>
         <div class="statbars" style="max-width:420px">${STATS.map(s => `<span class="muted">${SL[s]}</span><span style="font-family:var(--mono)">${x.stats[s]}${x.stats[s] !== f.stats[s] ? ` <span style="color:${x.stats[s] > f.stats[s] ? 'var(--good)' : 'var(--bad)'}">(${x.stats[s] > f.stats[s] ? '+' : ''}${x.stats[s] - f.stats[s]})</span>` : ''}</span><div class="statbar"><i style="width:${Math.min(100, x.stats[s] / 2)}%;background:var(--accent2)"></i></div>`).join('')}</div></div>`).join('')}
+      ${battleSpritesHtml(f)}
       <h2 style="margin-top:14px">Move pool</h2>
       <div class="move-table"><table><tr><th>Move</th><th>Type</th><th>Cat</th><th>Pow</th><th>Acc</th></tr>${f.learnset.map(n => { const mv = S.dex.moves[n]; return `<tr><td>${esc(n)}${n in sig ? ` <span class="sig">★ ${esc(sig[n])}</span>` : ''}</td><td>${typeChip(mv.type)}</td><td><span class="cat">${mv.cat}</span></td><td>${mv.power || '—'}</td><td>${mv.acc === true ? '—' : mv.acc}</td></tr>`; }).join('')}</table></div>`);
     $('#fx').onclick = closeModal;
@@ -697,7 +718,7 @@
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {
-    S.dex = d; S.byId = Object.fromEntries(d.fighters.map(f => [f.id, f])); S.drawn = new Set(d.drawn || []);
+    S.dex = d; S.byId = Object.fromEntries(d.fighters.map(f => [f.id, f])); S.drawn = new Set(d.drawn || []); S.drawnH = d.drawnH || {};
     for (const [stone, fs] of Object.entries(d.finalSmashes || {})) {
       const ab = { name: fs.ability.name, desc: fs.ability.desc };
       S.byId[fs.id] = { id: fs.id, name: fs.name, types: fs.types, stats: fs.stats, image: fs.image, abilities: [ab], hidden: ab, learnset: S.byId[fs.base].learnset, signature: S.byId[fs.base].signature, form: true };
