@@ -57,7 +57,7 @@
     // For now back views always use the front drawing mirrored; flip to true to use *_back drawings again.
     if (back && USE_DRAWN_BACKS) { const b = pick('back'); if (b) return { url: `/sprites/${b}.png`, flip: false, drawn: true }; }
     const fr = pick('front');
-    if (fr) return { url: `/sprites/${fr}.png`, flip: back, drawn: true, h: (S.drawnH || {})[fr] || 0.9 };
+    if (fr) return { url: `/sprites/${fr}.png`, flip: back, drawn: true, h: (S.drawnH || {})[fr] || 0.9, hover: ((S.drawnH || {})._hover || []).includes(fr) };
     const img = gender && window.GENDER ? GENDER.image(id, gender, full.image) : full.image;
     return { url: `/images/${encodeURIComponent(img)}`, flip: back, drawn: false };
   }
@@ -71,7 +71,7 @@
     const src = cls.split(' ').includes('battle') ? spriteSrc(full, flip, gender) : officialSrc(full, flip, gender);
     // back view of a drawn sprite: --h (how tall the fighter stands in its sprite) lets the CSS crop the same share of everyone
     const hv = src.drawn && src.flip && src.h ? ` style="--h:${src.h}"` : '';
-    return `<div class="sprite ${cls}${src.drawn ? ' drawn' : ''}"${hv} title="${esc(full.name)}"><img src="${src.url}" alt="${esc(full.name)}" draggable="false"${src.flip ? ' class="flip"' : ''}></div>`;
+    return `<div class="sprite ${cls}${src.drawn ? ' drawn' : ''}${src.hover ? ' hover' : ''}"${hv} title="${esc(full.name)}"><img src="${src.url}" alt="${esc(full.name)}" draggable="false"${src.flip ? ' class="flip"' : ''}></div>`;
   }
   const gsym = g => g === 'M' || g === 'F' ? `<span class="gsym g${g}" title="${g === 'M' ? 'Male' : 'Female'}">${GENDER.SYMBOL[g]}</span>` : '';
   function badge(f, cls = '', gender = null) {

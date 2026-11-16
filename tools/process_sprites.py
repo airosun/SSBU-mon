@@ -11,7 +11,7 @@ and placed on the shared ground line.
 Input:  public/sprites-raw/<id>_front.png and <id>_back.png
         alternate genders: <id>_female_front.png / <id>_male_back.png
         Final Smash forms use the form's ID: giga-bowser_front.png, grima_female_back.png
-Output: public/sprites/<same name>.png, a 480x480 transparent PNG with the fighter centered and its
+Output: public/sprites/<same name>.png, a 640x480 (4:3) transparent PNG with the fighter centered and its
         feet on a shared ground line, so every fighter stands on its platform the same way.
         Size is kept relative to the drawing's canvas: draw every fighter on the same canvas size
         (for example 512x512), filling it for the biggest fighters, and their sizes stay in proportion.
@@ -31,8 +31,10 @@ from scipy import ndimage
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(ROOT, 'public', 'sprites-raw')
 OUT = os.path.join(ROOT, 'public', 'sprites')
-CANVAS = 480          # output size (square); sharp even for the larger back view on phones
-MAX_W, MAX_H = 450, 450
+CANVAS_W, CANVAS_H = 640, 480   # output size (4:3, so wide fighters aren't shrunk to fit); sharp on phones
+MAX_W, MAX_H = 600, 450
+HOVER_CENTER = 468 - 450 // 2   # flyers float with their middle where a full-height fighter's middle is
+OVERRIDES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sprite_overrides.json')
 GROUND = 468          # y of the feet line
 WHITE = 228           # a pixel counts as background white when all channels are at least this...
 GRAY_SPREAD = 28      # ...and it is nearly gray (max - min channel)
@@ -54,8 +56,16 @@ def already_transparent(im):
     a = np.asarray(im.convert('RGBA').getchannel('A'))
     return (a == 0).mean() >= 0.05
 
-def process(path):
+def overrides():
+    try: return {k: v for k, v in json.load(open(OVERRIDES)).items() if not k.startswith('_')}
+    except FileNotFoundError: return {}
+
+def process(path, opts=None):
+    opts = opts or {}
     im = Image.open(path)
+    if opts.get('crop'):   # keep only part of the original (e.g. drop a long smoke trail)
+        l, t, r, b = opts['crop']; W, H = im.size
+        im = im.crop((round(l * W), round(t * H), round(r * W), round(b * H)))
     if already_transparent(im):
         rgba = np.asarray(im.convert('RGBA')).astype(np.float32)
         out, alpha = rgba[..., :3], rgba[..., 3] / 255.0
@@ -71,7 +81,7 @@ def process(path):
         # faint glow (alpha <= 0.1) right next to a kept blob stays; isolated specks go
         near_keep = ndimage.binary_dilation(keep, iterations=6)
         alpha = np.where(keep | ((alpha <= 0.1) & near_keep), alpha, 0)
-    return place(out, alpha), bg.mean()
+    return place(out, alpha, opts.get('hover')), bg.mean()
 
 def remove_white(im):
     if im.mode in ('RGBA', 'LA', 'P'):   # flatten any partial transparency onto white first
@@ -95,7 +105,7 @@ def remove_white(im):
     out = np.where(near[..., None], np.clip(unmixed, 0, 255), out)
     return out, alpha, bg
 
-def place(out, alpha):
+def place(out, alpha, hover=False):
     rgba = np.dstack([out, alpha * 255]).astype(np.uint8)
     sprite = Image.fromarray(rgba, 'RGBA')
     box = sprite.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
@@ -105,8 +115,9 @@ def place(out, alpha):
     sprite = sprite.crop(box)
     scale = min(MAX_W / sprite.width, MAX_H / sprite.height)
     sprite = sprite.resize((max(1, round(sprite.width * scale)), max(1, round(sprite.height * scale))), Image.LANCZOS)
-    canvas = Image.new('RGBA', (CANVAS, CANVAS), (0, 0, 0, 0))
-    canvas.alpha_composite(sprite, ((CANVAS - sprite.width) // 2, GROUND - sprite.height))
+    canvas = Image.new('RGBA', (CANVAS_W, CANVAS_H), (0, 0, 0, 0))
+    top = HOVER_CENTER - sprite.height // 2 if hover else GROUND - sprite.height
+    canvas.alpha_composite(sprite, ((CANVAS_W - sprite.width) // 2, top))
     return canvas
 
 def write_manifest():
@@ -116,13 +127,14 @@ def write_manifest():
     for name in sorted(os.listdir(OUT)):
         if not name.endswith('.png'): continue
         box = Image.open(os.path.join(OUT, name)).getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
-        if box: out[name[:-4]] = round((GROUND - box[1]) / CANVAS, 3)
+        if box: out[name[:-4]] = round((GROUND - box[1]) / CANVAS_H, 3)
+    out['_hover'] = sorted(k for k, v in overrides().items() if v.get('hover'))   # flyers: the back view floats instead of being cut
     with open(os.path.join(OUT, 'manifest.json'), 'w') as fh: json.dump(out, fh, separators=(',', ':'))
 
 def main(only):
     os.makedirs(OUT, exist_ok=True)
     if not os.path.isdir(RAW): print('No public/sprites-raw folder yet.'); return 0
-    ids = valid_ids(); done = 0; problems = []
+    ids = valid_ids(); done = 0; problems = []; ov = overrides()
     for name in sorted(os.listdir(RAW)):
         if name.startswith('.') or name.lower() == 'readme.md': continue
         m = NAME.match(name.lower().replace(' ', '-'))
@@ -130,7 +142,7 @@ def main(only):
         if m.group(1) not in ids: problems.append(f'{name}: "{m.group(1)}" is not a fighter or Final Smash ID'); continue
         if only and not any(m.group(1).startswith(o) for o in only): continue
         try:
-            img, bgshare = process(os.path.join(RAW, name))
+            img, bgshare = process(os.path.join(RAW, name), ov.get(name.lower()[:-4]))
             img.save(os.path.join(OUT, name.lower().replace(' ', '-')), optimize=True)
             done += 1
             kind = 'transparent' if already_transparent(Image.open(os.path.join(RAW, name))) else 'white bg removed'
