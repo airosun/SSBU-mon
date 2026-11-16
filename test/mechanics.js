@@ -29,6 +29,18 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
     }
   });
 
+  await test('weather and field changes carry the field state for the battlefield effects', () => {
+    const b = battle([mk('mario', 'Super Mushroom', ['Rain Dance', 'Trick Room'])], [mk('kirby', 'Warp Star', ['Protect'])]);
+    b.choose(0, mv(0)); b.choose(1, mv(0));
+    const rain = b.log.find(l => l.a && l.a.k === 'field' && l.a.f.weather === 'rain');
+    assert(rain && /rain/.test(rain.text) && rain.a.f.weatherTurns === 5, 'rain start tagged');
+    b.choose(0, mv(1)); b.choose(1, mv(0));
+    assert(b.log.some(l => l.a && l.a.k === 'field' && l.a.f.trickroom === 5), 'trick room tagged');
+    for (let i = 0; i < 4; i++) { b.choose(0, mv(0)); b.choose(1, mv(0)); }
+    const stop = b.log.find(l => l.text === 'The rain stopped.');
+    assert(stop && stop.a && stop.a.k === 'field' && stop.a.f.weather === '', 'rain end tagged');
+  });
+
   await test('roster signatures detect tampering', () => {
     const f = sign(genFighter('mario'));
     assert(verify(f));

@@ -424,7 +424,7 @@ class Battle {
       const { cond, turns } = s.startSide;
       if (!mon.side.conditions[cond]) { mon.side.conditions[cond] = turns; this.add('ability', `${mon.label}'s ${mon.ability} set up ${cond === 'tailwind' ? 'a tailwind' : 'Reflect'}!`); }
     }
-    if (s.startField && !this.field[s.startField.cond]) { this.field[s.startField.cond] = s.startField.turns; this.add('ability', `${mon.label}'s ${mon.ability} intensified gravity!`); }
+    if (s.startField && !this.field[s.startField.cond]) { this.field[s.startField.cond] = s.startField.turns; this.add('ability', `${mon.label}'s ${mon.ability} intensified gravity!`, this.fieldA()); }
     if (s.startWeather) this.setWeather(s.startWeather, mon, 5);
     if (s.download && foes.length) {
       const def = foes.reduce((a, f) => a + this.getStat(f, 'def'), 0), spd = foes.reduce((a, f) => a + this.getStat(f, 'spd'), 0);
@@ -580,9 +580,11 @@ class Battle {
   setWeather(w, source, turns) {
     if (this.field.weather === w) return false;
     this.field.weather = w; this.field.weatherTurns = turns;
-    this.add('weather', { rain: 'It started to rain!', sun: 'The sunlight turned harsh!', snow: 'It started to snow!' }[w]);
+    this.add('weather', { rain: 'It started to rain!', sun: 'The sunlight turned harsh!', snow: 'It started to snow!' }[w], this.fieldA());
     return true;
   }
+  // log metadata: the field right after a change (the client draws weather / Trick Room / Gravity from it)
+  fieldA() { const f = this.field; return { k: 'field', f: { weather: f.weather, weatherTurns: f.weatherTurns, trickroom: f.trickroom, gravity: f.gravity } }; }
 
   // ---------------- targeting ----------------
   resolveTargets(mon, md, chosen) {
@@ -743,13 +745,13 @@ class Battle {
     }
     if (md.weather) { if (!this.setWeather(md.weather, user, 5)) this.add('effect', 'But it failed!'); return; }
     if (md.field === 'trickroom') {
-      if (this.field.trickroom) { this.field.trickroom = 0; this.add('field', 'The twisted dimensions returned to normal!'); }
-      else { this.field.trickroom = 5; this.add('field', `${user.label} twisted the dimensions!`); }
+      if (this.field.trickroom) { this.field.trickroom = 0; this.add('field', 'The twisted dimensions returned to normal!', this.fieldA()); }
+      else { this.field.trickroom = 5; this.add('field', `${user.label} twisted the dimensions!`, this.fieldA()); }
       return;
     }
     if (md.field === 'gravity') {
       if (this.field.gravity) { this.add('effect', 'But it failed!'); return; }
-      this.field.gravity = 5; this.add('field', 'Gravity intensified!');
+      this.field.gravity = 5; this.add('field', 'Gravity intensified!', this.fieldA());
       for (const a of this.allActive()) if (a.v.charging && a.v.charging.semi === 'fly') delete a.v.charging;
       return;
     }
@@ -1122,8 +1124,9 @@ class Battle {
   residuals() { this.inResiduals = true; try { this._residuals(); } finally { this.inResiduals = false; } }
   _residuals() {
     if (this.field.weather && --this.field.weatherTurns <= 0) {
-      this.add('weather', { rain: 'The rain stopped.', sun: 'The harsh sunlight faded.', snow: 'The snow stopped.' }[this.field.weather]);
+      const text = { rain: 'The rain stopped.', sun: 'The harsh sunlight faded.', snow: 'The snow stopped.' }[this.field.weather];
       this.field.weather = '';
+      this.add('weather', text, this.fieldA());
     }
     for (const f of this.futures.slice()) {
       if (--f.turns > 0) continue;
@@ -1197,8 +1200,8 @@ class Battle {
     for (const s of this.sides) for (const k of ['reflect', 'lightscreen', 'tailwind']) {
       if (s.conditions[k] && --s.conditions[k] <= 0) { delete s.conditions[k]; this.add('field', `${s.name}'s ${{ reflect: 'Reflect', lightscreen: 'Light Screen', tailwind: 'tailwind' }[k]} wore off.`); }
     }
-    if (this.field.trickroom && --this.field.trickroom === 0) this.add('field', 'The twisted dimensions returned to normal!');
-    if (this.field.gravity && --this.field.gravity === 0) this.add('field', 'Gravity returned to normal!');
+    if (this.field.trickroom && --this.field.trickroom === 0) this.add('field', 'The twisted dimensions returned to normal!', this.fieldA());
+    if (this.field.gravity && --this.field.gravity === 0) this.add('field', 'Gravity returned to normal!', this.fieldA());
     for (const s of this.sides) for (const m of s.team) {
       for (const k of ['flinch', 'protect', 'magiccoat', 'tookDamage', 'lastHit', 'plannedMove', 'consumedThisTurn']) delete m.v[k];
       if (!m.v.protectedThisTurn) m.protectCount = 0;

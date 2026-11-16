@@ -13,7 +13,7 @@ Put your drawings here, then run `npm run sprites` (or ask Claude). Drawings tha
 **Drawing tips**
 
 - Save as **PNG**, either with a **transparent background** (preferred: nothing is removed, so white details anywhere stay) or a **pure white background**. JPG adds speckles around the edges.
-- **Use the same canvas size for every drawing** (for example 512×512), and draw each fighter at the size it should be compared with the others. Big fighters like Bowser can fill the canvas, small ones like Pichu should be smaller. Sizes stay in proportion in the game.
+- **Any image size works.** Each fighter is cropped to its outline and scaled to the same standard size in game, so the canvas size doesn't matter.
 - Leave a little margin. Nothing should touch the edge of the image.
 - White backgrounds only: use a **closed outline**. White inside the fighter (eyes, teeth, a white body) stays white only if the outline seals it off from the background.
 - The bottom of the drawing is treated as the fighter's feet.

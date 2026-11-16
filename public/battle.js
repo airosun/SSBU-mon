@@ -288,6 +288,11 @@
         }, 900 * sp);
         return 1900;
       }
+      case 'field': {
+        Object.assign(vm.field, a.f);
+        if (!animate) return 0;
+        syncWx(id); return 650;
+      }
       case 'types': { if (mon) mon.types = a.types; if (animate) redrawField(id); return animate ? 250 : 0; }
       case 'flinch': {
         if (!animate) return 0;
@@ -392,7 +397,44 @@
     // field effects (weather, Trick Room, screens…) stack above your HP cards so they never cover a fighter
     return `<div class="plat foe"></div><div class="plat you"></div>${foe.mons}${me.mons}${foe.hud}${me.hud.replace('<div class="hud you">', `<div class="hud you"><div class="fieldinfo">${fieldChips(vs)}</div>`)}`;
   }
-  function redrawField(id) { const ar = document.getElementById('arena-' + id); if (ar) { ar.querySelectorAll('.fx').forEach(x => x.remove()); ar.innerHTML = fieldHtml(id); wirePicks(id); } }
+  // redraw fighters and HP cards; the weather layers (.wx) stay put so their animations don't restart
+  function redrawField(id) {
+    const ar = document.getElementById('arena-' + id); if (!ar) return;
+    [...ar.children].forEach(c => { if (!c.classList.contains('wx')) c.remove(); });
+    ar.insertAdjacentHTML('beforeend', fieldHtml(id)); wirePicks(id);
+  }
+
+  // ---------- field effects: weather, Trick Room, Gravity ----------
+  // Each effect is a back layer (behind the platforms) and a front layer (over the fighters, under the HP cards).
+  const WX = {
+    rain: { back: '<i class="cloud c1"></i><i class="cloud c2"></i><i class="cloud c3"></i>', front: '<i class="drops d1"></i><i class="drops d2"></i><i class="splash"></i>' },
+    sun: { back: '<i class="sundisk"></i><i class="rays"></i>', front: '<i class="glare"></i><i class="shafts"></i>' },
+    snow: { back: '<i class="haze"></i>', front: '<i class="flakes f1"></i><i class="flakes f2"></i><i class="flakes f3"></i>' },
+    trickroom: { back: '<i class="grid"></i>', front: '<i class="warp"></i>' },
+    gravity: { back: '', front: '<i class="press"></i><i class="streaks"></i>' },
+  };
+  function syncWx(id) {
+    const ar = document.getElementById('arena-' + id); if (!ar) return;
+    const f = view(id).field || {};
+    ar.classList.remove('weather-rain', 'weather-sun', 'weather-snow');
+    if (f.weather) ar.classList.add('weather-' + f.weather);
+    const want = [f.weather, f.trickroom ? 'trickroom' : '', f.gravity ? 'gravity' : ''].filter(Boolean);
+    ar.querySelectorAll(':scope > .wx').forEach(el => {
+      if (!want.includes(el.dataset.wx) && !el.classList.contains('leaving')) { el.classList.add('leaving'); setTimeout(() => el.remove(), 900); }
+    });
+    // one shared clock for every layer, so a layer drawn later stays in step with the rest
+    const delay = `-${Math.round(performance.now())}ms`;
+    for (const k of want) {
+      if (ar.querySelector(`:scope > .wx[data-wx="${k}"]:not(.leaving)`)) continue;
+      for (const part of ['back', 'front']) {
+        if (!WX[k][part]) continue;
+        const d = document.createElement('div');
+        d.className = `wx wx-${part} wx-${k}`; d.dataset.wx = k; d.style.setProperty('--wxd', delay);
+        d.innerHTML = WX[k][part];
+        ar.insertBefore(d, ar.firstChild);
+      }
+    }
+  }
 
   // which slots flash / are pickable for the move currently being chosen
   function selection(m) {
@@ -516,6 +558,7 @@
       </section></div>`;
     const lg = $('#blog'); if (atBottom) lg.scrollTop = lg.scrollHeight;
     wire(m);
+    syncWx(id);
   }
   U.renderBattle = renderBattle;
   // count every visible clock down between server updates
