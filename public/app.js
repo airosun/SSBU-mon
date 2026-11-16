@@ -237,6 +237,7 @@
   }
   $('#nameBtn').onclick = () => accountModal();
   $('#audioBtn').onclick = () => AUDIO.settings();
+  $('#typesBtn').onclick = () => SSBU.showTypeChart();
   $('#signInBtn').onclick = () => accountModal('in');
   document.addEventListener('click', e => { const a = e.target.closest('[data-signin]'); if (a) { e.preventDefault(); accountModal(a.dataset.signin === 'new' ? 'new' : 'in'); } });
 

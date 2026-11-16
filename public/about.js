@@ -77,7 +77,7 @@
           <li><b>Moves</b> have a type, category (Physical, Special or Status), power, accuracy and sometimes priority. <b>Hover</b> a move to see exactly what it does.</li>
           <li><b>Targeting:</b> in Doubles, tap a fighter's picture to target it. Every fighter a move will hit <b>flashes</b> before you confirm, including both foes for spread moves.</li>
           <li><b>Switching</b> takes your turn. Some moves (like U-turn and Volt Switch) attack and then switch out.</li>
-          <li><b>Type matchups</b> work like Pokémon's 18 types. Super effective hits do 2× (or 4×), resisted hits do ½×, and immunities do nothing. Press <b>Type chart</b> in battle to see the full chart with the opponents' types highlighted.</li>
+          <li><b>Type matchups</b> work like Pokémon's 18 types. Super effective hits do 2× (or 4×), resisted hits do ½×, and immunities do nothing. Press <b>Types</b> at the top of any screen to see the full chart and check how a type combo takes damage. In battle, the opponents' types are highlighted (the battle's <b>Type chart</b> button opens the same chart).</li>
           <li><b>Same-type bonus (STAB):</b> a move matching its user's type does 1.5× damage.</li>
           <li><b>Status, weather, terrain and field effects</b> (burn, paralysis, sleep, Sun, Rain, Trick Room, Tailwind, screens…) all work as they do in Pokémon. Hover a field tag to see how many turns are left.</li>
           <li><b>Abilities</b> are custom and lore-based. Hover your own fighter to see its stats, ability and item.</li>
