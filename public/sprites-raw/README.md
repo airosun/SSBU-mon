@@ -1,6 +1,6 @@
 # Hand-drawn sprites (raw)
 
-Put your drawings here, then run `npm run sprites` (or ask Claude). The script removes the white background, crops each sprite and lines it up on the battlefield's ground line. The results go to `public/sprites/`, and the game uses them automatically. Fighters without a drawing keep their current image.
+Put your drawings here, then run `npm run sprites` (or ask Claude). The script removes the white background, crops each sprite and lines it up on the battlefield's ground line. The results go to `public/sprites/`, and the game uses them automatically for fighters on the battlefield. Everywhere else (Fighterdex, Battler Cards, menus) keeps the official art. Fighters without a drawing keep the official art in battle too.
 
 **File names:** the fighter's ID plus `_front` or `_back`:
 

@@ -44,7 +44,8 @@
   // ---------- helpers ----------
   const typeChip = t => `<span class="type" style="background:var(--t-${t})">${t}</span>`;
   // Which picture to show for a fighter. Hand-drawn sprites (public/sprites/, see tools/process_sprites.py)
-  // are used when they exist; otherwise the original images in public/images/.
+  // are only used for fighters standing on the battlefield (sprite class "battle"); everywhere else
+  // (Fighterdex, Battler Cards, menus, team builder) keeps the official art in public/images/.
   //   back = true: the player's own fighter in battle (back view; the original image is mirrored)
   //   gender: picks the alternate-gender art when that gender has its own
   function spriteSrc(full, back, gender) {
@@ -58,10 +59,14 @@
     const img = gender && window.GENDER ? GENDER.image(id, gender, full.image) : full.image;
     return { url: `/images/${encodeURIComponent(img)}`, flip: back, drawn: false };
   }
+  function officialSrc(full, flip, gender) {
+    const img = gender && window.GENDER ? GENDER.image(full.id, gender, full.image) : full.image;
+    return { url: `/images/${encodeURIComponent(img)}`, flip, drawn: false };
+  }
   function sprite(f, cls = '', flip = false, gender = null) {
     const full = f && (f.image !== undefined ? f : (S.byId[f.id] || f));
     if (!full || !full.image) return badge(full || f, cls.replace('battle', 'lg'));
-    const src = spriteSrc(full, flip, gender);
+    const src = cls.split(' ').includes('battle') ? spriteSrc(full, flip, gender) : officialSrc(full, flip, gender);
     return `<div class="sprite ${cls}${src.drawn ? ' drawn' : ''}" title="${esc(full.name)}"><img src="${src.url}" alt="${esc(full.name)}" draggable="false"${src.flip ? ' class="flip"' : ''}></div>`;
   }
   const gsym = g => g === 'M' || g === 'F' ? `<span class="gsym g${g}" title="${g === 'M' ? 'Male' : 'Female'}">${GENDER.SYMBOL[g]}</span>` : '';
