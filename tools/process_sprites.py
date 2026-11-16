@@ -100,11 +100,10 @@ def place(out, alpha):
     sprite = Image.fromarray(rgba, 'RGBA')
     box = sprite.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
     if not box: raise ValueError('nothing left after removing the background (is the background really white or transparent?)')
-    # keep the fighter's size relative to its canvas: draw everyone on the same canvas size and small
-    # fighters stay small, big ones big (like Pokémon sprites). Never bigger than the output box.
-    canvas_scale = min(MAX_W, MAX_H) / max(sprite.width, sprite.height)
+    # standardized size: every fighter is cropped to its outline and scaled to fill the same box,
+    # whatever size the uploaded image is
     sprite = sprite.crop(box)
-    scale = min(canvas_scale, MAX_W / sprite.width, MAX_H / sprite.height)
+    scale = min(MAX_W / sprite.width, MAX_H / sprite.height)
     sprite = sprite.resize((max(1, round(sprite.width * scale)), max(1, round(sprite.height * scale))), Image.LANCZOS)
     canvas = Image.new('RGBA', (CANVAS, CANVAS), (0, 0, 0, 0))
     canvas.alpha_composite(sprite, ((CANVAS - sprite.width) // 2, GROUND - sprite.height))

@@ -208,7 +208,11 @@
     const m = S.matches[id]; const r = rec(id); const a = e.a;
     if (animate && a && window.AUDIO) { const n = SFX_FOR(a); if (n) AUDIO.sfx(n); }
     const arena = document.getElementById('arena-' + id);
-    if (!a) return e.cls === 'turn' ? 350 : e.text ? 160 : 0;
+    if (!a) {
+      // a new turn header = the previous turn just ended: replay the weather / field animation
+      if (e.cls === 'turn') return 350 + (animate ? burstWx(id) : 0);
+      return e.text ? 160 : 0;
+    }
     const vm = r.vm;
     const mon = a.m ? (vm.sides[a.m[0]].active[a.m[1]]) : null;
     switch (a.k) {
@@ -287,6 +291,11 @@
           n.animate([{ filter: 'brightness(8) saturate(0)', transform: 'scale(.6)' }, { filter: 'brightness(2)', transform: 'scale(1.25)', offset: .5 }, { filter: 'brightness(1)', transform: 'scale(1)' }], { duration: 700 * sp, easing: 'ease-out' });
         }, 900 * sp);
         return 1900;
+      }
+      case 'field': {
+        Object.assign(vm.field, a.f);
+        if (!animate) return 0;
+        syncWx(id, true); return 650;
       }
       case 'types': { if (mon) mon.types = a.types; if (animate) redrawField(id); return animate ? 250 : 0; }
       case 'flinch': {
@@ -392,7 +401,60 @@
     // field effects (weather, Trick Room, screens…) stack above your HP cards so they never cover a fighter
     return `<div class="plat foe"></div><div class="plat you"></div>${foe.mons}${me.mons}${foe.hud}${me.hud.replace('<div class="hud you">', `<div class="hud you"><div class="fieldinfo">${fieldChips(vs)}</div>`)}`;
   }
-  function redrawField(id) { const ar = document.getElementById('arena-' + id); if (ar) { ar.querySelectorAll('.fx').forEach(x => x.remove()); ar.innerHTML = fieldHtml(id); wirePicks(id); } }
+  // redraw fighters and HP cards; the weather layers (.wx) stay put so their animations don't restart
+  function redrawField(id) {
+    const ar = document.getElementById('arena-' + id); if (!ar) return;
+    [...ar.children].forEach(c => { if (!c.classList.contains('wx')) c.remove(); });
+    ar.insertAdjacentHTML('beforeend', fieldHtml(id)); wirePicks(id);
+  }
+
+  // ---------- field effects: weather, Trick Room, Gravity ----------
+  // Each effect is a back layer (behind the platforms) and a front layer (over the fighters, under the HP cards).
+  const WX = {
+    rain: { back: '<i class="cloud c1"></i><i class="cloud c2"></i><i class="cloud c3"></i>', front: '<i class="drops d1"></i><i class="drops d2"></i><i class="splash"></i>' },
+    sun: { back: '<i class="sundisk"></i><i class="rays"></i>', front: '<i class="glare"></i><i class="shafts"></i>' },
+    snow: { back: '<i class="haze"></i>', front: '<i class="flakes f1"></i><i class="flakes f2"></i><i class="flakes f3"></i>' },
+    trickroom: { back: '<i class="grid"></i>', front: '<i class="warp"></i>' },
+    gravity: { back: '', front: '<i class="press"></i><i class="streaks"></i>' },
+  };
+  // burst = play the short animation on effects that start now (an effect starting, not a page redraw)
+  function syncWx(id, burst) {
+    const ar = document.getElementById('arena-' + id); if (!ar) return;
+    const f = view(id).field || {};
+    ar.classList.remove('weather-rain', 'weather-sun', 'weather-snow');
+    if (f.weather) ar.classList.add('weather-' + f.weather);
+    const want = [f.weather, f.trickroom ? 'trickroom' : '', f.gravity ? 'gravity' : ''].filter(Boolean);
+    ar.querySelectorAll(':scope > .wx').forEach(el => {
+      if (!want.includes(el.dataset.wx) && !el.classList.contains('leaving')) { el.classList.add('leaving'); setTimeout(() => el.remove(), 900); }
+    });
+    for (const k of want) {
+      if (ar.querySelector(`:scope > .wx[data-wx="${k}"]:not(.leaving)`)) continue;
+      for (const part of ['back', 'front']) {
+        if (!WX[k][part]) continue;
+        const d = document.createElement('div');
+        d.className = `wx wx-${part} wx-${k}`; d.dataset.wx = k;
+        d.innerHTML = WX[k][part];
+        ar.insertBefore(d, ar.firstChild);
+        // a brand-new effect bursts; a layer rebuilt by a redraw picks up a burst that's still playing
+        const since = performance.now() - (wxBurstAt[id] || -1e9);
+        if (burst) { wxBurstAt[id] = performance.now(); burstEl(d, 0); } else if (since < BURST_MS) burstEl(d, since);
+      }
+    }
+  }
+  // the effects stay still during a turn; this plays their short animation (start of effect / end of turn)
+  const BURST_MS = 2200; const wxBurstAt = {};
+  function burstEl(el, elapsed) {
+    clearTimeout(el._bt); el.classList.remove('burst'); void el.offsetWidth;
+    el.style.setProperty('--bd', `-${Math.round(elapsed || 0)}ms`); el.classList.add('burst');
+    el._bt = setTimeout(() => el.classList.remove('burst'), BURST_MS - (elapsed || 0));
+  }
+  function burstWx(id) {
+    const ar = document.getElementById('arena-' + id); if (!ar) return 0;
+    const els = [...ar.querySelectorAll(':scope > .wx:not(.leaving)')];
+    // skip if an effect just started (its own burst is still playing)
+    if (!els.length || els.some(el => el.classList.contains('burst'))) return 0;
+    wxBurstAt[id] = performance.now(); els.forEach(el => burstEl(el, 0)); return 900;
+  }
 
   // which slots flash / are pickable for the move currently being chosen
   function selection(m) {
@@ -516,6 +578,7 @@
       </section></div>`;
     const lg = $('#blog'); if (atBottom) lg.scrollTop = lg.scrollHeight;
     wire(m);
+    syncWx(id);
   }
   U.renderBattle = renderBattle;
   // count every visible clock down between server updates
