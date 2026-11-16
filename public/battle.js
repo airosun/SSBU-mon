@@ -208,7 +208,11 @@
     const m = S.matches[id]; const r = rec(id); const a = e.a;
     if (animate && a && window.AUDIO) { const n = SFX_FOR(a); if (n) AUDIO.sfx(n); }
     const arena = document.getElementById('arena-' + id);
-    if (!a) return e.cls === 'turn' ? 350 : e.text ? 160 : 0;
+    if (!a) {
+      // a new turn header = the previous turn just ended: replay the weather / field animation
+      if (e.cls === 'turn') return 350 + (animate ? burstWx(id) : 0);
+      return e.text ? 160 : 0;
+    }
     const vm = r.vm;
     const mon = a.m ? (vm.sides[a.m[0]].active[a.m[1]]) : null;
     switch (a.k) {
@@ -291,7 +295,7 @@
       case 'field': {
         Object.assign(vm.field, a.f);
         if (!animate) return 0;
-        syncWx(id); return 650;
+        syncWx(id, true); return 650;
       }
       case 'types': { if (mon) mon.types = a.types; if (animate) redrawField(id); return animate ? 250 : 0; }
       case 'flinch': {
@@ -413,7 +417,8 @@
     trickroom: { back: '<i class="grid"></i>', front: '<i class="warp"></i>' },
     gravity: { back: '', front: '<i class="press"></i><i class="streaks"></i>' },
   };
-  function syncWx(id) {
+  // burst = play the short animation on effects that start now (an effect starting, not a page redraw)
+  function syncWx(id, burst) {
     const ar = document.getElementById('arena-' + id); if (!ar) return;
     const f = view(id).field || {};
     ar.classList.remove('weather-rain', 'weather-sun', 'weather-snow');
@@ -422,18 +427,33 @@
     ar.querySelectorAll(':scope > .wx').forEach(el => {
       if (!want.includes(el.dataset.wx) && !el.classList.contains('leaving')) { el.classList.add('leaving'); setTimeout(() => el.remove(), 900); }
     });
-    // one shared clock for every layer, so a layer drawn later stays in step with the rest
-    const delay = `-${Math.round(performance.now())}ms`;
     for (const k of want) {
       if (ar.querySelector(`:scope > .wx[data-wx="${k}"]:not(.leaving)`)) continue;
       for (const part of ['back', 'front']) {
         if (!WX[k][part]) continue;
         const d = document.createElement('div');
-        d.className = `wx wx-${part} wx-${k}`; d.dataset.wx = k; d.style.setProperty('--wxd', delay);
+        d.className = `wx wx-${part} wx-${k}`; d.dataset.wx = k;
         d.innerHTML = WX[k][part];
         ar.insertBefore(d, ar.firstChild);
+        // a brand-new effect bursts; a layer rebuilt by a redraw picks up a burst that's still playing
+        const since = performance.now() - (wxBurstAt[id] || -1e9);
+        if (burst) { wxBurstAt[id] = performance.now(); burstEl(d, 0); } else if (since < BURST_MS) burstEl(d, since);
       }
     }
+  }
+  // the effects stay still during a turn; this plays their short animation (start of effect / end of turn)
+  const BURST_MS = 2200; const wxBurstAt = {};
+  function burstEl(el, elapsed) {
+    clearTimeout(el._bt); el.classList.remove('burst'); void el.offsetWidth;
+    el.style.setProperty('--bd', `-${Math.round(elapsed || 0)}ms`); el.classList.add('burst');
+    el._bt = setTimeout(() => el.classList.remove('burst'), BURST_MS - (elapsed || 0));
+  }
+  function burstWx(id) {
+    const ar = document.getElementById('arena-' + id); if (!ar) return 0;
+    const els = [...ar.querySelectorAll(':scope > .wx:not(.leaving)')];
+    // skip if an effect just started (its own burst is still playing)
+    if (!els.length || els.some(el => el.classList.contains('burst'))) return 0;
+    wxBurstAt[id] = performance.now(); els.forEach(el => burstEl(el, 0)); return 900;
   }
 
   // which slots flash / are pickable for the move currently being chosen
