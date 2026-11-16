@@ -791,3 +791,20 @@ a.goto:hover { text-decoration: underline; }
 .bs-tile figcaption { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.25; }
 .bs-tile.fs { border-color: #ffcf4d77; }
 @media (max-width: 600px) { .bs-tile { width: 104px; } .bs-stage { height: 100px; } .bs-stage img { width: 86px; height: 86px; } }
+
+/* v22: battle sprites are 4:3 (wide fighters get room instead of being shrunk); heights unchanged */
+.arena .mon .sprite.battle { width: 200px; height: 150px; }
+.arena .mon.you .sprite.battle { width: 347px; height: 260px; }
+.arena.doubles .mon .sprite.battle { width: 163px; height: 122px; }
+.arena.doubles .mon.you .sprite.battle { width: 267px; height: 200px; }
+@media (max-width: 600px) {
+  .arena .mon .sprite.battle { width: 139px; height: 104px; }
+  .arena .mon.you .sprite.battle { width: 235px; height: 176px; }
+  .arena.doubles .mon .sprite.battle { width: 109px; height: 82px; }
+  .arena.doubles .mon.you .sprite.battle { width: 176px; height: 132px; }
+}
+.bs-tile { width: 164px; }
+.bs-stage img { width: 148px; height: 111px; }
+@media (max-width: 600px) { .bs-tile { width: 128px; } .bs-stage img { width: 112px; height: 84px; } }
+/* flyers on your side float just above the bottom edge instead of having their lower body cut */
+.arena .mon.you .sprite.battle.drawn.hover { transform: translateY(-6%); }

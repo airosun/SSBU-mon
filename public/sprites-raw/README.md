@@ -18,3 +18,12 @@ Put your drawings here, then run `npm run sprites` (or ask Claude). Drawings tha
 - White backgrounds only: use a **closed outline**. White inside the fighter (eyes, teeth, a white body) stays white only if the outline seals it off from the background.
 - The bottom of the drawing is treated as the fighter's feet.
 - Front = facing the viewer. It's shown as drawn on the opponent's side and mirrored on your side.
+
+## Hovering fighters and trims
+
+`tools/sprite_overrides.json` holds per-sprite tweaks, keyed by output name (e.g. `luigi_front`):
+
+- `"hover": true` — the fighter floats with its middle at the same height as a standing fighter's middle (for flyers like Charizard or Safer Sephiroth). On your side it floats just above the bottom edge instead of having its lower body cut off.
+- `"crop": [left, top, right, bottom]` — keep only that part of the original, as fractions (e.g. `[0, 0, 0.445, 1]` keeps the left 44.5% of Luigi and drops his smoke trail).
+
+Re-run `npm run sprites` after changing it.
