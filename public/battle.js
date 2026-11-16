@@ -148,7 +148,7 @@
   U.isPlaying = id => !!(rec(id) && rec(id).playing);
 
   function slotEl(side, pos) { return document.getElementById(`slot-${side}-${pos}`); }
-  function sprEl(side, pos) { const s = slotEl(side, pos); return s && s.querySelector('.spr'); }
+  function sprEl(side, pos) { const s = document.getElementById(`mon-${side}-${pos}`); return s && s.querySelector('.spr'); }
   function centerOf(el, arena) {
     const a = arena.getBoundingClientRect(), r = el.getBoundingClientRect();
     return { x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height / 2 };
@@ -312,24 +312,28 @@
     const m = S.matches[id]; const r = rec(id);
     return r && (r.playing || r.queue.length) ? r.vm : m.battle.state;
   }
-  function sideHtml(m, vs, n, isFoe, sel) {
-    const side = vs.sides[n];
+  // Pokémon-style field: the opponent's fighters (front view) stand on a platform in the top right,
+  // yours (back view) on a platform in the bottom left; HP cards sit in the opposite corners.
+  // Each fighter is two elements: its sprite (#mon-side-pos) and its HP card (#slot-side-pos).
+  function sideParts(m, vs, n, isFoe, sel) {
+    const side = vs.sides[n]; const cls = isFoe ? 'foe' : 'you';
     const pips = [...Array(side.brought)].map((_, i) => { const t = side.team[i]; return `<span class="pip ${t ? (t.fainted ? 'fainted' : t.status ? 'status' : '') : 'unknown'}" title="${t ? esc(t.name) : 'Not revealed'}"></span>`; }).join('');
-    const mons = side.active.map((a, pos) => {
+    let mons = '', cards = '';
+    side.active.forEach((a, pos) => {
       const key = `${n}:${pos}`;
       const flash = sel && sel.flash.includes(key); const pickable = sel && sel.pick.includes(key);
-      if (!a) return `<div class="combatant empty ${isFoe ? 'foe' : 'you'}" id="slot-${n}-${pos}"></div>`;
+      if (!a) { cards += `<div class="hpcard empty" id="slot-${n}-${pos}"></div>`; return; }
+      const flags = `${flash ? 'flashing' : ''} ${pickable ? 'pickable' : ''} ${a.fainted ? 'down' : ''}`;
+      const tip = !pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : '';
+      const pick = pickable ? `data-pick="${key}"` : '';
       const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
       const vols = (a.volatiles || []).map(v => `<span class="chip">${VOL[v] || v}</span>`).join('');
-      return `<div class="combatant ${isFoe ? 'foe' : 'you'} ${flash ? 'flashing' : ''} ${pickable ? 'pickable' : ''} ${a.fainted ? 'down' : ''}" id="slot-${n}-${pos}" ${pickable ? `data-pick="${key}"` : ''}>
-        <div class="sprwrap" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe, a.gender)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div>
-        <div class="hpcard" ${!pickable ? (isFoe ? `data-tipfoe="${n}:${a.index}"` : `data-tipmon="${a.id}"`) : ''}><div class="nm">${esc(a.name)} ${gsym(a.gender)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}</div>
-          <div class="chips">${(a.types || []).map(typeChip).join('')}</div>
+      mons += `<div class="mon ${cls} p${pos} ${flags}" id="mon-${n}-${pos}" ${pick}><div class="sprwrap" ${tip}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe, a.gender)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div></div>`;
+      cards += `<div class="hpcard ${flags}" id="slot-${n}-${pos}" ${pick} ${tip}><div class="nm">${esc(a.name)} ${gsym(a.gender)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}<span class="grow"></span><span class="chips types">${(a.types || []).map(typeChip).join('')}</span></div>
           <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
-          <div class="hptext">${a.hp !== undefined && !(rec(m.id) || {}).playing ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</div>
-          <div class="chips">${boosts}${vols}</div></div></div>`;
-    }).join('');
-    return `<div class="sidewrap ${isFoe ? 'foe' : 'you'}"><div class="sidelabel">${esc(side.name)} <span class="pips">${pips}</span></div><div class="actives n${side.active.length}">${mons}</div></div>`;
+          <div class="hprow"><span class="hptext">${a.hp !== undefined && !(rec(m.id) || {}).playing ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</span><span class="chips">${boosts}${vols}</span></div></div>`;
+    });
+    return { mons, hud: `<div class="hud ${cls}"><div class="sidelabel">${esc(side.name)} <span class="pips">${pips}</span></div>${cards}</div>` };
   }
   const turnsLeft = n => n ? `<b>${n} turn${n === 1 ? '' : 's'} left</b> (including this one)` : '';
   const STAYS = '<b>Stays until removed</b> by Rapid Spin or Defog.';
@@ -355,7 +359,9 @@
   function fieldHtml(id) {
     const m = S.matches[id]; const vs = view(id); const you = m.you === null ? 0 : m.you;
     const sel = selection(m);
-    return `${sideHtml(m, vs, 1 - you, true, sel)}<div class="fieldinfo">${fieldChips(vs)}</div>${sideHtml(m, vs, you, false, sel)}`;
+    const foe = sideParts(m, vs, 1 - you, true, sel), me = sideParts(m, vs, you, false, sel);
+    // field effects (weather, Trick Room, screens…) stack above your HP cards so they never cover a fighter
+    return `<div class="plat foe"></div><div class="plat you"></div>${foe.mons}${me.mons}${foe.hud}${me.hud.replace('<div class="hud you">', `<div class="hud you"><div class="fieldinfo">${fieldChips(vs)}</div>`)}`;
   }
   function redrawField(id) { const ar = document.getElementById('arena-' + id); if (ar) { ar.querySelectorAll('.fx').forEach(x => x.remove()); ar.innerHTML = fieldHtml(id); wirePicks(id); } }
 

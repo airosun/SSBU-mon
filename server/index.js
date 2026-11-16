@@ -31,7 +31,12 @@ setupAuth(app, store, { secure: process.env.NODE_ENV === 'production' });
 app.use(express.static(path.join(__dirname, '..', 'public')));
 for (const f of ['dex.js', 'movetext.js', 'megas.js', 'genders.js', 'cardcolors.js']) app.get('/shared/' + f, (req, res) => res.sendFile(path.join(__dirname, '..', 'shared', f)));
 const dexPayload = JSON.stringify({ fighters: FIGHTERS, moves: MOVES, items: DEX.ITEMS, natures: DEX.NATURES, types: DEX.TYPES, chart: DEX.CHART, eviolite: DEX.EVIOLITE_USERS, renamed: DEX.RENAMED_ABILITIES, finalSmashes: MEGAS.FINAL_SMASHES, pass: { perDay: Pass.ROLLS_PER_DAY, keep: Pass.KEEP_PER_ROLL } });
-app.get('/api/dex', (req, res) => res.type('json').send(dexPayload));
+// hand-drawn sprites made by tools/process_sprites.py (public/sprites/<id>[_female|_male]_<front|back>.png)
+function drawnSprites() {
+  try { return require('fs').readdirSync(path.join(__dirname, '..', 'public', 'sprites')).filter(f => /\.png$/i.test(f)).map(f => f.replace(/\.png$/i, '')); } catch { return []; }
+}
+const drawnList = drawnSprites();
+app.get('/api/dex', (req, res) => res.type('json').send(dexPayload.slice(0, -1) + ',"drawn":' + JSON.stringify(drawnList) + '}'));
 app.get('/healthz', (req, res) => res.send('ok'));
 
 // ---------- replays, stats, damage calc ----------
