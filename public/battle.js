@@ -95,16 +95,45 @@
   }
 
   // ---------- type chart ----------
-  function showTypeChart(highlight) {
-    const T = S.dex.types; const C = S.dex.chart;
-    const cell = (a, d) => { const v = C[a][d] ?? 1; return v === 1 ? '<td></td>' : `<td class="tc-${v === 0 ? 0 : v > 1 ? 2 : 'h'}">${v === 0 ? '0' : v > 1 ? '2' : '½'}</td>`; };
+  // Opens from the header on any screen, or from the battle's Type chart button.
+  // highlight = defending types to highlight (the opponents' active fighters in a battle).
+  function showTypeChart(highlight, preset) {
+    const T = S.dex.types; const C = S.dex.chart; const hl = highlight || []; const pre = preset || [];
+    const mult = (a, defs) => defs.reduce((m, d) => m * (C[a][d] ?? 1), 1);
+    const sym = v => v === 0 ? '0' : v === 0.25 ? '¼' : v === 0.5 ? '½' : v === 4 ? '4' : v === 2 ? '2' : '';
+    const cls = v => v === 0 ? 'tc-0' : v > 1 ? 'tc-2' : v < 1 ? 'tc-h' : '';
+    const badge = t => `<span class="type" style="background:var(--t-${t})">${t}</span>`;
+    const opts = (sel, none) => (none ? `<option value="">${none}</option>` : '') + T.map(t => `<option ${t === sel ? 'selected' : ''}>${t}</option>`).join('');
     modal(`<div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">Type chart</h2><button id="tcX">Close</button></div>
-      <p class="muted small" style="margin-top:0">Rows = attacking move type · columns = defending type. ${highlight && highlight.length ? 'Highlighted columns: the opposing fighters\' types.' : ''}</p>
-      <div class="tchart"><table><tr><th class="corner">ATK ↓ / DEF →</th>${T.map(d => `<th class="${highlight && highlight.includes(d) ? 'hl' : ''}"><span class="type" style="background:var(--t-${d})">${d.slice(0, 3)}</span></th>`).join('')}</tr>
-      ${T.map(a => `<tr><th><span class="type" style="background:var(--t-${a})">${a}</span></th>${T.map(d => cell(a, d).replace('<td', `<td data-hl="${highlight && highlight.includes(d) ? 1 : 0}"`)).join('')}</tr>`).join('')}</table></div>
-      <div class="row small" style="margin-top:8px"><span class="tc-2 legend">2</span> super effective <span class="tc-h legend">½</span> not very effective <span class="tc-0 legend">0</span> no effect</div>`);
+      <p class="muted small" style="margin-top:0">Rows = attacking move type · columns = defending type. ${hl.length ? 'Highlighted columns: the opposing fighters\' types.' : ''}</p>
+      <div class="tchart"><table><tr><th class="corner">ATK ↓ / DEF →</th>${T.map(d => `<th class="${hl.includes(d) ? 'hl' : ''}" title="${d}"><span class="type" style="background:var(--t-${d})">${d.slice(0, 3)}</span></th>`).join('')}</tr>
+      ${T.map(a => `<tr><th>${badge(a)}</th>${T.map(d => { const v = mult(a, [d]); return `<td class="${cls(v)}" data-hl="${hl.includes(d) ? 1 : 0}">${sym(v)}</td>`; }).join('')}</tr>`).join('')}</table></div>
+      <div class="row small" style="margin-top:8px"><span class="tc-2 legend">2</span> super effective <span class="tc-h legend">½</span> not very effective <span class="tc-0 legend">0</span> no effect</div>
+      <div class="tc-combo">
+        <h3>Check a type combo</h3>
+        <div class="row wrap"><label>Defending <select id="tcA">${opts(pre[0] || 'Normal')}</select></label><label>and <select id="tcB">${opts(pre[1] || '', '— none —')}</select></label></div>
+        <div id="tcOut"></div>
+      </div>`);
+    const out = () => {
+      const defs = [$('#tcA').value, $('#tcB').value].filter((t, i, a) => t && a.indexOf(t) === i);
+      const groups = [[4, '4× weak'], [2, '2× weak'], [0.5, '½× resists'], [0.25, '¼× resists'], [0, 'Immune']];
+      $('#tcOut').innerHTML = `<div class="muted small">Damage taken by a ${defs.join(' / ')} fighter:</div>` + groups.map(([v, n]) => {
+        const ts = T.filter(a => mult(a, defs) === v);
+        return ts.length ? `<div class="tc-grp"><span class="${cls(v)} legend">${n}</span>${ts.map(badge).join(' ')}</div>` : '';
+      }).join('');
+    };
+    $('#tcA').onchange = out; $('#tcB').onchange = out; out();
     $('#tcX').onclick = closeModal;
   }
+  // opposing active fighters' types in the battle open on screen (none if not in a battle)
+  function foesOnScreen() {
+    const m = S.matches && S.matches[S.tab];
+    if (!m || !m.battle) return [];
+    const you = m.you === null || m.you === undefined ? 0 : m.you;
+    return m.battle.state.sides[1 - you].active.filter(a => a && !a.fainted);
+  }
+  // highlight every opposing type; the combo checker starts on the first opponent's own types
+  U.showTypeChart = () => { const foes = foesOnScreen(); showTypeChart([...new Set(foes.flatMap(a => a.types))], foes[0] && foes[0].types); };
 
   // ---------- playback state ----------
   function rec(id) { return S.bat[id]; }
@@ -519,11 +548,7 @@
     $$('[data-quick]').forEach(q => q.onclick = () => socket.emit('chat', { room: id, text: q.dataset.quick }));
     const sk = $('#bSkip'); if (sk) sk.onclick = () => { rec(id).skip = true; };
     const sp = $('#bSpeed'); sp.value = S.animSpeed; sp.onchange = () => { S.animSpeed = sp.value; U.store('ssbu-anim', sp.value); };
-    $('#bTypes').onclick = () => {
-      const you = m.you === null ? 0 : m.you;
-      const foeTypes = [...new Set(st.sides[1 - you].active.filter(a => a && !a.fainted).flatMap(a => a.types))];
-      showTypeChart(foeTypes);
-    };
+    $('#bTypes').onclick = () => U.showTypeChart();
     const send = () => { const v = $('#bChat').value.trim(); if (v) { socket.emit('chat', { room: id, text: v }); $('#bChat').value = ''; } };
     if ($('#bSend')) { $('#bSend').onclick = send; $('#bChat').onkeydown = e => { if (e.key === 'Enter') send(); }; }
     const u = $('#bUndo'); if (u) u.onclick = () => { delete S.turn[id]; act(id, { type: 'undo' }); };
