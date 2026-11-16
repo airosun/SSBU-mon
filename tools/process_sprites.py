@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Turn hand-drawn fighter sprites on a white background into game-ready transparent sprites.
+"""Turn hand-drawn fighter sprites into game-ready battle sprites.
+
+Uploads can either already be transparent (used exactly as drawn) or sit on a plain white
+background (the white is removed as described below). Either way the sprite is cropped, scaled
+and placed on the shared ground line.
 
   python3 tools/process_sprites.py              # process everything in public/sprites-raw/
   python3 tools/process_sprites.py mario pichu  # only files whose name starts with these IDs
@@ -12,7 +16,7 @@ Output: public/sprites/<same name>.png, a 320x320 transparent PNG with the fight
         Size is kept relative to the drawing's canvas: draw every fighter on the same canvas size
         (for example 512x512), filling it for the biggest fighters, and their sizes stay in proportion.
 
-How the white is removed:
+How the white is removed (white-background uploads only):
   1. Only white connected to the edge of the picture is removed (a flood fill from the border), so
      white inside the fighter (eyes, teeth, a white body) stays, as long as the outline closes it in.
   2. The soft light-gray halo where the drawing meets the background is turned into partial
@@ -43,9 +47,34 @@ def valid_ids():
 
 NAME = re.compile(r'^([a-z0-9-]+?)(?:_(female|male))?_(front|back)\.png$')
 
+def already_transparent(im):
+    """True when the upload already has a transparent background (a real alpha channel that clears
+    a good share of the picture). Those are used as drawn: no white removal at all."""
+    if im.mode not in ('RGBA', 'LA', 'P', 'PA') and 'transparency' not in im.info: return False
+    a = np.asarray(im.convert('RGBA').getchannel('A'))
+    return (a == 0).mean() >= 0.05
+
 def process(path):
     im = Image.open(path)
-    if im.mode in ('RGBA', 'LA', 'P'):   # flatten any existing transparency onto white first
+    if already_transparent(im):
+        rgba = np.asarray(im.convert('RGBA')).astype(np.float32)
+        out, alpha = rgba[..., :3], rgba[..., 3] / 255.0
+        bg = alpha == 0
+    else:
+        out, alpha, bg = remove_white(im)
+    # drop specks: keep only reasonably large opaque blobs
+    solid = alpha > 0.1
+    lab, n = ndimage.label(solid)
+    if n > 1:
+        sizes = ndimage.sum(solid, lab, range(1, n + 1))
+        keep = np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= max(30, sizes.max() * 0.002)])
+        # faint glow (alpha <= 0.1) right next to a kept blob stays; isolated specks go
+        near_keep = ndimage.binary_dilation(keep, iterations=6)
+        alpha = np.where(keep | ((alpha <= 0.1) & near_keep), alpha, 0)
+    return place(out, alpha), bg.mean()
+
+def remove_white(im):
+    if im.mode in ('RGBA', 'LA', 'P'):   # flatten any partial transparency onto white first
         im = im.convert('RGBA'); bg = Image.new('RGBA', im.size, (255, 255, 255, 255)); bg.alpha_composite(im); im = bg
     rgb = np.asarray(im.convert('RGB')).astype(np.float32)
     lo, hi = rgb.min(axis=2), rgb.max(axis=2)
@@ -64,18 +93,13 @@ def process(path):
     safe = np.maximum(alpha, 1e-3)[..., None]
     unmixed = 255.0 - (255.0 - rgb) / safe              # remove the white that was mixed into fringe pixels
     out = np.where(near[..., None], np.clip(unmixed, 0, 255), out)
-    # drop specks: keep only reasonably large opaque blobs
-    solid = alpha > 0.1
-    lab, n = ndimage.label(solid)
-    if n > 1:
-        sizes = ndimage.sum(solid, lab, range(1, n + 1))
-        keep = np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= max(30, sizes.max() * 0.002)])
-        alpha = np.where(keep | (alpha < 0.1), alpha, 0)
-        alpha = np.where(keep, alpha, 0)
+    return out, alpha, bg
+
+def place(out, alpha):
     rgba = np.dstack([out, alpha * 255]).astype(np.uint8)
     sprite = Image.fromarray(rgba, 'RGBA')
     box = sprite.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
-    if not box: raise ValueError('nothing left after removing the background (is the background really white?)')
+    if not box: raise ValueError('nothing left after removing the background (is the background really white or transparent?)')
     # keep the fighter's size relative to its canvas: draw everyone on the same canvas size and small
     # fighters stay small, big ones big (like Pokémon sprites). Never bigger than the output box.
     canvas_scale = min(MAX_W, MAX_H) / max(sprite.width, sprite.height)
@@ -84,7 +108,7 @@ def process(path):
     sprite = sprite.resize((max(1, round(sprite.width * scale)), max(1, round(sprite.height * scale))), Image.LANCZOS)
     canvas = Image.new('RGBA', (CANVAS, CANVAS), (0, 0, 0, 0))
     canvas.alpha_composite(sprite, ((CANVAS - sprite.width) // 2, GROUND - sprite.height))
-    return canvas, bg.mean()
+    return canvas
 
 def main(only):
     os.makedirs(OUT, exist_ok=True)
@@ -100,8 +124,9 @@ def main(only):
             img, bgshare = process(os.path.join(RAW, name))
             img.save(os.path.join(OUT, name.lower().replace(' ', '-')), optimize=True)
             done += 1
+            kind = 'transparent' if already_transparent(Image.open(os.path.join(RAW, name))) else 'white bg removed'
             note = '  (little background found: check the background is white and touches the edges)' if bgshare < 0.15 else ''
-            print(f'ok   {name}{note}')
+            print(f'ok   {name}  [{kind}]{note}')
         except Exception as e:
             problems.append(f'{name}: {e}')
     for p in problems: print('skip', p)
