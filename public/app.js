@@ -48,12 +48,14 @@
   // (Fighterdex, Battler Cards, menus, team builder) keeps the official art in public/images/.
   //   back = true: the player's own fighter in battle (back view; the original image is mirrored)
   //   gender: picks the alternate-gender art when that gender has its own
+  const USE_DRAWN_BACKS = false;
   function spriteSrc(full, back, gender) {
     const drawn = S.drawn || new Set(); const id = full.id;
     const sex = gender === 'F' ? 'female' : gender === 'M' ? 'male' : null;
     const nonDefault = sex && window.GENDER && GENDER.image(id, gender, null);   // this gender has its own original art
     const pick = view => (sex && drawn.has(`${id}_${sex}_${view}`) && `${id}_${sex}_${view}`) || (!nonDefault && drawn.has(`${id}_${view}`) && `${id}_${view}`) || null;
-    if (back) { const b = pick('back'); if (b) return { url: `/sprites/${b}.png`, flip: false, drawn: true }; }
+    // For now back views always use the front drawing mirrored; flip to true to use *_back drawings again.
+    if (back && USE_DRAWN_BACKS) { const b = pick('back'); if (b) return { url: `/sprites/${b}.png`, flip: false, drawn: true }; }
     const fr = pick('front');
     if (fr) return { url: `/sprites/${fr}.png`, flip: back, drawn: true };
     const img = gender && window.GENDER ? GENDER.image(id, gender, full.image) : full.image;
