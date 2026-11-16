@@ -43,12 +43,26 @@
 
   // ---------- helpers ----------
   const typeChip = t => `<span class="type" style="background:var(--t-${t})">${t}</span>`;
-  // gender: picks the alternate sprite when that gender has one
+  // Which picture to show for a fighter. Hand-drawn sprites (public/sprites/, see tools/process_sprites.py)
+  // are used when they exist; otherwise the original images in public/images/.
+  //   back = true: the player's own fighter in battle (back view; the original image is mirrored)
+  //   gender: picks the alternate-gender art when that gender has its own
+  function spriteSrc(full, back, gender) {
+    const drawn = S.drawn || new Set(); const id = full.id;
+    const sex = gender === 'F' ? 'female' : gender === 'M' ? 'male' : null;
+    const nonDefault = sex && window.GENDER && GENDER.image(id, gender, null);   // this gender has its own original art
+    const pick = view => (sex && drawn.has(`${id}_${sex}_${view}`) && `${id}_${sex}_${view}`) || (!nonDefault && drawn.has(`${id}_${view}`) && `${id}_${view}`) || null;
+    if (back) { const b = pick('back'); if (b) return { url: `/sprites/${b}.png`, flip: false, drawn: true }; }
+    const fr = pick('front');
+    if (fr) return { url: `/sprites/${fr}.png`, flip: back, drawn: true };
+    const img = gender && window.GENDER ? GENDER.image(id, gender, full.image) : full.image;
+    return { url: `/images/${encodeURIComponent(img)}`, flip: back, drawn: false };
+  }
   function sprite(f, cls = '', flip = false, gender = null) {
     const full = f && (f.image !== undefined ? f : (S.byId[f.id] || f));
     if (!full || !full.image) return badge(full || f, cls.replace('battle', 'lg'));
-    const img = gender && window.GENDER ? GENDER.image(full.id, gender, full.image) : full.image;
-    return `<div class="sprite ${cls}" title="${esc(full.name)}"><img src="/images/${encodeURIComponent(img)}" alt="${esc(full.name)}" draggable="false"${flip ? ' class="flip"' : ''}></div>`;
+    const src = spriteSrc(full, flip, gender);
+    return `<div class="sprite ${cls}${src.drawn ? ' drawn' : ''}" title="${esc(full.name)}"><img src="${src.url}" alt="${esc(full.name)}" draggable="false"${src.flip ? ' class="flip"' : ''}></div>`;
   }
   const gsym = g => g === 'M' || g === 'F' ? `<span class="gsym g${g}" title="${g === 'M' ? 'Male' : 'Female'}">${GENDER.SYMBOL[g]}</span>` : '';
   function badge(f, cls = '', gender = null) {
@@ -675,7 +689,7 @@
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {
-    S.dex = d; S.byId = Object.fromEntries(d.fighters.map(f => [f.id, f]));
+    S.dex = d; S.byId = Object.fromEntries(d.fighters.map(f => [f.id, f])); S.drawn = new Set(d.drawn || []);
     for (const [stone, fs] of Object.entries(d.finalSmashes || {})) {
       const ab = { name: fs.ability.name, desc: fs.ability.desc };
       S.byId[fs.id] = { id: fs.id, name: fs.name, types: fs.types, stats: fs.stats, image: fs.image, abilities: [ab], hidden: ab, learnset: S.byId[fs.base].learnset, signature: S.byId[fs.base].signature, form: true };

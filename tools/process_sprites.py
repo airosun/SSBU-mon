@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Turn hand-drawn fighter sprites on a white background into game-ready transparent sprites.
+
+  python3 tools/process_sprites.py              # process everything in public/sprites-raw/
+  python3 tools/process_sprites.py mario pichu  # only files whose name starts with these IDs
+
+Input:  public/sprites-raw/<id>_front.png and <id>_back.png
+        alternate genders: <id>_female_front.png / <id>_male_back.png
+        Final Smash forms use the form's ID: giga-bowser_front.png, grima_female_back.png
+Output: public/sprites/<same name>.png, a 320x320 transparent PNG with the fighter centered and its
+        feet on a shared ground line, so every fighter stands on its platform the same way.
+        Size is kept relative to the drawing's canvas: draw every fighter on the same canvas size
+        (for example 512x512), filling it for the biggest fighters, and their sizes stay in proportion.
+
+How the white is removed:
+  1. Only white connected to the edge of the picture is removed (a flood fill from the border), so
+     white inside the fighter (eyes, teeth, a white body) stays, as long as the outline closes it in.
+  2. The soft light-gray halo where the drawing meets the background is turned into partial
+     transparency ("color to alpha" against white), so edges stay smooth with no white fringe.
+  3. Tiny leftover specks are dropped, the sprite is cropped, scaled to fit and placed on the ground line.
+"""
+import json, os, re, sys
+import numpy as np
+from PIL import Image
+from scipy import ndimage
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW = os.path.join(ROOT, 'public', 'sprites-raw')
+OUT = os.path.join(ROOT, 'public', 'sprites')
+CANVAS = 320          # output size (square)
+MAX_W, MAX_H = 300, 300
+GROUND = 312          # y of the feet line
+WHITE = 228           # a pixel counts as background white when all channels are at least this...
+GRAY_SPREAD = 28      # ...and it is nearly gray (max - min channel)
+FRINGE = 2            # px of edge softening next to removed background
+
+def valid_ids():
+    fighters = json.load(open(os.path.join(ROOT, 'shared', 'fighters.json')))
+    ids = {f['id'] for f in fighters}
+    megas = open(os.path.join(ROOT, 'shared', 'megas.js')).read()
+    ids |= set(re.findall(r"id: '([a-z0-9-]+)'", megas))
+    return ids
+
+NAME = re.compile(r'^([a-z0-9-]+?)(?:_(female|male))?_(front|back)\.png$')
+
+def process(path):
+    im = Image.open(path)
+    if im.mode in ('RGBA', 'LA', 'P'):   # flatten any existing transparency onto white first
+        im = im.convert('RGBA'); bg = Image.new('RGBA', im.size, (255, 255, 255, 255)); bg.alpha_composite(im); im = bg
+    rgb = np.asarray(im.convert('RGB')).astype(np.float32)
+    lo, hi = rgb.min(axis=2), rgb.max(axis=2)
+    whiteish = (lo >= WHITE) & (hi - lo <= GRAY_SPREAD)
+    # background = white regions that touch the border
+    labels, _ = ndimage.label(whiteish)
+    edge = np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, -1]]))
+    bg = np.isin(labels, edge[edge > 0])
+    alpha = np.where(bg, 0.0, 1.0)
+    # soften the edge: near the background, light pixels become partly transparent (color to alpha)
+    near = ndimage.binary_dilation(bg, iterations=FRINGE) & ~bg
+    a = np.clip((255.0 - lo) / 255.0, 0, 1)            # how far from white the darkest channel is
+    a = np.clip(a / 0.35, 0, 1)                         # anything clearly colored stays fully opaque
+    alpha = np.where(near, np.minimum(alpha, a), alpha)
+    out = rgb.copy()
+    safe = np.maximum(alpha, 1e-3)[..., None]
+    unmixed = 255.0 - (255.0 - rgb) / safe              # remove the white that was mixed into fringe pixels
+    out = np.where(near[..., None], np.clip(unmixed, 0, 255), out)
+    # drop specks: keep only reasonably large opaque blobs
+    solid = alpha > 0.1
+    lab, n = ndimage.label(solid)
+    if n > 1:
+        sizes = ndimage.sum(solid, lab, range(1, n + 1))
+        keep = np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= max(30, sizes.max() * 0.002)])
+        alpha = np.where(keep | (alpha < 0.1), alpha, 0)
+        alpha = np.where(keep, alpha, 0)
+    rgba = np.dstack([out, alpha * 255]).astype(np.uint8)
+    sprite = Image.fromarray(rgba, 'RGBA')
+    box = sprite.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+    if not box: raise ValueError('nothing left after removing the background (is the background really white?)')
+    # keep the fighter's size relative to its canvas: draw everyone on the same canvas size and small
+    # fighters stay small, big ones big (like Pokémon sprites). Never bigger than the output box.
+    canvas_scale = min(MAX_W, MAX_H) / max(sprite.width, sprite.height)
+    sprite = sprite.crop(box)
+    scale = min(canvas_scale, MAX_W / sprite.width, MAX_H / sprite.height)
+    sprite = sprite.resize((max(1, round(sprite.width * scale)), max(1, round(sprite.height * scale))), Image.LANCZOS)
+    canvas = Image.new('RGBA', (CANVAS, CANVAS), (0, 0, 0, 0))
+    canvas.alpha_composite(sprite, ((CANVAS - sprite.width) // 2, GROUND - sprite.height))
+    return canvas, bg.mean()
+
+def main(only):
+    os.makedirs(OUT, exist_ok=True)
+    if not os.path.isdir(RAW): print('No public/sprites-raw folder yet.'); return 0
+    ids = valid_ids(); done = 0; problems = []
+    for name in sorted(os.listdir(RAW)):
+        if name.startswith('.') or name.lower() == 'readme.md': continue
+        m = NAME.match(name.lower().replace(' ', '-'))
+        if not m: problems.append(f'{name}: name should look like mario_front.png, mario_back.png or robin_female_front.png'); continue
+        if m.group(1) not in ids: problems.append(f'{name}: "{m.group(1)}" is not a fighter or Final Smash ID'); continue
+        if only and not any(m.group(1).startswith(o) for o in only): continue
+        try:
+            img, bgshare = process(os.path.join(RAW, name))
+            img.save(os.path.join(OUT, name.lower().replace(' ', '-')), optimize=True)
+            done += 1
+            note = '  (little background found: check the background is white and touches the edges)' if bgshare < 0.15 else ''
+            print(f'ok   {name}{note}')
+        except Exception as e:
+            problems.append(f'{name}: {e}')
+    for p in problems: print('skip', p)
+    print(f'{done} sprite(s) written to public/sprites/')
+    return 1 if problems else 0
+
+if __name__ == '__main__':
+    sys.exit(main([a.lower() for a in sys.argv[1:]]))
