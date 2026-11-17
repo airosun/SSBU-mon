@@ -14,14 +14,14 @@ const BRING = { singles: 3, doubles: 4 };
 const CLOCK = { turn: 45, bank: 7 * 60, game: 20 * 60, draft: 90, build: 240, preview: 90 };
 
 class Match {
-  constructor({ id, mode, format, players, onUpdate, timed, room }) {
+  constructor({ id, mode, format, players, onUpdate, timed, room, road }) {
     this.id = id; this.mode = mode === 'elite' ? 'elite' : 'standard';
     this.format = format === 'doubles' ? 'doubles' : 'singles';
     this.bring = BRING[this.format];
     this.onUpdate = onUpdate || (() => {});
-    this.players = players.map(p => ({ id: p.id, name: p.name, cpu: !!p.cpu, team: p.team || null, pool: null, picks: null, lineup: null, ready: false }));
+    this.players = players.map(p => ({ id: p.id, name: p.name, cpu: !!p.cpu, skill: p.skill ?? 1, team: p.team || null, pool: null, picks: null, lineup: null, ready: false }));
     this.battle = null; this.result = null; this.created = Date.now(); this.log = [];
-    this.timed = !!timed; this.room = room || null;   // private room code, if this battle is part of one
+    this.timed = !!timed; this.room = room || null; this.road = road || null;   // road = Road to 50 floor info   // private room code, if this battle is part of one
     if (this.timed) { this.clock = { game: CLOCK.game * 1000, phase: 0, players: this.players.map(() => ({ bank: CLOCK.bank * 1000, turn: CLOCK.turn * 1000, waiting: false })) }; this.lastTick = Date.now(); }
     if (this.mode === 'standard') {
       this.phase = 'draft';
@@ -160,7 +160,7 @@ class Match {
       else if (this.phase === 'preview' && !p.ready) fn = () => this.act(n, { type: 'lineup', order: AI.chooseLineup(p.team, this.players[1 - n].team, this.bring) });
       else if (this.phase === 'battle' && this.battle && !this.battle.ended) {
         const req = this.battle.getRequest(n);
-        if (req.kind === 'move' || req.kind === 'switch') fn = () => { const c = AI.chooseAction(this.battle, n); if (c) this.battle.choose(n, c); };
+        if (req.kind === 'move' || req.kind === 'switch') fn = () => { const c = AI.chooseAction(this.battle, n, Math.random, p.skill); if (c) this.battle.choose(n, c); };
       }
       if (!fn) return;
       p.pending = true;
@@ -177,7 +177,7 @@ class Match {
     const out = {
       id: this.id, mode: this.mode, format: this.format, bring: this.bring, phase: this.phase, you: n,
       players: this.players.map(p => ({ name: p.name, cpu: p.cpu, ready: p.ready })), result: this.result,
-      rematch: this.rematch || null, room: this.room,
+      rematch: this.rematch || null, room: this.room, road: this.road,
     };
     if (this.timed) out.clock = { game: Math.max(0, Math.round(this.clock.game)), phase: Math.max(0, Math.round(this.clock.phase)), players: this.clock.players.map(x => ({ bank: Math.max(0, Math.round(x.bank)), turn: Math.max(0, Math.round(x.turn)), waiting: x.waiting })) };
     if (me) {

@@ -265,7 +265,7 @@
 
   // ---------- tabs ----------
   function renderTabs() {
-    const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['dex', 'Fighterdex'], ['calc', 'Calc'], ['stats', 'Stats'], ['about', 'What is SSBU-mon?']];
+    const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['road', 'Road to 50'], ['dex', 'Fighterdex'], ['calc', 'Calc'], ['stats', 'Stats'], ['about', 'What is SSBU-mon?']];
     let h = tabs.map(([k, n]) => `<button class="tab ${S.tab === k ? 'active' : ''}" data-tab="${k}">${n}</button>`).join('');
     if (S.room) h += `<button class="tab room-tab ${S.tab === 'room' ? 'active' : ''}" data-tab="room">🚪 Room ${esc(S.room.code)}</button>`;
     for (const id of S.open) {
@@ -304,6 +304,7 @@
     else if (S.tab === 'stats') SSBU.renderStats();
     else if (S.tab === 'about') SSBU.renderAbout();
     else if (S.tab === 'room' && S.room) SSBU.renderRoom();
+    else if (S.tab === 'road') SSBU.renderRoad();
     else if (S.matches[S.tab]) renderMatch(S.tab);
     else { S.tab = 'home'; renderHome(); }
   }
@@ -654,7 +655,7 @@
   // ---------- match screens ----------
   function matchHeader(m) {
     const clock = m.clock && m.phase !== 'ended' && m.you !== null && !m.players[m.you].ready ? `<span class="pill clock" data-clock-end="${Date.now() + m.clock.phase}" title="Time left for this step. When it runs out, your choices are made automatically.">⏱ <b>--:--</b></span>` : '';
-    return `<div class="row" style="margin-bottom:10px"><b class="grow">${esc(m.players[0].name)} vs ${esc(m.players[1].name)}</b>${clock}<span class="pill">${esc(label(m.mode, m.format))}</span>${m.phase !== 'ended' && m.you !== null ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>`;
+    return `<div class="row" style="margin-bottom:10px"><b class="grow">${esc(m.players[0].name)} vs ${esc(m.players[1].name)}</b>${clock}<span class="pill">${m.road ? `Road to 50 · Floor ${m.road.floor}` : esc(label(m.mode, m.format))}</span>${m.phase !== 'ended' && m.you !== null ? `<button class="small" id="mForfeit">${m.road ? 'Give up' : 'Forfeit'}</button>` : ''}</div>`;
   }
   function steps(m) {
     const list = m.mode === 'standard' ? [['draft', 'Draft 6'], ['build', 'Moves & items'], ['preview', `Pick ${m.bring}`], ['battle', 'Battle']] : [['preview', `Pick ${m.bring}`], ['battle', 'Battle']];
@@ -735,7 +736,7 @@
   }
 
   // ---------- shared with battle.js ----------
-  window.SSBU = { $, $$, esc, S, F, eliteSelect: id => eliteSelect(id), eliteTeamSets: i => eliteTeamSets(i), eliteReady: t => eliteReady(t), typeChip, badge, sprite, gsym, act, socket, label, toast, modal, closeModal, load, store, render: () => render(), renderTabs: () => renderTabs(), fighterCard, statsOf, rosterById: u => rosterById(u), saveRoster: () => saveRoster(), renderElite: () => renderElite(), abilityInfo };
+  window.SSBU = { $, $$, esc, S, F, setEditor: (...a) => setEditor(...a), wireSetEditor: (...a) => wireSetEditor(...a), itemCounts: b => itemCounts(b), eliteSelect: id => eliteSelect(id), eliteTeamSets: i => eliteTeamSets(i), eliteReady: t => eliteReady(t), typeChip, badge, sprite, gsym, act, socket, label, toast, modal, closeModal, load, store, render: () => render(), renderTabs: () => renderTabs(), fighterCard, statsOf, rosterById: u => rosterById(u), saveRoster: () => saveRoster(), renderElite: () => renderElite(), abilityInfo };
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {

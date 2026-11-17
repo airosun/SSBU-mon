@@ -490,7 +490,7 @@
     if (st.ended) {
       const won = st.winner === you;
       const rm = m.rematch || [false, false];
-      const rematch = m.replay ? `<button id="rpAgain">Watch again</button>` : m.room ? `<button class="primary" id="mRoom">Back to room</button><span class="muted small">The next battle starts automatically.</span>` : you === null ? '' : rm[you] ? '<span class="muted small">Waiting for your opponent to accept the rematch…</span>' : `<button class="primary" id="mRematch">${rm[1 - you] ? 'Accept rematch' : 'Rematch'}</button>`;
+      const rematch = m.replay ? `<button id="rpAgain">Watch again</button>` : m.road && you !== null ? `<button class="primary" id="mRoad">${st.winner === you ? 'Continue the Road' : 'Back to Road to 50'}</button>` : m.room ? `<button class="primary" id="mRoom">Back to room</button><span class="muted small">The next battle starts automatically.</span>` : you === null ? '' : rm[you] ? '<span class="muted small">Waiting for your opponent to accept the rematch…</span>' : `<button class="primary" id="mRematch">${rm[1 - you] ? 'Accept rematch' : 'Rematch'}</button>`;
       const note = !m.replay && you !== null && rm[1 - you] && !rm[you] ? `<div class="small" style="margin-top:6px">${esc(st.sides[1 - you].name)} wants a rematch!</div>` : '';
       return `<div class="banner ${you !== null && !won ? 'lose' : ''}"><span>${st.winner === null ? 'Tie game!' : esc(st.sides[st.winner].name) + ' won!'}</span><div class="row" style="justify-content:center;gap:8px;margin-top:8px">${rematch}<button id="mReplay">${m.replay ? 'Copy replay link' : 'Replay link'}</button><button id="mBack">${m.replay ? 'Close' : 'Back to lobby'}</button></div>${note}</div>`;
     }
@@ -563,7 +563,7 @@
     const vs = view(id);
     $('#view').innerHTML = `<div class="battle">
       <section>
-        <div class="row" style="margin-bottom:8px"><b class="grow">${esc(st.sides[0].name)} vs ${esc(st.sides[1].name)}</b><span class="pill">${esc(label(m.mode, m.format))}</span><span class="pill">Turn ${st.turn}</span>
+        <div class="row" style="margin-bottom:8px"><b class="grow">${esc(st.sides[0].name)} vs ${esc(st.sides[1].name)}</b><span class="pill">${m.road ? `Road to 50 · Floor ${m.road.floor}` : esc(label(m.mode, m.format))}</span><span class="pill">Turn ${st.turn}</span>
           <button class="small" id="bTypes">Type chart</button>
           <select id="bSpeed" class="small" title="Animation speed"><option value="normal">Anim: normal</option><option value="fast">Anim: fast</option><option value="off">Anim: off</option></select>
           ${!st.ended && m.you !== null && !m.replay ? '<button class="small" id="mForfeit">Forfeit</button>' : ''}</div>
@@ -606,6 +606,7 @@
     const fo = $('#mForfeit'); if (fo) fo.onclick = () => { if (confirm('Forfeit this match?')) act(id, { type: 'forfeit' }); };
     const bb = $('#mBack'); if (bb) bb.onclick = () => { if (m.replay) { S.open = S.open.filter(x => x !== id); delete S.matches[id]; delete S.bat[id]; history.replaceState(null, '', '/'); } S.tab = 'home'; U.render(); };
     const br = $('#mRoom'); if (br) br.onclick = () => { S.tab = 'room'; U.render(); };
+    const bro = $('#mRoad'); if (bro) bro.onclick = () => { S.open = S.open.filter(x => x !== id); delete S.matches[id]; S.tab = 'road'; U.render(); };
     const rm = $('#mRematch'); if (rm) rm.onclick = () => socket.emit('rematch', { id }, r => { if (r && r.error) toast(r.error); else if (r && r.waiting) toast('Rematch requested. Waiting for your opponent…'); });
     const rl = $('#mReplay'); if (rl) rl.onclick = () => { const url = location.origin + '/replay/' + (m.replay ? m.replayId : id); (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Replay link copied: ' + url, 4000), () => prompt('Replay link:', url)); };
     const ra = $('#rpAgain'); if (ra) ra.onclick = () => U.openReplay(m.replayId, true);

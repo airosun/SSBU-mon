@@ -95,7 +95,8 @@ function monScore(b, mon, foes) {
   return best - threat * 0.25 + mon.hp / mon.maxhp * 0.3;
 }
 
-function chooseAction(b, sideN, rng = Math.random) {
+// skill 0..1 (default 1 = full strength). Lower skill: picks a random move more often and rarely switches.
+function chooseAction(b, sideN, rng = Math.random, skill = 1) {
   const req = b.getRequest(sideN);
   const side = b.sides[sideN];
   const foes = b.actives(b.sides[1 - sideN]);
@@ -138,8 +139,15 @@ function chooseAction(b, sideN, rng = Math.random) {
         if (s > bestScore) { bestScore = s; best = { index: m.index, target: { side: 1 - sideN, pos: f.pos } }; }
       }
     }
+    // weaker CPUs sometimes just pick any move
+    if (skill < 1 && rng() < (1 - skill) * 0.6) {
+      const usable = a.moves.filter(x => !x.disabled); const mv = usable[Math.floor(rng() * usable.length)];
+      const f = foes[Math.floor(rng() * foes.length)];
+      actions.push({ pos: a.pos, type: 'move', index: mv.index, target: f ? { side: 1 - sideN, pos: f.pos } : undefined, mega: !!(a.finalSmash && !megaUsed && skill >= 0.3 && (megaUsed = true)) });
+      continue;
+    }
     // switch out of a bad matchup now and then
-    if (a.canSwitch && foes.length && rng() < 0.25) {
+    if (a.canSwitch && foes.length && rng() < 0.25 * skill) {
       const cur = monScore(b, mon, foes);
       const alt = b.bench(side).filter(m => !switching.has(m.teamIndex)).map(m => ({ m, s: monScore(b, m, foes) })).sort((x, y) => y.s - x.s)[0];
       if (alt && alt.s > cur + 0.5) { switching.add(alt.m.teamIndex); actions.push({ pos: a.pos, type: 'switch', index: alt.m.teamIndex }); continue; }
