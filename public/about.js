@@ -15,6 +15,7 @@
     ['tabs', 'The tabs'],
     ['accounts', 'Accounts & Battler Cards'],
     ['pvp', 'Playing other people'],
+    ['rooms', 'Private rooms'],
     ['tips', 'Tips'],
   ];
 
@@ -112,7 +113,7 @@
 
       <section class="card" id="ab-tabs"><h2>The tabs</h2>
         <div class="about-tabs">
-          <div><h3>${goto('home', 'Home')}</h3><p>Pick a mode (Standard or Elite Smash) and format (Singles or Doubles), then <b>Find opponent</b> or <b>Battle the CPU</b>. The <b>Online</b> list shows who's here: challenge them, or tap a signed-in player's name to see their Battler Card. You can also watch live matches. The <b>Most used fighters</b> panel shows what players are bringing today and of all time.</p></div>
+          <div><h3>${goto('home', 'Home')}</h3><p>Pick a mode (Standard or Elite Smash) and format (Singles or Doubles), then <b>Find opponent</b> or <b>Battle the CPU</b>. The <b>Online</b> list shows who's here: challenge them, or tap a signed-in player's name to see their Battler Card. You can also watch live matches, or create or join a <b>private room</b>. The <b>Most used fighters</b> panel shows what players are bringing today and of all time.</p></div>
           <div><h3>${goto('pass', 'Fighter Pass')}</h3><p><b>3 rolls per day</b> (resets at midnight US Eastern). Each roll shows 20 random fighters with random natures, IVs, abilities and genders, and you <b>keep up to 5</b> for your roster. Your roster is listed below, sorted by fighter. You can release fighters you don't want.</p></div>
           <div><h3>${goto('elite', 'Elite Teams')}</h3><p>Build teams of 6 from your roster. For each fighter, pick up to 4 moves, an item and (if it can be either) its gender. Hover moves to see what they do. Teams must follow the species and item clauses. <b>Export</b> gives a team as Showdown-style text, and <b>Import</b> pastes one in, matching each fighter to the closest one in your roster.</p></div>
           <div><h3>${goto('dex', 'Fighterdex')}</h3><p>All ${nFighters} fighters with their types, base stats, abilities, move pools, gender ratio and Final Smash forms. Search by name, series, type or move. Filter by a type or a type combination (Final Smash forms included, or pick "None" for single-type fighters), and sort by Fighterdex number, BST or any single stat. Tap a fighter for the full entry.</p></div>
@@ -138,6 +139,17 @@
           <li><b>Chat:</b> each battle has its own chat, with quick buttons (Good luck!, GG, Well played!, Nice!, Oops).</li>
           <li><b>After a battle:</b> <b>Rematch</b> (both players have to accept, and Elite teams are reused), copy a <b>replay link</b> to share, or go back to the lobby.</li>
           <li><b>Spectating:</b> live matches appear on Home, and anyone can watch.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="ab-rooms"><h2>Private rooms</h2>
+        <ul class="about-list">
+          <li><b>Create a room</b> on Home to play with a group of friends. You get a 5-letter <b>room code</b> and an <b>invite link</b>; friends join by typing the code on Home or opening the link. Up to 16 people can be in a room.</li>
+          <li><b>The line:</b> everyone who wants to battle is in line. The first two people in line battle, and <b>everyone else in the room watches</b> the battle live. Tap <b>Sit out</b> to only watch, and <b>Get in line</b> to play again.</li>
+          <li><b>Taking turns:</b> the host picks a rotation. <b>Winner stays on</b>: the winner keeps battling and the loser goes to the back of the line. <b>Everyone rotates</b>: both players go to the back. The next battle starts automatically 10 seconds after each one ends.</li>
+          <li><b>Host controls:</b> the host (👑) picks the mode, format and rotation (between battles), starts or pauses battles, reorders the line, makes someone else host, or removes people. If the host leaves, someone else becomes host.</li>
+          <li><b>Elite Smash rooms:</b> each person picks one of their Elite teams for the room before getting matched. Standard rooms use the usual draft.</li>
+          <li>The room has its own <b>chat</b> and keeps everyone's wins and losses and the results of each battle. Room battles aren't listed on Home, and they still count toward your Stats.</li>
         </ul>
       </section>
 
