@@ -5,6 +5,7 @@ const express = require('express');
 const { Server } = require('socket.io');
 const { Match } = require('./match.js');
 const { createRooms } = require('./rooms.js');
+const Road = require('./road.js');
 const { validateEliteTeam } = require('./engine/validate.js');
 const { verify, genFighter } = require('./engine/roster.js');
 const AI = require('./engine/ai.js');
@@ -25,7 +26,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 const store = createStore();
-Pass.useStore(store);
+Pass.useStore(store); Road.useStore(store);
 app.set('trust proxy', 1);
 setupAuth(app, store, { secure: process.env.NODE_ENV === 'production' });
 
@@ -78,11 +79,11 @@ app.get('/api/stats/usage', api(async (req, res) => {
 }));
 // ---------- Battler Cards ----------
 async function publicProfile(user) {
-  const [prof, sides] = await Promise.all([store.getProfile(user.id), store.userSides(user.id)]);
+  const [prof, sides, road] = await Promise.all([store.getProfile(user.id), store.userSides(user.id), Road.bestOf('u:' + user.id)]);
   const p = cleanForDisplay(prof) || {};
   const rec = Stats.record(sides);
   return { username: user.username, joined: user.created_at || null, color: p.color || 'classic', avatar: p.avatar || null, title: p.title || '', bio: p.bio || '', favoriteTeam: p.favoriteTeam || null,
-    record: { total: rec.total, pvp: rec.pvp }, battles: sides.length, top: Stats.fighterTable(sides).slice(0, 3) };
+    record: { total: rec.total, pvp: rec.pvp }, battles: sides.length, top: Stats.fighterTable(sides).slice(0, 3), road };
 }
 app.get('/api/profile/:username', api(async (req, res) => {
   const u = await store.getUserByName(String(req.params.username).slice(0, 20));
@@ -124,16 +125,16 @@ function prepTeam(mode, team) {
 }
 
 // ---------------- matches ----------------
-function startMatch(mode, format, players, room = null) {
+function startMatch(mode, format, players, room = null, road = null) {
   const timed = players.every(p => p.clientId !== 'cpu');
   const id = Math.random().toString(36).slice(2, 10);
-  const entry = { players: players.map(p => p.clientId), spectators: new Set(), endedAt: null, room };
+  const entry = { players: players.map(p => p.clientId), spectators: new Set(), endedAt: null, room, road: road && road.key };
   matches.set(id, entry);
   for (const p of players) if (p.clientId !== 'cpu') { const u = users.get(p.clientId); if (u) { u.matches.add(id); u.searching = null; } }
   entry.match = new Match({
     id, mode, format,
-    players: players.map(p => ({ id: p.clientId, name: p.name, cpu: p.clientId === 'cpu', team: p.team })),
-    onUpdate: () => onMatchUpdate(id), timed, room,
+    players: players.map(p => ({ id: p.clientId, name: p.name, cpu: p.clientId === 'cpu', team: p.team, skill: p.skill })),
+    onUpdate: () => onMatchUpdate(id), timed, room, road: road && road.info,
   });
   onMatchUpdate(id);
   broadcastLobby();
@@ -149,7 +150,18 @@ function onMatchUpdate(id) {
     const rec = e.match.record(userIds);
     if (rec) store.saveBattle(rec).catch(err => console.error('could not save battle', err.message));
     if (e.room) rooms.matchEnded(e.room, id, e.match.result ?? null);
+    if (e.road) {
+      const lineup = e.match.players[0].lineup ? e.match.players[0].lineup.map(i => e.match.players[0].team[i].species) : null;
+      Road.finished(e.road, id, e.match.result ?? null, { lineup }).then(v => { if (v) emitTo(e.road, 'road', v); }).catch(err => console.error('road result', err.message));
+    }
   }
+}
+// Road to 50 Wins: the floor's boss fight (always Singles, bring 6 pick 3)
+function startRoadMatch(clientId, name, team, boss) {
+  return startMatch('elite', 'singles', [
+    { clientId, name, team },
+    { clientId: 'cpu', name: boss.name, team: boss.team.map(s => Object.assign({}, s)), skill: boss.skill },
+  ], null, { key: clientId, info: { floor: boss.floor, boss: boss.name, milestone: boss.milestone } });
 }
 // a user (all their open tabs) starts watching a match
 function spectateUser(matchId, clientId) {
@@ -172,6 +184,9 @@ setInterval(() => {
     if (!e.match.ended) e.players.forEach((cid, i) => {
       if (cid === 'cpu') return;
       const u = users.get(cid);
+      // Road to 50 fights wait for the player (pausing is allowed); after 12 hours away the fight is dropped
+      // and simply starts over from the beginning of that floor next time
+      if (e.road) { if ((!u || !u.sockets.size) && now - ((u && u.lastSeen) || 0) > 12 * 3600000) { matches.delete(id); Road.fightGone(e.road, id).catch(() => {}); } return; }
       if (u && !u.sockets.size && now - u.lastSeen > 180000) e.match.forfeit(i);
     });
   }
@@ -258,6 +273,7 @@ io.on('connection', socket => {
     const r = await safe(saveWith(me.account.id, cur => UserData.merge(cur, data)));
     if (r.error) return reply(ack, r);
     const pass = guestId ? await safe(Pass.absorb('g:' + String(guestId).slice(0, 40), me.id)) : await safe(Pass.status(me.id));
+    if (guestId) await safe(Road.absorb('g:' + String(guestId).slice(0, 40), me.id));   // a guest's Road to 50 run moves to the account
     reply(ack, { ...r, pass });
   }));
 
@@ -310,6 +326,27 @@ io.on('connection', socket => {
     reply(ack, { id });
   }));
 
+  // ----- Road to 50 Wins -----
+  const roadView = async () => {
+    let v = await Road.get(me.id);
+    if (v.run && v.run.matchId && !matches.has(v.run.matchId)) v = await Road.fightGone(me.id, v.run.matchId);   // server restarted mid-fight
+    return v;
+  };
+  socket.on('road:get', need(async (_, ack) => reply(ack, await safe(roadView()))));
+  socket.on('road:start', need(async (opts, ack) => reply(ack, await safe(Road.start(me.id, opts || {})))));
+  socket.on('road:edit', need(async ({ builds } = {}, ack) => reply(ack, await safe(Road.edit(me.id, builds)))));
+  socket.on('road:fight', need(async (_, ack) => {
+    await safe(roadView());
+    reply(ack, await safe(Road.fight(me.id, (team, boss) => startRoadMatch(me.id, me.name, team, boss))));
+  }));
+  socket.on('road:recruit', need(async ({ pick, replace } = {}, ack) => reply(ack, await safe(Road.recruit(me.id, pick ?? null, replace)))));
+  socket.on('road:abandon', need(async (_, ack) => {
+    const cur = await safe(Road.get(me.id));
+    if (cur && cur.run && cur.run.matchId) { const e = matches.get(cur.run.matchId); if (e) { e.road = null; if (!e.match.ended) e.match.forfeit(0); } }
+    reply(ack, await safe(Road.abandon(me.id)));
+  }));
+  socket.on('road:dismiss', need(async (_, ack) => reply(ack, await safe(Road.dismiss(me.id)))));
+
   // ----- private rooms -----
   socket.on('room:create', need((opts, ack) => reply(ack, rooms.create(me.id, opts || {}))));
   socket.on('room:join', need(({ code } = {}, ack) => reply(ack, rooms.join(me.id, code))));
@@ -335,6 +372,7 @@ io.on('connection', socket => {
     const e = matches.get(id); if (!e || !e.match.ended) return reply(ack, { error: 'That match is not over.' });
     const n = e.players.indexOf(me.id); if (n < 0) return reply(ack, { error: 'You were not in that match.' });
     if (e.room) return reply(ack, { error: 'In a room, the next battle starts automatically.' });
+    if (e.match.road) return reply(ack, { error: 'Road to 50 fights can’t be rematched.' });
     if (e.rematchId) return reply(ack, { id: e.rematchId });
     const m = e.match;
     const seat = i => ({ clientId: e.players[i], name: m.players[i].name, team: m.mode === 'elite' ? (e.players[i] === 'cpu' ? cpuEliteTeam(m.format) : m.players[i].team) : null });

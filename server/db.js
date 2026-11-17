@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS pass_state (
   key TEXT PRIMARY KEY,
   data JSONB NOT NULL
 );
+CREATE TABLE IF NOT EXISTS road_state (
+  key TEXT PRIMARY KEY,
+  data JSONB NOT NULL
+);
 CREATE TABLE IF NOT EXISTS battles (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -80,6 +84,8 @@ function postgresStore(url) {
     },
     async getPass(key) { const r = await one('SELECT data FROM pass_state WHERE key = $1', [key]); return r ? r.data : null; },
     async setPass(key, data) { await q('INSERT INTO pass_state (key, data) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data', [key, data]); },
+    async getRoad(key) { const r = await one('SELECT data FROM road_state WHERE key = $1', [key]); return r ? r.data : null; },
+    async setRoad(key, data) { await q('INSERT INTO road_state (key, data) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data', [key, data]); },
     async saveBattle(b) {
       await q(`INSERT INTO battles (id, mode, format, p1_name, p2_name, p1_user, p2_user, p1_cpu, p2_cpu, winner, turns, p1_team, p2_team, replay)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (id) DO NOTHING`,
@@ -112,7 +118,7 @@ function postgresStore(url) {
 }
 
 function memoryStore(file) {
-  let s = { users: [], sessions: {}, data: {}, pass: {}, battles: [], profiles: {}, nextId: 1 };
+  let s = { users: [], sessions: {}, data: {}, pass: {}, road: {}, battles: [], profiles: {}, nextId: 1 };
   if (file) { try { s = Object.assign(s, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch {} }
   let timer = null;
   const save = () => {
@@ -149,6 +155,8 @@ function memoryStore(file) {
     },
     async getPass(key) { return clone(s.pass[key] || null); },
     async setPass(key, data) { s.pass[key] = clone(data); save(); },
+    async getRoad(key) { return clone((s.road || {})[key] || null); },
+    async setRoad(key, data) { (s.road = s.road || {})[key] = clone(data); save(); },
     async saveBattle(b) {
       if (s.battles.some(x => x.id === b.id)) return;
       s.battles.push(Object.assign(clone(b), { created: new Date().toISOString() }));

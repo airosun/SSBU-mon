@@ -15,6 +15,7 @@
     ['tabs', 'The tabs'],
     ['accounts', 'Accounts & Battler Cards'],
     ['pvp', 'Playing other people'],
+    ['road', 'Road to 50 Wins'],
     ['rooms', 'Private rooms'],
     ['tips', 'Tips'],
   ];
@@ -116,6 +117,7 @@
           <div><h3>${goto('home', 'Home')}</h3><p>Pick a mode (Standard or Elite Smash) and format (Singles or Doubles), then <b>Find opponent</b> or <b>Battle the CPU</b>. The <b>Online</b> list shows who's here: challenge them, or tap a signed-in player's name to see their Battler Card. You can also watch live matches, or create or join a <b>private room</b>. The <b>Most used fighters</b> panel shows what players are bringing today and of all time.</p></div>
           <div><h3>${goto('pass', 'Fighter Pass')}</h3><p><b>3 rolls per day</b> (resets at midnight US Eastern). Each roll shows 20 random fighters with random natures, IVs, abilities and genders, and you <b>keep up to 5</b> for your roster. Your roster is listed below, sorted by fighter. You can release fighters you don't want.</p></div>
           <div><h3>${goto('elite', 'Elite Teams')}</h3><p>Build teams of 6 from your roster. For each fighter, pick up to 4 moves, an item and (if it can be either) its gender. Hover moves to see what they do. Teams must follow the species and item clauses. <b>Export</b> gives a team as Showdown-style text, and <b>Import</b> pastes one in, matching each fighter to the closest one in your roster.</p></div>
+          <div><h3>${goto('road', 'Road to 50')}</h3><p>A gauntlet of 50 boss fights against the CPU. Start with an Elite team, fighters you own or a random team, recruit fighters from the bosses you beat, and see how far you get. Your run saves after every floor.</p></div>
           <div><h3>${goto('dex', 'Fighterdex')}</h3><p>All ${nFighters} fighters with their types, base stats, abilities, move pools, gender ratio and Final Smash forms. Search by name, series, type or move. Filter by a type or a type combination (Final Smash forms included, or pick "None" for single-type fighters), and sort by Fighterdex number, BST or any single stat. Tap a fighter for the full entry.</p></div>
           <div><h3>${goto('calc', 'Calc')}</h3><p>A <b>damage calculator</b> that runs the real battle engine, so its numbers match battles. Set the attacker and defender (nature, IVs, ability, item, Final Smash, stat boosts, status, HP) and the field (weather, screens, critical hit, Doubles spread). It shows the damage range and how many hits it takes to KO. You can load fighters straight from your roster.</p></div>
           <div><h3>${goto('stats', 'Stats')}</h3><p>Your <b>Battler Card</b>, your <b>win/loss record</b> (by mode, against players and the CPU), your most-used fighters and recent battles. It also has site-wide <b>fighter usage</b> (how often each fighter is brought and its win rate, by format, for today, 7/30/90 days or all time) and recent player battles. Every battle has a <b>▶ Watch</b> replay.</p></div>
@@ -139,6 +141,17 @@
           <li><b>Chat:</b> each battle has its own chat, with quick buttons (Good luck!, GG, Well played!, Nice!, Oops).</li>
           <li><b>After a battle:</b> <b>Rematch</b> (both players have to accept, and Elite teams are reused), copy a <b>replay link</b> to share, or go back to the lobby.</li>
           <li><b>Spectating:</b> live matches appear on Home, and anyone can watch.</li>
+        </ul>
+      </section>
+
+      <section class="card" id="ab-road"><h2>Road to 50 Wins</h2>
+        <ul class="about-list">
+          <li>A single-player gauntlet of <b>50 boss fights</b> (Singles: bring 6, pick 3). The bosses are the <b>same for everyone, every run</b>, and get stronger as you climb: higher-BST teams, better natures, IVs, moves and items, and smarter battling. Floors 10, 20, 30, 40 and 50 hold the toughest boss of their ten. Every fighter shows up on at least one boss team.</li>
+          <li><b>Starting a run:</b> bring one of your Elite teams, pick 6 fighters from your roster, or get 6 random fighters with random natures, IVs, abilities and moves.</li>
+          <li><b>Between floors</b> your team is fully healed, and you can change any fighter's moves and items. Your Final Smash stones work from floor 1; bosses start using Final Smashes on floor 15.</li>
+          <li><b>Recruiting:</b> after each win you can take one fighter from the boss's team, exactly as the boss built it, to replace one of yours for the rest of the run (it doesn't join your Fighter Pass roster).</li>
+          <li><b>One loss ends the run.</b> Your best floor and full clears are kept, and shown on your Battler Card.</li>
+          <li>Runs save after every floor, so you can stop and come back later (signed in: on any device; guest: on this browser). You can even leave in the middle of a fight and pick it back up.</li>
         </ul>
       </section>
 

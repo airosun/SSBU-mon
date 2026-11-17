@@ -835,3 +835,42 @@ a.goto:hover { text-decoration: underline; }
 .rc-msg b { color: var(--accent2); }
 .room-home h2 { margin-top: 0; }
 button.danger { border-color: var(--bad); color: var(--bad); }
+
+/* v24: Road to 50 Wins */
+.road-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.road-grid .span2 { grid-column: span 2; }
+@media (max-width: 860px) { .road-grid { grid-template-columns: 1fr; } .road-grid .span2 { grid-column: auto; } }
+.road-hero { background: linear-gradient(135deg, #2b1a0c, #171c26 60%); }
+.road-hero h1 { margin: 0 0 6px; font-size: 26px; }
+.road-records { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; max-width: 520px; }
+.road-records > div { background: #0d1016aa; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.road-records span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.road-records b { font-size: 17px; }
+.road-opt h2 { margin-top: 0; }
+.road-floor { background: linear-gradient(135deg, #1d2236, #171c26 70%); }
+.road-floor.milestone { background: linear-gradient(135deg, #3a2a0c, #1b1a24 65%); border-color: #ffb02066; }
+.road-floorno { font-size: 44px; font-weight: 800; line-height: 1; color: var(--accent2); }
+.road-floorno span { font-size: 18px; color: var(--muted); font-weight: 600; margin-left: 4px; }
+.road-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button.big { font-size: 17px; padding: 10px 26px; }
+.road-map { display: grid; grid-template-columns: repeat(25, 1fr); gap: 3px; margin: 12px 0; }
+.road-map .rf { height: 18px; border-radius: 4px; background: #ffffff10; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.road-map .rf.ms { background: #ffb02022; }
+.road-map .rf.done { background: #3ddc8466; color: #0b1f12; }
+.road-map .rf.cur { background: var(--accent); color: #fff; box-shadow: 0 0 0 2px #ff4d4d55; }
+.road-boss { margin-top: 6px; }
+.road-boss-team { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.road-boss-team .rbt { background: #0d1016aa; border-radius: 10px; padding: 6px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: help; }
+@media (max-width: 600px) { .road-boss-team { grid-template-columns: repeat(3, 1fr); } .road-map { grid-template-columns: repeat(10, 1fr); } .road-records b { font-size: 15px; } }
+#roadSet.locked { opacity: .45; pointer-events: none; }
+.road-hist .pill.win { background: #3ddc8433; color: var(--good); }
+.road-hist .pill.loss { background: #ff5c5c33; color: var(--bad); }
+.road-win { font-size: 22px; font-weight: 800; color: var(--accent2); }
+.road-recruit h3, .road-over h3 { margin: 14px 0 8px; font-size: 15px; }
+.road-recruit [data-rpick] { cursor: pointer; }
+.road-recruit [data-rpick].dim { pointer-events: none; }
+.rc-set { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); color: var(--muted); display: grid; gap: 2px; }
+.road-over.won { background: linear-gradient(135deg, #3a2a0c, #171c26 60%); }
+/* Battler Card: 4 stat boxes now */
+.tc-stats { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 600px) { .tc-stats { grid-template-columns: repeat(2, 1fr); } }

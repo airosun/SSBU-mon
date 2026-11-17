@@ -101,6 +101,7 @@
         ${opts.edit ? '<button class="small" id="tcEdit">Edit card</button>' : ''}</div>
       ${p.bio ? `<div class="tc-bio">${esc(p.bio)}</div>` : ''}
       <div class="tc-stats"><div><span>vs players</span><b>${recordLine(p.record.pvp)}</b></div><div><span>All battles</span><b>${recordLine(p.record.total)}</b></div>
+        <div><span>Road to 50</span><b>${p.road && p.road.best ? (p.road.clears ? `Cleared ×${p.road.clears}` : `Floor ${p.road.best}`) : '<span class="muted small">not yet</span>'}</b></div>
         <div><span>Favorite fighters</span><b class="tc-top3">${p.top.length ? p.top.map(x => sprite(F(x.species), 'sm')).join('') : '<span class="muted small">none yet</span>'}</b></div></div>
       ${team ? `<div class="tc-team"><div class="muted small">Showcase team · <b>${esc(team.name)}</b></div><div class="tc-mons">${team.mons.map(m => `<div class="tc-mon" data-tiphtml="${esc(`<div class='tip-h'>${esc(F(m.species).name)}${m.item ? ' @ ' + esc(m.item) : ''}</div><div class='small'>${esc(renamed(m.ability))} · ${esc(m.nature)}</div><div>${m.moves.map(x => `<span class='chip'>${esc(x)}</span>`).join(' ')}</div>`)}">${sprite(F(m.species), 'sm', false, m.gender)}${m.item ? `<span class="tc-item">${esc(m.item)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
     </div>`;
