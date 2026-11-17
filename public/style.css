@@ -901,3 +901,25 @@ button.big { font-size: 17px; padding: 10px 26px; }
 .ag-mv.cur { border-color: var(--accent2); background: #2a2214; }
 .ag-mv.flag { border-color: #ff5c5c88; }
 .ag-def { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 2px; }
+
+/* v26: Substitute = sand bag. The fighter steps back and dims; the sand bag stands in its spot until
+   the substitute breaks or the fighter switches out. Uses translate/scale (not transform) so move
+   animations, which animate transform, still work on top. */
+.arena .sprwrap { position: relative; }
+.arena .subbag { position: absolute; left: 50%; bottom: 3%; height: 62%; width: auto; translate: -50% 0; z-index: 3; pointer-events: none;
+  transform-origin: 50% 100%; filter: drop-shadow(0 4px 3px #0008); }
+.arena .mon.you .subbag { bottom: -22%; height: 74%; }            /* your side: seen up close, base cut off like a back view */
+.arena .mon.foe.subbed .spr { translate: 22% -12%; scale: .78; opacity: .5; filter: brightness(.55) saturate(.6); }
+.arena .mon.you.subbed .spr { translate: -26% 4%; scale: .9; opacity: .5; filter: brightness(.55) saturate(.6); }
+.arena .mon.foe.sub-enter .spr { animation: subBackFoe .6s ease-out both; }
+.arena .mon.you.sub-enter .spr { animation: subBackYou .6s ease-out both; }
+.arena .mon.sub-enter .subbag { animation: bagDrop .6s .4s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes subBackFoe { from { translate: 0 0; scale: 1; opacity: 1; filter: none; } to { translate: 22% -12%; scale: .78; opacity: .5; filter: brightness(.55) saturate(.6); } }
+@keyframes subBackYou { from { translate: 0 0; scale: 1; opacity: 1; filter: none; } to { translate: -26% 4%; scale: .9; opacity: .5; filter: brightness(.55) saturate(.6); } }
+@keyframes bagDrop { 0% { translate: -50% -160%; opacity: 0; scale: 1 1; } 55% { translate: -50% 0; opacity: 1; scale: 1.12 .82; } 75% { scale: .95 1.06; } 100% { translate: -50% 0; opacity: 1; scale: 1 1; } }
+/* breaking: the bag bursts, the fighter steps back into place */
+.arena .mon.sub-break .subbag { animation: bagPoof .5s ease-out forwards; }
+.arena .mon.foe.sub-break .spr { animation: subBackFoe .55s .2s ease-in reverse both; }
+.arena .mon.you.sub-break .spr { animation: subBackYou .55s .2s ease-in reverse both; }
+@keyframes bagPoof { 0% { scale: 1; opacity: 1; filter: brightness(1); } 30% { scale: 1.15 .9; filter: brightness(2); } 100% { scale: 1.5; opacity: 0; filter: brightness(2) blur(4px); } }
+.fx.burst.subpoof { background: radial-gradient(circle, #ffffff 0%, #e8dccb 45%, transparent 70%); width: 140px; height: 140px; }
