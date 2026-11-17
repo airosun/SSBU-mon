@@ -4,6 +4,7 @@ const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
 const { Match } = require('./match.js');
+const { createRooms } = require('./rooms.js');
 const { validateEliteTeam } = require('./engine/validate.js');
 const { verify, genFighter } = require('./engine/roster.js');
 const AI = require('./engine/ai.js');
@@ -111,7 +112,7 @@ const MODES = ['standard', 'elite'], FORMATS = ['singles', 'doubles'];
 const LABEL = { standard: 'Standard', elite: 'Elite Smash', singles: 'Singles', doubles: 'Doubles' };
 const clean = s => String(s || '').replace(/[<>]/g, '').trim().slice(0, 24);
 const userList = () => [...users.values()].filter(u => u.sockets.size).map(u => ({ id: u.id, name: u.name, account: !!u.account, avatar: u.avatar || null, searching: u.searching ? u.searching.key : null }));
-const matchList = () => [...matches.entries()].filter(([, e]) => !e.match.ended).map(([id, e]) => ({ id, p1: e.match.players[0].name, p2: e.match.players[1].name, mode: e.match.mode, format: e.match.format, phase: e.match.phase, turn: e.match.battle ? e.match.battle.turn : 0 }));
+const matchList = () => [...matches.entries()].filter(([, e]) => !e.match.ended && !e.room)   // private-room battles aren't listed.map(([id, e]) => ({ id, p1: e.match.players[0].name, p2: e.match.players[1].name, mode: e.match.mode, format: e.match.format, phase: e.match.phase, turn: e.match.battle ? e.match.battle.turn : 0 }));
 function broadcastLobby() { io.to('lobby').emit('lobby', { users: userList(), matches: matchList() }); }
 function emitTo(clientId, ev, data) { const u = users.get(clientId); if (u) for (const sid of u.sockets) io.to(sid).emit(ev, data); }
 
@@ -122,16 +123,16 @@ function prepTeam(mode, team) {
 }
 
 // ---------------- matches ----------------
-function startMatch(mode, format, players) {
+function startMatch(mode, format, players, room = null) {
   const timed = players.every(p => p.clientId !== 'cpu');
   const id = Math.random().toString(36).slice(2, 10);
-  const entry = { players: players.map(p => p.clientId), spectators: new Set(), endedAt: null };
+  const entry = { players: players.map(p => p.clientId), spectators: new Set(), endedAt: null, room };
   matches.set(id, entry);
   for (const p of players) if (p.clientId !== 'cpu') { const u = users.get(p.clientId); if (u) { u.matches.add(id); u.searching = null; } }
   entry.match = new Match({
     id, mode, format,
     players: players.map(p => ({ id: p.clientId, name: p.name, cpu: p.clientId === 'cpu', team: p.team })),
-    onUpdate: () => onMatchUpdate(id), timed,
+    onUpdate: () => onMatchUpdate(id), timed, room,
   });
   onMatchUpdate(id);
   broadcastLobby();
@@ -146,8 +147,15 @@ function onMatchUpdate(id) {
     const userIds = e.players.map(cid => /^u:\d+$/.test(cid) ? +cid.slice(2) : null);
     const rec = e.match.record(userIds);
     if (rec) store.saveBattle(rec).catch(err => console.error('could not save battle', err.message));
+    if (e.room) rooms.matchEnded(e.room, id, e.match.result ?? null);
   }
 }
+// a user (all their open tabs) starts watching a match
+function spectateUser(matchId, clientId) {
+  const e = matches.get(matchId), u = users.get(clientId); if (!e || !u) return;
+  for (const sid of u.sockets) { e.spectators.add(sid); io.to(sid).emit('match', e.match.view(null)); }
+}
+const rooms = createRooms({ users, matches, startMatch, emitTo, spectate: spectateUser, checkMode, prepTeam });
 function cpuEliteTeam(format) {
   const pool = FIGHTERS.slice().sort(() => Math.random() - 0.5).slice(0, 6).map(f => genFighter(f));
   const builds = AI.buildTeam(pool, format === 'doubles');
@@ -166,6 +174,7 @@ setInterval(() => {
       if (u && !u.sockets.size && now - u.lastSeen > 180000) e.match.forfeit(i);
     });
   }
+  rooms.sweep();
 }, 15000);
 
 // ---------------- sockets ----------------
@@ -185,6 +194,7 @@ io.on('connection', socket => {
     socket.join('lobby');
     socket.emit('welcome', { id: me.id, name: me.name, account: acct && { id: acct.id, username: acct.username }, chat: lobbyChat.slice(-50), pass: await Pass.status(me.id).catch(() => null) });
     for (const mid of me.matches) { const e = matches.get(mid); if (e) socket.emit('match', e.match.view(e.players.indexOf(me.id))); }
+    rooms.reconnect(me.id); rooms.presenceChanged(me.id);
     broadcastLobby();
     helloDone();
   });
@@ -299,6 +309,12 @@ io.on('connection', socket => {
     reply(ack, { id });
   }));
 
+  // ----- private rooms -----
+  socket.on('room:create', need((opts, ack) => reply(ack, rooms.create(me.id, opts || {}))));
+  socket.on('room:join', need(({ code } = {}, ack) => reply(ack, rooms.join(me.id, code))));
+  socket.on('room:leave', need((_, ack) => { rooms.leave(me.id); reply(ack, { ok: true }); }));
+  socket.on('room:act', need(({ type, data } = {}, ack) => reply(ack, rooms.act(me.id, type, data || {}))));
+
   // ----- in a match -----
   socket.on('act', need(({ id, action }, ack) => {
     const e = matches.get(id); if (!e) return reply(ack, { error: 'Match not found.' });
@@ -317,6 +333,7 @@ io.on('connection', socket => {
   socket.on('rematch', need(({ id } = {}, ack) => {
     const e = matches.get(id); if (!e || !e.match.ended) return reply(ack, { error: 'That match is not over.' });
     const n = e.players.indexOf(me.id); if (n < 0) return reply(ack, { error: 'You were not in that match.' });
+    if (e.room) return reply(ack, { error: 'In a room, the next battle starts automatically.' });
     if (e.rematchId) return reply(ack, { id: e.rematchId });
     const m = e.match;
     const seat = i => ({ clientId: e.players[i], name: m.players[i].name, team: m.mode === 'elite' ? (e.players[i] === 'cpu' ? cpuEliteTeam(m.format) : m.players[i].team) : null });
@@ -341,6 +358,7 @@ io.on('connection', socket => {
     me.sockets.delete(socket.id); me.lastSeen = Date.now();
     for (const e of matches.values()) e.spectators.delete(socket.id);
     if (!me.sockets.size) { me.searching = null; for (const q of queues.values()) { const i = q.indexOf(me.id); if (i >= 0) q.splice(i, 1); } }
+    rooms.presenceChanged(me.id);
     broadcastLobby();
   });
 });

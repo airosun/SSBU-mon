@@ -21,7 +21,7 @@
     mode: load('ssbu-mode', 'standard'), format: load('ssbu-format', 'singles'),
     roster: load('ssbu-roster', []), elite: load('ssbu-elite', []), selElite: load('ssbu-sel-elite', 0),
     pass: null, passSel: new Set(), editElite: null, eliteSlot: 0, dexFilter: '',
-    draft: {}, builds: {}, lineups: {}, turn: {},
+    draft: {}, builds: {}, lineups: {}, turn: {}, room: null,
     account: null, dataVersion: 0, accountReady: false,
   };
   // Signed in: roster and Elite teams are saved to the account (any device). Guest: saved in this browser.
@@ -121,6 +121,9 @@
     S.me = { id: d.id, name: d.name }; if (!d.account) store('ssbu-name', d.name);
     if (d.chat) S.lobbyChat = d.chat; if (d.pass) S.pass = d.pass;
     if ('account' in d) onAccount(d.account || null);
+    // invite link: /?room=CODE joins that room (once per page load)
+    const inv = new URLSearchParams(location.search).get('room');
+    if (inv && !S.room && !S.triedInvite) { S.triedInvite = true; socket.emit('room:join', { code: inv }, r => { if (r && r.error) { toast(r.error, 5000); history.replaceState(null, '', '/'); } }); }
     $('#nameBtn').textContent = (S.account ? '● ' : '') + d.name; $('#nameBtn').title = S.account ? 'Your account' : 'Change your name or sign in'; $('#signInBtn').classList.toggle('hidden', !!S.account);
     render();
   });
@@ -145,15 +148,30 @@
   }
   socket.on('lobby', d => { S.lobby = d; if (S.tab === 'home') renderHome(); });
   socket.on('chat', ({ room, msg }) => { if (room === 'lobby') S.lobbyChat.push(msg); });
+  // private rooms (screen in rooms.js)
+  socket.on('room', r => {
+    if (r) r.nextAt = r.nextIn !== null ? Date.now() + r.nextIn : null;   // countdown in this browser's clock
+    const had = S.room; S.room = r;
+    if (!r && S.tab === 'room') S.tab = 'home';
+    if (r && !had && !S.matches[S.tab]) S.tab = 'room';
+    if (r) history.replaceState(null, '', '/?room=' + r.code); else if (/[?&]room=/.test(location.search)) history.replaceState(null, '', '/');
+    if (S.tab === 'room') SSBU.renderRoom(); else renderTabs();
+  });
+  socket.on('roomKicked', () => toast('The host removed you from the room.', 4000));
   socket.on('match', m => {
     const isNew = !S.matches[m.id];
+    // a new battle in your room: close the room's finished battles you only watched or already played
+    if (isNew && m.room) for (const id of [...S.open]) { const o = S.matches[id]; if (o && o.room === m.room && o.phase === 'ended') { S.open = S.open.filter(x => x !== id); delete S.matches[id]; if (S.tab === id) S.tab = 'room'; } }
     const prev = S.matches[m.id];
     S.matches[m.id] = m;
     if (!S.open.includes(m.id)) S.open.push(m.id);
     if (prev && prev.phase !== m.phase) { delete S.turn[m.id]; }
     if (prev && prev.battle && m.battle && prev.battle.state.turn !== m.battle.state.turn) delete S.turn[m.id];
     if (m.battle) SSBU.onBattlePayload(m, prev);
-    if (isNew && m.phase !== 'ended') { S.tab = m.id; S.searching = null; closeModal(); render(); return; }
+    // room spectators only jump to the battle if they're looking at the room (not mid-way through something else)
+    const jump = !(m.room && m.you === null) || S.tab === 'room' || S.matches[S.tab];
+    if (isNew && m.phase !== 'ended' && jump) { S.tab = m.id; S.searching = null; if (m.you !== null) closeModal(); render(); return; }
+    if (isNew) { S.unread[m.id] = true; renderTabs(); return; }
     if (S.tab === m.id) { if (!(m.battle && SSBU.isPlaying(m.id))) renderMatch(m.id); }
     else { S.unread[m.id] = true; renderTabs(); }
   });
@@ -249,6 +267,7 @@
   function renderTabs() {
     const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['dex', 'Fighterdex'], ['calc', 'Calc'], ['stats', 'Stats'], ['about', 'What is SSBU-mon?']];
     let h = tabs.map(([k, n]) => `<button class="tab ${S.tab === k ? 'active' : ''}" data-tab="${k}">${n}</button>`).join('');
+    if (S.room) h += `<button class="tab room-tab ${S.tab === 'room' ? 'active' : ''}" data-tab="room">🚪 Room ${esc(S.room.code)}</button>`;
     for (const id of S.open) {
       const m = S.matches[id]; if (!m) continue;
       h += `<button class="tab ${S.tab === id ? 'active' : ''}" data-tab="${id}">${S.unread[id] ? '<span class="dot"></span>' : ''}${m.replay ? '▶ ' : ''}${esc(m.players[0].name)} vs ${esc(m.players[1].name)}<span class="x" data-close="${id}">✕</span></button>`;
@@ -284,6 +303,7 @@
     else if (S.tab === 'calc') SSBU.renderCalc();
     else if (S.tab === 'stats') SSBU.renderStats();
     else if (S.tab === 'about') SSBU.renderAbout();
+    else if (S.tab === 'room' && S.room) SSBU.renderRoom();
     else if (S.matches[S.tab]) renderMatch(S.tab);
     else { S.tab = 'home'; renderHome(); }
   }
@@ -331,6 +351,7 @@
         </div>
         ${S.mode === 'elite' && !S.elite.some(eliteReady) ? `<p class="muted small" style="margin:10px 0 0">You need a 6-fighter Elite team. Roll the <a href="#" data-goto="pass">Fighter Pass</a> to build your roster, then build a team in <a href="#" data-goto="elite">Elite Teams</a>.</p>` : ''}
       </section>
+      ${SSBU.homeRoomHtml()}
       <section class="card">
         <h2>Online (${S.lobby.users.length})</h2>
         <div class="list">${others.length ? others.map(u => `<div class="list-item">${u.avatar ? SSBU.avatarSprite(u.avatar, 'xs') : ''}<span class="grow">${u.account ? `<a href="#" data-profile="${esc(u.name)}">${esc(u.name)}</a>` : esc(u.name)}</span>${u.searching ? `<span class="pill">${esc(label(...u.searching.split(':')))}</span>` : ''}<button class="small" data-challenge="${esc(u.id)}">Challenge</button></div>`).join('') : '<div class="muted">Nobody else is online. Share the link with a friend, or battle the CPU.</div>'}</div>
@@ -343,7 +364,7 @@
       </section>
       <section class="card span2" id="homeUsage">${SSBU.homeUsageHtml()}</section>
     </div>`;
-    SSBU.loadHomeUsage();
+    SSBU.loadHomeUsage(); SSBU.wireHomeRoom();
     const ab = $('[data-goto-about]'); if (ab) ab.onclick = e => { e.preventDefault(); S.tab = 'about'; render(); window.scrollTo(0, 0); };
     $$('[data-goto]').forEach(a => a.onclick = e => { e.preventDefault(); S.tab = a.dataset.goto; render(); });
     $$('[data-mode]').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; store('ssbu-mode', S.mode); renderHome(); });
@@ -714,7 +735,7 @@
   }
 
   // ---------- shared with battle.js ----------
-  window.SSBU = { $, $$, esc, S, F, typeChip, badge, sprite, gsym, act, socket, label, toast, modal, closeModal, load, store, render: () => render(), renderTabs: () => renderTabs(), fighterCard, statsOf, rosterById: u => rosterById(u), saveRoster: () => saveRoster(), renderElite: () => renderElite(), abilityInfo };
+  window.SSBU = { $, $$, esc, S, F, eliteSelect: id => eliteSelect(id), eliteTeamSets: i => eliteTeamSets(i), eliteReady: t => eliteReady(t), typeChip, badge, sprite, gsym, act, socket, label, toast, modal, closeModal, load, store, render: () => render(), renderTabs: () => renderTabs(), fighterCard, statsOf, rosterById: u => rosterById(u), saveRoster: () => saveRoster(), renderElite: () => renderElite(), abilityInfo };
 
   // ---------- boot ----------
   fetch('/api/dex').then(r => r.json()).then(d => {

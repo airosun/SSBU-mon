@@ -808,3 +808,30 @@ a.goto:hover { text-decoration: underline; }
 @media (max-width: 600px) { .bs-tile { width: 128px; } .bs-stage img { width: 112px; height: 84px; } }
 /* flyers on your side float just above the bottom edge instead of having their lower body cut */
 .arena .mon.you .sprite.battle.drawn.hover { transform: translateY(-6%); }
+
+/* v23: private rooms */
+.room-tab { border-color: #ffb02066; }
+.room-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.room-grid .span2 { grid-column: span 2; }
+@media (max-width: 860px) { .room-grid { grid-template-columns: 1fr; } .room-grid .span2 { grid-column: auto; } }
+.room-head { background: linear-gradient(135deg, #2a2214, #171c26 60%); }
+.room-code { font-size: 34px; font-weight: 800; letter-spacing: .18em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent2); line-height: 1.1; }
+.room-settings { margin-top: 10px; gap: 8px; }
+.room-settings select { min-width: 0; }
+.room-vs { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 18px; margin: 6px 0 2px; flex-wrap: wrap; text-align: center; }
+.room-vs .vs { color: var(--accent); font-weight: 800; font-size: 13px; text-transform: uppercase; }
+.room-member .rm-pos { width: 22px; text-align: center; font-weight: 700; color: var(--muted); }
+.room-member.me { background: #ffffff08; border-radius: 8px; }
+.room-member .icon { padding: 2px 7px; }
+.room-member .pill.st-battling { background: #ff4d4d33; color: #ffb3b3; }
+.room-member .pill.st-up-next { background: #ffb02033; color: var(--accent2); }
+.room-member .pill.st-in-line { background: #3ddc8422; color: var(--good); }
+.room-member .pill.st-offline, .room-member .pill.st-busy { opacity: .7; }
+.room-member .pill.st-needs-a-team { background: #ffcc4d22; color: var(--warn); }
+.room-team { margin-top: 12px; display: grid; gap: 6px; }
+.warn-text { color: var(--warn); }
+.rc-log { height: 220px; overflow-y: auto; background: var(--panel2); border-radius: 8px; padding: 8px 10px; font-size: 14px; display: flex; flex-direction: column; gap: 3px; }
+.rc-sys { color: var(--muted); font-size: 12px; font-style: italic; }
+.rc-msg b { color: var(--accent2); }
+.room-home h2 { margin-top: 0; }
+button.danger { border-color: var(--bad); color: var(--bad); }
