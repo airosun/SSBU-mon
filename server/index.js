@@ -112,7 +112,8 @@ const MODES = ['standard', 'elite'], FORMATS = ['singles', 'doubles'];
 const LABEL = { standard: 'Standard', elite: 'Elite Smash', singles: 'Singles', doubles: 'Doubles' };
 const clean = s => String(s || '').replace(/[<>]/g, '').trim().slice(0, 24);
 const userList = () => [...users.values()].filter(u => u.sockets.size).map(u => ({ id: u.id, name: u.name, account: !!u.account, avatar: u.avatar || null, searching: u.searching ? u.searching.key : null }));
-const matchList = () => [...matches.entries()].filter(([, e]) => !e.match.ended && !e.room)   // private-room battles aren't listed.map(([id, e]) => ({ id, p1: e.match.players[0].name, p2: e.match.players[1].name, mode: e.match.mode, format: e.match.format, phase: e.match.phase, turn: e.match.battle ? e.match.battle.turn : 0 }));
+// live matches for the lobby (private-room battles aren't listed)
+const matchList = () => [...matches.entries()].filter(([, e]) => !e.match.ended && !e.room).map(([id, e]) => ({ id, p1: e.match.players[0].name, p2: e.match.players[1].name, mode: e.match.mode, format: e.match.format, phase: e.match.phase, turn: e.match.battle ? e.match.battle.turn : 0 }));
 function broadcastLobby() { io.to('lobby').emit('lobby', { users: userList(), matches: matchList() }); }
 function emitTo(clientId, ev, data) { const u = users.get(clientId); if (u) for (const sid of u.sockets) io.to(sid).emit(ev, data); }
 
