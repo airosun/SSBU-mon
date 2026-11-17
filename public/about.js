@@ -87,6 +87,7 @@
           <li><b>Animations:</b> every move has its own animation, and you'll see popups for <i>Missed!</i>, <i>Crit!</i>, <i>Blocked!</i> and <i>Flinched!</i>. Use the <b>Anim</b> setting (normal, fast or off) or <b>Skip</b> to speed things up.</li>
           <li><b>Scouting:</b> hover an opposing fighter to see its base stats, its level 50 Speed range, its possible abilities and its Final Smash, plus any moves, ability or item it has already shown this battle.</li>
           <li><b>Winning:</b> knock out all of the opponent's fighters. You can also <b>Forfeit</b> at any time.</li>
+          <li>Every move has a battle animation. To see them all in one place, open the <a href="/animations">Move Animation Gallery</a>.</li>
         </ul>
       </section>
 

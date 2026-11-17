@@ -47,6 +47,7 @@ app.get('/healthz', (req, res) => res.send('ok'));
 // ---------- replays, stats, damage calc ----------
 const api = fn => (req, res) => Promise.resolve(fn(req, res)).catch(e => { console.error(req.path, e.message); res.status(500).json({ error: 'Something went wrong.' }); });
 app.get('/replay/:id', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
+app.get('/animations', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));   // move animation gallery
 app.get('/api/replay/:id', api(async (req, res) => {
   const b = await store.getBattle(String(req.params.id).slice(0, 20));
   if (!b) return res.status(404).json({ error: 'That replay does not exist.' });
