@@ -178,6 +178,7 @@
 
   function slotEl(side, pos) { return document.getElementById(`slot-${side}-${pos}`); }
   function sprEl(side, pos) { const s = document.getElementById(`mon-${side}-${pos}`); return s && s.querySelector('.spr'); }
+  function bagEl(side, pos) { const s = document.getElementById(`mon-${side}-${pos}`); return s && s.querySelector('.subbag'); }
   function centerOf(el, arena) {
     const a = arena.getBoundingClientRect(), r = el.getBoundingClientRect();
     return { x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height / 2 };
@@ -249,11 +250,29 @@
         if (a.dmg && s) { s.animate([{ opacity: 1 }, { opacity: .4 }, { opacity: 1 }], { duration: 300 }); return 380; }
         return 300;
       }
-      case 'sub': {
-        if (animate) { const s = sprEl(...a.m); if (s) fx(arena, 'ring sub', centerOf(s, arena)); }
-        return animate ? 350 : 0;
+      case 'sub': {   // the substitute took the hit: the sand bag shakes and flashes
+        if (!animate) return 0;
+        const bag = bagEl(...a.m);
+        if (bag) bag.animate([{ rotate: '0deg', filter: 'brightness(1)' }, { rotate: '-9deg', filter: 'brightness(1.8)' }, { rotate: '7deg', filter: 'brightness(1)' }, { rotate: '-4deg', filter: 'brightness(1.4)' }, { rotate: '0deg', filter: 'brightness(1)' }], { duration: 420 });
+        return 480;
       }
-      case 'subon': { if (mon && !mon.volatiles.includes('substitute')) mon.volatiles.push('substitute'); if (animate) redrawField(id); return animate ? 250 : 0; }
+      case 'subon': {   // the fighter steps back and dims; the sand bag drops into its spot
+        if (mon && !mon.volatiles.includes('substitute')) mon.volatiles.push('substitute');
+        if (!animate) return 0;
+        redrawField(id);
+        const el = document.getElementById(`mon-${a.m[0]}-${a.m[1]}`); if (el) el.classList.add('sub-enter');
+        return 1150;
+      }
+      case 'suboff': {   // the sand bag bursts and the fighter steps back into place
+        const done = () => { if (mon) mon.volatiles = mon.volatiles.filter(v => v !== 'substitute'); };
+        if (!animate) { done(); return 0; }
+        const el = document.getElementById(`mon-${a.m[0]}-${a.m[1]}`), bag = bagEl(...a.m);
+        if (!el || !bag) { done(); redrawField(id); return 0; }
+        const at = centerOf(bag, arena);
+        el.classList.add('sub-break'); fx(arena, 'burst subpoof', at);
+        done(); setTimeout(() => { if (el.isConnected) redrawField(id); }, 700);
+        return 750;
+      }
       case 'faint': {
         if (mon) { mon.fainted = true; mon.hpPct = 0; const t = vm.sides[a.m[0]].team.find(x => x.id === mon.id); if (t) t.fainted = true; }
         if (!animate) return 0;
@@ -327,7 +346,8 @@
     const md = (S.dex.moves && S.dex.moves[a.name]) || {};
     const W = arena.clientWidth, H = arena.clientHeight;
     const from = user ? centerOf(user, arena) : { x: W / 2, y: H / 2 };
-    const targets = (a.t || []).map(t => { const el = sprEl(...t); if (!el) return null; const p = centerOf(el, arena); return { x: p.x, y: p.y, el }; }).filter(Boolean);
+    // a fighter behind a substitute: the attack lands on the sand bag
+    const targets = (a.t || []).map(t => { const el = bagEl(...t) || sprEl(...t); if (!el) return null; const p = centerOf(el, arena); return { x: p.x, y: p.y, el }; }).filter(Boolean);
     const foeSide = a.u ? 1 - a.u[0] : 1;
     const foeSideCenters = [0, 1].map(pos => sprEl(foeSide, pos)).filter(Boolean).map(el => centerOf(el, arena));
     if (!foeSideCenters.length) foeSideCenters.push({ x: W - from.x, y: H - from.y });
@@ -366,7 +386,9 @@
       const pick = pickable ? `data-pick="${key}"` : '';
       const boosts = Object.entries(a.boosts || {}).map(([k, v]) => `<span class="chip ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v} ${BOOSTL[k]}</span>`).join('');
       const vols = (a.volatiles || []).map(v => `<span class="chip">${VOL[v] || v}</span>`).join('');
-      mons += `<div class="mon ${cls} p${pos} ${flags}" id="mon-${n}-${pos}" ${pick}><div class="sprwrap" ${tip}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe, a.gender)}</div>${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div></div>`;
+      // with a substitute up the fighter stands back, dimmed, and a sand bag takes its spot
+      const subbed = (a.volatiles || []).includes('substitute') && !a.fainted;
+      mons += `<div class="mon ${cls} p${pos} ${flags} ${subbed ? 'subbed' : ''}" id="mon-${n}-${pos}" ${pick}><div class="sprwrap" ${tip}><div class="spr">${sprite(F(a.id) || a, 'battle', !isFoe, a.gender)}</div>${subbed ? '<img class="subbag" src="/sprites/sand_bag.png" alt="Substitute">' : ''}${pickable ? '<span class="pick-hint">Tap to target</span>' : ''}</div></div>`;
       cards += `<div class="hpcard ${flags}" id="slot-${n}-${pos}" ${pick} ${tip}><div class="nm">${esc(a.name)} ${gsym(a.gender)} ${a.status ? `<span class="st st-${a.status}">${STATUSL[a.status]}</span>` : ''}<span class="grow"></span><span class="chips types">${(a.types || []).map(typeChip).join('')}</span></div>
           <div class="hpbar"><i style="width:${a.hpPct}%;background:${hpColor(a.hpPct)}"></i></div>
           <div class="hprow"><span class="hptext">${a.hp !== undefined && !(rec(m.id) || {}).playing ? `${a.hp}/${a.maxhp}` : a.hpPct + '%'}</span><span class="chips">${boosts}${vols}</span></div></div>`;

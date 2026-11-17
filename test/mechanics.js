@@ -41,6 +41,17 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok  ', 
     assert(stop && stop.a && stop.a.k === 'field' && stop.a.f.weather === '', 'rain end tagged');
   });
 
+  await test('substitute: both players see it up; breaking it is tagged for the sand bag', () => {
+    const b = battle([mk('mario', 'Leftovers', ['Substitute', 'Protect'])], [mk('kirby', 'Leftovers', ['Swords Dance', 'Double-Edge'])]);
+    b.choose(0, mv(0)); b.choose(1, mv(0));
+    for (const persp of [0, 1]) assert(b.publicState(persp).sides[0].active[0].volatiles.includes('substitute'), 'visible to player ' + persp);
+    assert(b.log.some(l => l.a && l.a.k === 'subon'));
+    for (let i = 0; i < 5 && !b.log.some(l => l.a && l.a.k === 'suboff'); i++) { b.choose(0, mv(1)); b.choose(1, mv(1)); }
+    const off = b.log.find(l => l.a && l.a.k === 'suboff');
+    assert(off && /substitute faded/.test(off.text), 'break tagged');
+    assert(!b.publicState(0).sides[0].active[0].volatiles.includes('substitute'));
+  });
+
   await test('roster signatures detect tampering', () => {
     const f = sign(genFighter('mario'));
     assert(verify(f));

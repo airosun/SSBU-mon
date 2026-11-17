@@ -97,6 +97,25 @@
     h += mon(foe, 1, 0) + (two ? mon(foe2, 1, 1) : '') + mon(you, 0, 0) + (two ? mon(ally, 0, 1) : '');
     return h;
   }
+  // Substitute in battle: the fighter steps back and a sand bag takes its place, takes a hit, then bursts
+  function subDemo(arena, side, after) {
+    const mon = document.getElementById(`ga-${side}-0`); const t = G.speed;
+    const at = ms => new Promise(r => setTimeout(r, ms * t));
+    (async () => {
+      await new Promise(r => setTimeout(r, after));
+      if (!mon.isConnected) return;
+      mon.querySelector('.sprwrap').insertAdjacentHTML('beforeend', '<img class="subbag" src="/sprites/sand_bag.png" alt="Substitute">');
+      mon.classList.add('subbed', 'sub-enter');
+      await at(1900); if (!mon.isConnected) return;
+      const bag = mon.querySelector('.subbag');
+      bag.animate([{ rotate: '0deg', filter: 'brightness(1)' }, { rotate: '-9deg', filter: 'brightness(1.8)' }, { rotate: '7deg', filter: 'brightness(1)' }, { rotate: '-4deg', filter: 'brightness(1.4)' }, { rotate: '0deg', filter: 'brightness(1)' }], { duration: 420 * t });
+      await at(1100); if (!mon.isConnected) return;
+      mon.classList.add('sub-break');
+      await at(750); if (!mon.isConnected) return;
+      bag.remove(); mon.classList.remove('subbed', 'sub-enter', 'sub-break');
+    })();
+    return after + 4800 * t;
+  }
   const sprAt = (side, pos) => { const s = document.getElementById(`ga-${side}-${pos}`); return s && s.querySelector('.spr'); };
   function centerOf(el, arena) { const a = arena.getBoundingClientRect(), r = el.getBoundingClientRect(); return { x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height / 2 }; }
 
@@ -119,6 +138,7 @@
     const foeSideCenters = [0, 1].map(p => sprAt(defSide, p)).filter(Boolean).map(el => centerOf(el, arena));
     user.parentElement.classList.add('acting'); setTimeout(() => user.parentElement.classList.remove('acting'), 700);
     const ms = window.MOVEFX.play({ arena, sp: G.speed, user, from, targets: tg, foeSideCenters, name: n, type: m.type, cat: m.cat, charge, flags: m, contact: !!m.contact, userLeft: from.x < W / 2 });
+    if (n === 'Substitute') return subDemo(arena, atkSide, (ms || 550) * G.speed);
     return (ms || 600) * G.speed;
   }
 

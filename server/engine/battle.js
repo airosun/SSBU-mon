@@ -1029,7 +1029,7 @@ class Battle {
       const d = Math.min(dmg, target.v.substitute);
       target.v.substitute -= d;
       this.add('dmg', `The substitute took damage for ${target.label}!`, { k: 'sub', m: this.P(target) });
-      if (target.v.substitute <= 0) { delete target.v.substitute; this.add('effect', `${target.label}'s substitute faded!`); }
+      if (target.v.substitute <= 0) { delete target.v.substitute; this.add('effect', `${target.label}'s substitute faded!`, { k: 'suboff', m: this.P(target) }); }
       return d;
     }
     if (ts.disguise && !target.once.disguise) { target.once.disguise = true; this.add('ability', `${target.label}'s ${target.ability} took the hit! Its mask fell off.`); return 0; }
