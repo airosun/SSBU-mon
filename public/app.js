@@ -17,7 +17,7 @@
 
   const S = {
     dex: null, byId: {}, me: { id: null, name: '' }, lobby: { users: [], matches: [] }, lobbyChat: [],
-    tab: 'home', matches: {}, open: [], unread: {}, searching: null, outgoing: null,
+    tab: location.pathname.startsWith('/animations') ? 'anims' : 'home', matches: {}, open: [], unread: {}, searching: null, outgoing: null,
     mode: load('ssbu-mode', 'standard'), format: load('ssbu-format', 'singles'),
     roster: load('ssbu-roster', []), elite: load('ssbu-elite', []), selElite: load('ssbu-sel-elite', 0),
     pass: null, passSel: new Set(), editElite: null, eliteSlot: 0, dexFilter: '',
@@ -267,6 +267,7 @@
   function renderTabs() {
     const tabs = [['home', 'Home'], ['pass', 'Fighter Pass'], ['elite', 'Elite Teams'], ['road', 'Road to 50'], ['dex', 'Fighterdex'], ['calc', 'Calc'], ['stats', 'Stats'], ['about', 'What is SSBU-mon?']];
     let h = tabs.map(([k, n]) => `<button class="tab ${S.tab === k ? 'active' : ''}" data-tab="${k}">${n}</button>`).join('');
+    if (S.tab === 'anims') h += `<button class="tab active" data-tab="anims">🎬 Animations</button>`;
     if (S.room) h += `<button class="tab room-tab ${S.tab === 'room' ? 'active' : ''}" data-tab="room">🚪 Room ${esc(S.room.code)}</button>`;
     for (const id of S.open) {
       const m = S.matches[id]; if (!m) continue;
@@ -305,6 +306,7 @@
     else if (S.tab === 'about') SSBU.renderAbout();
     else if (S.tab === 'room' && S.room) SSBU.renderRoom();
     else if (S.tab === 'road') SSBU.renderRoad();
+    else if (S.tab === 'anims') SSBU.renderAnims();
     else if (S.matches[S.tab]) renderMatch(S.tab);
     else { S.tab = 'home'; renderHome(); }
   }

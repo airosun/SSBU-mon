@@ -874,3 +874,30 @@ button.big { font-size: 17px; padding: 10px 26px; }
 /* Battler Card: 4 stat boxes now */
 .tc-stats { grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 600px) { .tc-stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* v25: Move Animation Gallery (/animations) */
+.ag { display: grid; gap: 16px; }
+.ag-main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 960px) { .ag-main { grid-template-columns: 1fr; } }
+.ag-stage-card { position: sticky; top: 70px; }
+@media (max-width: 960px) { .ag-stage-card { position: static; } }
+.ag-now { min-height: 26px; margin-bottom: 8px; display: flex; align-items: center; }
+.ag-now .cat, .ag-mv .cat { font-size: 11px; color: var(--muted); margin-left: 4px; }
+.ag-ctl { margin-top: 10px; gap: 8px; }
+.ag-opts { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.ag-opts label { display: flex; align-items: center; gap: 6px; }
+.ag-opts select { max-width: 160px; }
+.ag-note { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.ag-note textarea { width: 100%; resize: vertical; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
+.ag-chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.ag-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.ag-filters input[type=text], .ag-filters #agQ { flex: 1 1 160px; }
+.ag-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; max-height: 70vh; overflow-y: auto; padding-right: 4px; }
+@media (max-width: 960px) { .ag-list { max-height: 46vh; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
+.ag-list { position: relative; }
+.ag-mv { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 7px 9px; text-align: left; border-radius: 8px; }
+.ag-mv .ag-n { font-weight: 600; font-size: 14px; }
+.ag-mv .ag-i { display: flex; align-items: center; gap: 4px; }
+.ag-mv.cur { border-color: var(--accent2); background: #2a2214; }
+.ag-mv.flag { border-color: #ff5c5c88; }
+.ag-def { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 2px; }
